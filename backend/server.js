@@ -14,8 +14,23 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole);
 const patientHistoryRouter = require('./routes/patientHistory');
 
 // Middleware
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://medinestv1.vercel.app'
+];
+
 app.use(cors({
-    origin: '*'
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true
 }));
 app.use(express.json());
 app.use('/api/patient-history', patientHistoryRouter);
@@ -101,7 +116,10 @@ app.post('/api/secure-save', async (req, res) => {
 // ─── AI SUMMARY (OPENROUTER) ──────────────────────────────────
 app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     const { id } = req.params;
-    console.log(`🤖 [AI 1/4] Starting generation for Rx: ${id}`);
+    console.log(`\n-----------------------------------------`);
+    console.log(`🤖 [TRIGGER] AI Summary request for Rx: ${id}`);
+    console.log(`🌍 [ORIGIN] ${req.get('origin') || 'Unknown Origin'}`);
+    console.log(`-----------------------------------------`);
 
     try {
         // 1. Fetch Rx Data

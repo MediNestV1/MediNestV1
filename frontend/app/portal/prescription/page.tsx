@@ -146,7 +146,8 @@ export default function PrescriptionPage() {
 
         // --- NEW: Trigger AI Summary ---
         console.log('🤖 Triggering AI Summary...');
-        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+        fetch(`${apiUrl}/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
           .then(async r => {
             if (!r.ok) {
               const txt = await r.text();
