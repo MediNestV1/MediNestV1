@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase';
-import Image from 'next/image';
+import Sidebar from '@/components/Sidebar';
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { clinic, user, loading } = useClinic();
@@ -16,7 +16,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     if (!clinic) { router.push('/onboarding'); return; }
     if (clinic.status === 'pending') { router.push('/pending'); return; }
     if (clinic.status === 'suspended') { router.push('/auth'); return; }
-  }, [loading, user, clinic]);
+  }, [loading, user, clinic, router]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -26,10 +26,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="spinner" style={{ border: '3px solid #e2e8f0', borderTopColor: 'var(--teal)', width: 40, height: 40 }} />
-          <p style={{ marginTop: 16, color: 'var(--ink-l)', fontSize: 14 }}>Loading your clinic…</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <span className="spinner border-4 border-slate-200 border-t-cyan-600 w-12 h-12" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Initializing Console...</p>
         </div>
       </div>
     );
@@ -38,75 +38,50 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   if (!clinic || clinic.status !== 'active') return null;
 
   return (
-    <>
-      {/* ── Global Navigation Bar ── */}
-      <nav style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 200,
-        height: 52,
-        background: 'linear-gradient(135deg, #064e45 0%, #0a7c6e 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 20px',
-        boxShadow: '0 2px 16px rgba(10,124,110,.3)',
-      }}>
-        {/* Left: Logo + Clinic Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            overflow: 'hidden', background: 'rgba(255,255,255,0.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Image src="/assets/medinest_logo.png" alt="MediNest" width={28} height={28} style={{ objectFit: 'contain' }} />
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Sidebar - Desktop Only */}
+      <div className="hidden lg:block lg:w-64">
+        <Sidebar />
+      </div>
+
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-0">
+        {/* Modern Topbar */}
+        <header className="sticky top-0 z-40 h-16 bg-white/70 backdrop-blur-md border-b border-slate-100 px-6 flex items-center justify-between">
+          <div className="lg:hidden">
+             {/* Mobile Logo for Topbar */}
+             <span className="text-lg font-black text-cyan-600">MediNest</span>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '0.1px' }}>
-            {clinic?.name || 'MediNest'}
-          </span>
-        </div>
+          
+          <div className="hidden lg:block">
+             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+               Environment: <span className="text-emerald-600">Production</span>
+             </span>
+          </div>
 
-        {/* Right: User email + Sign Out */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {user?.email && (
-            <span style={{
-              fontSize: 12, color: 'rgba(255,255,255,0.6)',
-              maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {user.email}
-            </span>
-          )}
-          <button
-            onClick={handleSignOut}
-            style={{
-              background: 'rgba(255,255,255,0.12)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: 30,
-              padding: '6px 16px',
-              fontSize: 12,
-              fontWeight: 700,
-              color: '#fff',
-              cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif',
-              transition: 'background .2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            Sign Out
-          </button>
-        </div>
-      </nav>
+          <div className="flex items-center gap-6">
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-xs font-black text-slate-900 truncate max-w-[150px]">{user?.email}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Verified Doctor</span>
+            </div>
+            
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-100 rounded-xl text-xs font-black transition-all flex items-center gap-2 group"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-0.5 transition-transform">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign Out
+            </button>
+          </div>
+        </header>
 
-      {children}
-    </>
+        {/* Main Workspace Area */}
+        <main className="flex-1 overflow-x-hidden">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }
