@@ -106,4 +106,4 @@ router.get('/:patientId', async (req, res) => {
   res.json({ patient, visits, summary });
 });
 
-module.exports = router;
+module.exports = { router, generatePatientSummary };

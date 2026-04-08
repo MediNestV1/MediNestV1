@@ -155,7 +155,22 @@ export default function PrescriptionPage() {
         // --- NEW: Trigger AI Summary ---
         console.log('🤖 Triggering AI Summary...');
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
-        fetch(`${apiUrl}/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
+        
+        // Optimize: Send data directly so backend doesn't have to fetch from DB
+        const rxDataForAI = {
+          patient_id: patientId,
+          complaints: cc,
+          findings: findings,
+          medicines: meds,
+          advice: finalAdvice,
+          patients: { name: ptName }
+        };
+
+        fetch(`${apiUrl}/api/prescriptions/${pData.id}/ai-summary`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rxData: rxDataForAI })
+        })
           .then(async r => {
             if (!r.ok) {
               const txt = await r.text();
