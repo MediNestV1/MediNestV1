@@ -1,0 +1,88 @@
+.container {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--text-dark);
+}
+
+.snapshot {
+  background: var(--bg-alt);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.snapshot pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.pdfBtn {
+  background: var(--teal);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 30px;
+  transition: opacity 0.2s;
+}
+
+.pdfBtn:hover {
+  opacity: 0.9;
+}
+
+.sub {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 30px 0 16px;
+}
+
+.visitList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.visitItem {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.visitItem strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--teal);
+}
+
+.visitItem pre {
+  background: var(--bg-main);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+}
