@@ -1,0 +1,296 @@
+/* =============================================
+   MediNest Global Design Tokens
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;600;700&family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Brand Colors */
+  --teal: #0a7c6e;
+  --teal-d: #064e45;
+  --teal-mid: #0d9e8c;
+  --teal-l: #e6f4f2;
+  --teal-m: #c2e8e3;
+
+  /* Semantic */
+  --gold: #f59e0b;
+  --gold-l: #fdf3e3;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #92400e;
+  --blue: #2563eb;
+
+  /* Typography */
+  --ink: #1e293b;
+  --ink-m: #3b4a5e;
+  --ink-l: #64748b;
+
+  /* UI */
+  --border: #e2e8f0;
+  --bg: #f8fafc;
+  --white: #ffffff;
+  --card-shad: 0 2px 16px rgba(10,124,110,.09);
+  --radius: 12px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Shared Utilities ── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Topbar ── */
+.ssk-topbar {
+  background: linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%);
+  color: #fff;
+  padding: 0 20px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 3px 16px rgba(10,124,110,.25);
+}
+
+.topbar-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.85);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.1);
+  transition: .2s;
+}
+.topbar-back:hover { background: rgba(255,255,255,.2); }
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-logo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.topbar-spacer-right {
+  display: flex;
+  align-items: center;
+  min-width: 80px;
+  justify-content: flex-end;
+}
+
+.btn-signout {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: .2s;
+  font-family: 'Inter', sans-serif;
+}
+.btn-signout:hover { background: rgba(255,255,255,.25); }
+
+/* ── Premium Cards ── */
+.premium-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  transition: .25s;
+  cursor: pointer;
+}
+.premium-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--teal);
+  box-shadow: 0 12px 32px rgba(10,124,110,.15);
+}
+
+.p-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #fff;
+}
+
+.p-icon svg { width: 28px; height: 28px; }
+
+.grad-teal { background: linear-gradient(135deg, var(--teal), var(--teal-mid)); }
+.grad-blue { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+.grad-gold { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.grad-purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+.grad-pink { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+.grad-red { background: linear-gradient(135deg, #dc2626, #ef4444); }
+
+/* ── Grid ── */
+.grid-dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* ── Loading Spinner ── */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Buttons ── */
+.btn-primary {
+  padding: 13px 28px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-mid));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: .2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(10,124,110,.3);
+}
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  padding: 12px 24px;
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: .2s;
+}
+.btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── Form Fields ── */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-l);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 6px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  background: #f8fafc;
+  transition: .2s;
+  outline: none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--teal);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(10,124,110,.1);
+}
+
+/* ── Error / Success Boxes ── */
+.error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--danger);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.success-box h3 { color: var(--success); font-size: 16px; margin-bottom: 6px; }
+
+/* ── Status Badges ── */
+.badge-pending   { background: #fef9c3; color: #92400e; border: 1px solid #fde68a; }
+.badge-active    { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-suspended { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }

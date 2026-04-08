@@ -1,0 +1,75 @@
+/* Auth Page */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a7c6e 0%, #064e45 40%, #1e293b 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 20px 40px;
+  position: relative;
+}
+
+.backHome {
+  position: fixed; top: 20px; left: 20px;
+  display: flex; align-items: center; gap: 6px;
+  color: rgba(255,255,255,.8); font-size: 13px; font-weight: 600;
+  background: rgba(255,255,255,.1); padding: 8px 14px;
+  border-radius: 30px; border: 1px solid rgba(255,255,255,.2);
+  text-decoration: none; transition: .2s; z-index: 10;
+}
+.backHome:hover { background: rgba(255,255,255,.2); }
+
+.authCard {
+  background: #fff; border-radius: 24px;
+  width: 100%; max-width: 440px;
+  padding: 36px 36px 32px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+}
+
+.logoRow { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.logoCircle {
+  width: 64px; height: 64px; border-radius: 16px;
+  overflow: hidden; background: transparent; flex-shrink: 0;
+}
+.logoText h1 { font-size: 22px; font-weight: 900; color: var(--teal); }
+.logoText p { font-size: 12px; color: var(--ink-l); margin-top: 2px; }
+
+.tabs {
+  display: flex; background: #f1f5f9; border-radius: 12px;
+  padding: 4px; margin-bottom: 24px; gap: 4px;
+}
+.tab {
+  flex: 1; padding: 10px; border: none; border-radius: 9px;
+  background: transparent; font-size: 14px; font-weight: 600;
+  cursor: pointer; color: var(--ink-l); transition: .2s; font-family: 'Inter', sans-serif;
+}
+.tabActive { background: #fff; color: var(--teal); box-shadow: 0 1px 6px rgba(0,0,0,.1); }
+
+.formSection h2 { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--ink-l); margin-bottom: 20px; }
+
+.errorBox {
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: var(--danger); border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; font-weight: 600; margin-bottom: 14px;
+}
+
+.successBox {
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 14px;
+}
+.successBox h3 { color: var(--success); font-size: 16px; margin-bottom: 6px; }
+.successBox p { font-size: 13px; color: #4ade80; }
+
+.submitBtn { width: 100%; justify-content: center; margin-top: 4px; }
+
+.switchLink {
+  text-align: center; font-size: 13px; color: var(--ink-l); margin-top: 18px;
+}
+.switchLink button {
+  background: none; border: none; color: var(--teal); font-weight: 700;
+  cursor: pointer; font-size: 13px; padding: 0; font-family: 'Inter', sans-serif;
+}
+.switchLink button:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  .authCard { padding: 24px 20px; }
+}
