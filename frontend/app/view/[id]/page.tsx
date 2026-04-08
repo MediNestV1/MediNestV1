@@ -151,6 +151,21 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const meds = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
   const followUpDate = rx.advice?.match(/\[REVISIT DATE: (.*?)\]/)?.[1] || rx.valid_till;
 
+  // Helper to safely render AI medicine items (prevents React Error #31)
+  const formatAiMed = (m: any) => {
+    if (typeof m === 'string') return m;
+    if (typeof m === 'object' && m !== null) {
+      // Format medicine object: "Name - Dose (Instructions)"
+      const parts = [
+        m.name || m.medicine || '',
+        m.dose || m.dosage || '',
+        m.instructions || m.frequency || m.freq || m.duration || ''
+      ].filter(Boolean);
+      return parts.join(' - ');
+    }
+    return String(m);
+  };
+
   return (
     <div className={styles.container}>
       {/* 🧾 SECTION 1: Formal Prescription Paper (Always Top) */}
@@ -252,8 +267,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             <div className={styles.aiSection}>
               <h3>💊 Your Medicines:</h3>
               <ul className={styles.aiList}>
-                {rx.ai_summary.medicines?.map((m: string, i: number) => (
-                  <li key={i}>{m}</li>
+                {rx.ai_summary.medicines?.map((m: any, i: number) => (
+                  <li key={i}>{formatAiMed(m)}</li>
                 ))}
               </ul>
             </div>

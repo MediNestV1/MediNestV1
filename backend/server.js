@@ -166,7 +166,8 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         Follow-up: ${rx.valid_till || 'N/A'}
 
         Task: Generate a warm, comforting summary. Valid JSON ONLY.
-        Structure: greeting, visit_reason, explanation, medicines[], expectations, warning, lifestyle, follow_up`;
+        Structure: greeting, visit_reason, explanation, medicines[], expectations, warning, lifestyle, follow_up
+        CRITICAL: The "medicines" field MUST be an array of simple strings (e.g. ["Med A -> 1 tab daily"]). Do NOT return objects inside the medicines array.`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
