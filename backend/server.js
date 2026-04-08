@@ -13,6 +13,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const { router: patientHistoryRouter, generatePatientSummary } = require('./routes/patientHistory');
 
+// AI Request Deduplication Lock
+const activeAiRequests = new Map();
+
 // Middleware
 const allowedOrigins = [
     'http://localhost:3000',
@@ -117,6 +120,13 @@ app.post('/api/secure-save', async (req, res) => {
 app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     const { id } = req.params;
     const { rxData } = req.body; // Faster start if data sent from frontend
+
+    // Deduplication Lock (Avoid double-trigger from Doctor + Patient)
+    if (activeAiRequests.has(id)) {
+        console.log(`⏳ [LOCK] AI Summary already in progress for Rx: ${id}`);
+        return res.json({ success: true, message: 'Generation already in progress' });
+    }
+    activeAiRequests.set(id, Date.now());
 
     console.log(`\n-----------------------------------------`);
     console.log(`🤖 [TRIGGER] AI Summary request for Rx: ${id}`);
@@ -235,6 +245,8 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     } catch (err) {
         console.error(`❌ [AI ERROR] Rx ${id}:`, err.message);
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        activeAiRequests.delete(id);
     }
 });
 

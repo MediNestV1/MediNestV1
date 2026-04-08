@@ -42,7 +42,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchData(retryCount = 0) {
       const supabase = createClient();
       try {
         // 1. Fetch Prescription
@@ -52,8 +52,36 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           .eq('id', id)
           .single();
 
-        if (rxError) throw rxError;
+        if (rxError) {
+          if (retryCount < 3) {
+            console.log(`Rx not found, retrying in 2s... (Attempt ${retryCount + 1}/3)`);
+            setTimeout(() => fetchData(retryCount + 1), 2000);
+            return;
+          }
+          throw rxError;
+        }
+        
         setRx(rxData);
+
+        // --- SUB-TRIGGER: Hybrid AI Fallback ---
+        if (!rxData.ai_summary) {
+          console.log('🤖 Summary missing on view - triggering fallback AI...');
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://medinestv1.onrender.com';
+          const rxDataForAI = {
+            patient_id: rxData.patient_id,
+            complaints: rxData.complaints,
+            findings: rxData.findings,
+            medicines: typeof rxData.medicines === 'string' ? JSON.parse(rxData.medicines) : rxData.medicines,
+            advice: rxData.advice,
+            // Note: Patient name will be fetched in step 2
+          };
+
+          fetch(`${apiUrl}/api/prescriptions/${id}/ai-summary`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rxData: rxDataForAI })
+          }).catch(e => console.error('AI Fallback trigger failed:', e));
+        }
 
         // 2. Fetch Patient
         if (rxData.patient_id) {
@@ -86,9 +114,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
     fetchData();
 
-    // --- NEW: Polling for AI Summary ---
+    // --- Polling for AI Summary ---
     const intervalId = setInterval(async () => {
-      // We check if we have rx but NO summary yet
       if (id && !rx?.ai_summary) {
         const supabase = createClient();
         const { data } = await supabase.from('prescriptions').select('ai_summary').eq('id', id).single();
@@ -106,7 +133,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loader}></div>
-        <p>Fetching your digital prescription...</p>
+        <p>Fetching your digital prescription guide...</p>
       </div>
     );
   }
@@ -114,9 +141,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   if (error || !rx) {
     return (
       <div className={styles.errorContainer}>
-        <h1>Oops!</h1>
-        <p>{error || 'We couldn\'t find that prescription.'}</p>
-        <button onClick={() => window.location.reload()}>Try Again</button>
+        <h1>Hang Tight!</h1>
+        <p>We're finalizing your digital prescription. Please try again in a few seconds.</p>
+        <button onClick={() => window.location.reload()}>Refresh Page</button>
       </div>
     );
   }
@@ -126,7 +153,91 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   return (
     <div className={styles.container}>
-      {/* 🤖 NEW: AI Summary "First Page" Card */}
+      {/* 🧾 SECTION 1: Formal Prescription Paper (Always Top) */}
+      <div className={styles.paper}>
+        {/* Clinic Header */}
+        <header className={styles.header}>
+          <div className={styles.clinicHeader}>
+            <div className={styles.clinicInfo}>
+              <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
+              <p className={styles.tagline}>{clinic?.tagline || 'Your Health, Our Priority'}</p>
+              <div className={styles.clinicContact}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                <span>{clinic?.phone || 'Contact Info'}</span>
+              </div>
+            </div>
+            <div className={styles.headerLogo}>
+              <div className={styles.logoCircle}>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </div>
+            </div>
+            <div className={styles.doctorInfo}>
+              <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
+              <p className={styles.drQual}>MBBS, MD</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Patient Bar */}
+        <div className={styles.patientBar}>
+          <div className={styles.pItem}><strong>Patient:</strong> {patient?.name || 'N/A'}</div>
+          <div className={styles.pItem}><strong>Age/Sex:</strong> {patient?.age || 'N/A'} / {patient?.gender || 'N/A'}</div>
+          <div className={styles.pItem}><strong>Weight:</strong> {rx.weight || 'N/A'} kg</div>
+          <div className={styles.pItem}><strong>Date:</strong> {new Date(rx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+        </div>
+
+        {/* Clinical Section */}
+        <div className={styles.clinicalGrid}>
+          <div className={styles.clinicalLeft}>
+            <div className={styles.clinicalBlock}>
+              <h4>Chief Complaints</h4>
+              <p>{rx.complaints || 'None listed'}</p>
+            </div>
+            <div className={styles.clinicalBlock}>
+              <h4>Clinical Findings</h4>
+              <p>{rx.findings || 'None listed'}</p>
+            </div>
+          </div>
+          <div className={styles.clinicalRight}>
+            <div className={styles.rxSymbol}>℞</div>
+            <div className={styles.medsList}>
+              {meds.map((m: any, i: number) => (
+                <div key={i} className={styles.medItem}>
+                  <div className={styles.medName}>
+                    {i + 1}. <strong>{m.name}</strong> 
+                    <span className={styles.medDose}>{m.dosage || m.dose}</span>
+                  </div>
+                  {m.note && <div className={styles.medNote}>{m.note}</div>}
+                  <div className={styles.medSchedule}>
+                    {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.adviceBlock}>
+              <h4>Advice / Lifestyle</h4>
+              <p>{rx.advice || 'Follow as advised'}</p>
+            </div>
+
+            <div className={styles.footerRow}>
+              <div className={styles.followUpLine}>
+                <strong>Follow up:</strong> {followUpDate ? new Date(followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'As advised'}
+              </div>
+              <div className={styles.signature}>
+                <div className={styles.sigLine}></div>
+                <p>Doctor's Signature</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.divider}>
+        <span>AI SMART GUIDE</span>
+      </div>
+
+      {/* 🤖 SECTION 2: AI Summary Companion (Below Paper) */}
       {rx.ai_summary ? (
         <div className={styles.aiCard}>
           <div className={styles.aiBadge}>Doctor's AI Assistant Note</div>
@@ -165,7 +276,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
           <div className={styles.aiFooter}>
             <div className={styles.aiFollowUp}>{rx.ai_summary.follow_up}</div>
-            <div className={styles.aiScrollTip}>Scroll down for full formal prescription ↓</div>
           </div>
         </div>
       ) : (
@@ -175,128 +285,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           <p>Please wait a moment while I prepare a friendly summary of your prescription.</p>
         </div>
       )}
-
-      <div className={styles.paper}>
-        {/* Clinic Header */}
-        <header className={styles.header}>
-          <div className={styles.clinicHeader}>
-            <div className={styles.clinicInfo}>
-              <h1 className={styles.clinicName}>{clinic?.name || 'Sitapur Shishu Kendra'}</h1>
-              <p className={styles.tagline}>{clinic?.tagline || 'Health is Wealth'}</p>
-              <div className={styles.clinicContact}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                <span>{clinic?.phone || '+917380520394'}</span>
-              </div>
-            </div>
-            <div className={styles.headerLogo}>
-              <div className={styles.logoCircle}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              </div>
-            </div>
-            <div className={styles.doctorInfo}>
-              <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
-              <p className={styles.drQual}>MBBS, MD</p>
-            </div>
-          </div>
-        </header>
-
-        <section className={styles.patientBar}>
-          <div className={styles.meta}>
-            <span className={styles.label}>NAME:</span>
-            <span className={styles.value}>{patient?.name || 'Valued Patient'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>AGE/SEX:</span>
-            <span className={styles.value}>{patient?.age || '—'} / {patient?.gender?.[0] || '—'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>WT:</span>
-            <span className={styles.value}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>DATE:</span>
-            <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN')}</span>
-          </div>
-        </section>
-
-        {/* Main Body */}
-        <main className={styles.mainContent}>
-          <div className={styles.watermark}>Rx</div>
-          
-          <div className={styles.dualColumn}>
-            <div className={styles.leftCol}>
-              {rx.complaints && (
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>C/C (CHIEF COMPLAINTS)</h3>
-                  <p className={styles.text}>{rx.complaints}</p>
-                </div>
-              )}
-              {rx.findings && (
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>O/E & FINDINGS</h3>
-                  <p className={styles.text}>{rx.findings}</p>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.rightCol}>
-              <div className={styles.rxIcon}>Rx</div>
-              <div className={styles.medsList}>
-                {meds && meds.length > 0 ? (
-                  meds.map((m: any, idx: number) => (
-                    <div key={idx} className={styles.medItem}>
-                      <div className={styles.medHeader}>
-                        <strong>{m.type}. {m.name}</strong> <span>{m.dose}</span>
-                      </div>
-                      <div className={styles.medSchedule}>
-                        {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
-                      </div>
-                      {m.note && <div className={styles.medNote}>* {m.note}</div>}
-                    </div>
-                  ))
-                ) : (
-                  <p className={styles.empty}>No specific medicines prescribed.</p>
-                )}
-              </div>
-
-              {rx.advice && (
-                <div className={styles.adviceSection}>
-                  <h3 className={styles.sectionTitle}>Adv. (Advice/Instructions)</h3>
-                  <p className={styles.text}>{rx.advice.split('\n\n[')[0]}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-
-        {/* Follow-up Section */}
-        {followUpDate && (
-          <section className={styles.followUp}>
-            <div className={styles.followUpCard}>
-              <div className={styles.followUpLabel}>FOLLOW-UP VISIT</div>
-              <div className={styles.followUpValue}>
-                {new Date(followUpDate).toLocaleDateString('en-IN', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <div className={styles.contactInfo}>
-            <p>{clinic?.address || 'Clinic Address'}</p>
-            <p>Phone: {clinic?.phone || 'Contact Number'}</p>
-          </div>
-          <div className={styles.legal}>
-            Digital Prescription • Not for Medico-Legal use
-          </div>
-        </footer>
-      </div>
 
       <div className={styles.actions}>
         <button className={styles.printBtn} onClick={() => window.print()}>
