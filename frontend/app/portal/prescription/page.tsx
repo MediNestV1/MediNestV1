@@ -85,16 +85,24 @@ export default function PrescriptionPage() {
     if (!ptName) { alert('Please enter patient name.'); return; }
     if (!selectedDoctorObj) { alert('Please select a consulting doctor.'); return; }
 
+    // Sanitize and validate phone number (Must be exactly 10 digits for database constraint)
+    const cleanedPhone = ptPhone.replace(/\D/g, '').slice(-10);
+    if (cleanedPhone.length !== 10) {
+      alert('Invalid Phone Number: Please enter a 10-digit mobile number.');
+      return;
+    }
+
     setIsSaving(true);
     const supabase = createClient();
 
     try {
       let patientId: string;
+      // Use cleanedPhone for lookup and save
       const { data: existing, error: pError } = await supabase
         .from('patients')
         .select('id')
         .eq('name', ptName)
-        .eq('contact', ptPhone)
+        .eq('contact', cleanedPhone)
         .limit(1);
 
       if (pError) throw pError;
@@ -105,7 +113,7 @@ export default function PrescriptionPage() {
       } else {
         const { data: neu, error: cError } = await supabase
           .from('patients')
-          .insert([{ name: ptName, contact: ptPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .insert([{ name: ptName, contact: cleanedPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
           .select()
           .single();
         if (cError) throw cError;
@@ -182,8 +190,8 @@ export default function PrescriptionPage() {
       return;
     }
 
-    const rawPhone = ptPhone.replace(/\D/g, '');
-    let cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
+    const cleanedPhone = ptPhone.replace(/\D/g, '').slice(-10);
+    const cleanPhone = '91' + cleanedPhone;
 
     // Construct the public link
     const baseUrl = window.location.origin;
