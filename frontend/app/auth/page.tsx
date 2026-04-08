@@ -45,6 +45,7 @@ function AuthPageContent() {
   const [tab, setTab] = useState<Tab>(initialTab);
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const { refresh } = useClinic();
 
   // ── LOGIN STATE ──
   const [loginEmail, setLoginEmail] = useState('');
