@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import Image from 'next/image';
+import styles from './page.module.css';
 
 interface Medicine {
   id: string;
@@ -18,7 +19,7 @@ interface Medicine {
   note: string;
 }
 
-function PrescriptionPageContent() {
+export default function PrescriptionPage() {
   const { clinic, doctors } = useClinic();
   const [activeTab, setActiveTab] = useState<'info' | 'rx'>('info');
   const [isSaving, setIsSaving] = useState(false);
@@ -31,7 +32,7 @@ function PrescriptionPageContent() {
   const [ptSex, setPtSex] = useState('Male');
   const [ptWeight, setPtWeight] = useState('');
   const [doctor, setDoctor] = useState('');
-  const [followUp, setFollowUp] = useState('');
+  const [followUp, setFollowUp] = useState(''); // Stores Date string
 
   const [cc, setCc] = useState('');
   const [findings, setFindings] = useState('');
@@ -49,9 +50,15 @@ function PrescriptionPageContent() {
   const [mInst, setMInst] = useState('');
   const [mNote, setMNote] = useState('');
 
-  const commonMeds = ['Paracetamol 500mg', 'Amoxicillin 250mg', 'Cefixime 100mg', 'Cetirizine 5mg', 'ORS Sachet', 'Zinc Syrup'];
-  const commonCC = ['Fever', 'Cough', 'Cold', 'Loose Motion', 'Body Ache'];
-  
+  const commonMeds = [
+    'Paracetamol 250mg', 'Paracetamol 500mg', 'Amoxicillin 250mg', 'Cefixime 100mg',
+    'Azithromycin 250mg', 'Cetirizine 5mg', 'Montelulast 4mg', 'ORS Sachet', 'Zinc Syrup'
+  ];
+
+  const commonCC = ['Fever', 'Cough', 'Cold', 'Loose Motion', 'Vomiting', 'Body Ache', 'Weakness'];
+  const commonAdvice = ['Drink plenty of fluids', 'Rest for 2-3 days', 'Light diet', 'Monitor temperature', 'Follow-up if fever persists'];
+
+  // Current Doctor Data
   const selectedDoctorObj = doctors.find(d => d.name === doctor);
 
   const addMed = () => {
@@ -67,57 +74,150 @@ function PrescriptionPageContent() {
       instructions: mInst,
       note: mNote
     }]);
-    setMName(''); setMDose(''); setMNote(''); setMDurCustom('');
+    setMName('');
+    setMDose('');
+    setMNote('');
+    setMDurCustom('');
   };
 
-  const removeMed = (id: string) => setMeds(meds.filter(m => m.id !== id));
+  const removeMed = (id: string) => {
+    setMeds(meds.filter(m => m.id !== id));
+  };
 
   const handleSave = async () => {
     if (!ptName) { alert('Please enter patient name.'); return; }
     if (!selectedDoctorObj) { alert('Please select a consulting doctor.'); return; }
+
     setIsSaving(true);
     const supabase = createClient();
+
     try {
       let patientId: string;
-      const { data: existing } = await supabase.from('patients').select('id').eq('name', ptName).eq('contact', ptPhone).limit(1);
+      const { data: existing, error: pError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('name', ptName)
+        .eq('contact', ptPhone)
+        .limit(1);
+
+      if (pError) throw pError;
+
       if (existing && existing.length > 0) {
         patientId = existing[0].id;
         await supabase.from('patients').update({ age: ptAge, gender: ptSex, clinic_id: clinic?.id }).eq('id', patientId);
       } else {
-        const { data: neu, error: cError } = await supabase.from('patients').insert([{ name: ptName, contact: ptPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }]).select().single();
+        const { data: neu, error: cError } = await supabase
+          .from('patients')
+          .insert([{ name: ptName, contact: ptPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .select()
+          .single();
         if (cError) throw cError;
         patientId = neu.id;
       }
+
+      // Format follow-up date for display
       const displayFollowUp = followUp ? new Date(followUp).toLocaleDateString('en-IN') : '';
       const finalAdvice = displayFollowUp ? `${advice}\n\n[REVISIT DATE: ${displayFollowUp}]` : advice;
 
+      // Insert prescription and return share_id
       const { data: pData, error } = await supabase.from('prescriptions').insert([{
         patient_id: patientId,
         doctor_id: selectedDoctorObj.id,
         complaints: cc,
         findings: findings,
-        medicines: JSON.stringify(meds),
+        medicines: JSON.stringify(meds.map(m => ({
+          type: m.type,
+          name: m.name,
+          dose: m.dose,
+          freq: m.freq,
+          dur: m.duration,
+          inst: m.instructions,
+          note: m.note
+        }))),
         advice: finalAdvice,
         date: date,
         weight: ptWeight,
         clinic_id: clinic?.id,
         doctor_name: doctor || selectedDoctorObj?.name || 'Dr. Consultant'
       }]).select('id').single();
+
       if (error) throw error;
-      setSavedRxId(pData.id);
+
+      // Update local ID for use in sharing
+      if (pData?.id) {
+        setSavedRxId(pData.id);
+
+        // --- NEW: Trigger AI Summary ---
+        console.log('🤖 Triggering AI Summary...');
+        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
+          .then(async r => {
+            if (!r.ok) {
+              const txt = await r.text();
+              throw new Error(`Backend Error ${r.status}: ${txt.slice(0, 500)}`);
+            }
+            return r.json();
+          })
+          .then(data => {
+            console.log('✅ AI Summary Generated:', data);
+            alert('AI Summary is being generated in the background!');
+          })
+          .catch(err => {
+            console.error('❌ AI Summary Trigger Failed:', err);
+            // alert('AI Summary could not be generated: ' + err.message);
+          });
+      }
+
       alert('Prescription saved successfully!');
-    } catch (err: any) { alert('Error: ' + err.message); } finally { setIsSaving(false); }
+    } catch (err: any) {
+      console.error('Save error:', err);
+      alert('Error: ' + (err.message || 'Check database permissions.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const [savedRxId, setSavedRxId] = useState<string | null>(null);
 
   const shareWhatsApp = () => {
-    if (!savedRxId && !ptName) { alert('Please save first.'); return; }
+    if (!savedRxId && !ptName) {
+      alert('Please save the prescription first to generate a link.');
+      return;
+    }
+
     const rawPhone = ptPhone.replace(/\D/g, '');
     let cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
-    const shareUrl = `${window.location.origin}/view/${savedRxId}`;
-    const msg = `🏥 *${clinic?.name}*\nHello *${ptName}*,\nYour digital prescription is ready:\n🔗 ${shareUrl}`;
+
+    // Construct the public link
+    const baseUrl = window.location.origin;
+    const shareUrl = savedRxId ? `${baseUrl}/view/${savedRxId}` : '(Error: Save needed)';
+
+    const displayFollowUp = (followUp && !isNaN(new Date(followUp).getTime()))
+      ? new Date(followUp).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+      : 'As advised';
+
+    const msg = `🏥 *${clinic?.name || 'MediNest Clinic'}*\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `Hello *${ptName}*,\n\n` +
+      `Your digital prescription from *Dr. ${doctor || 'Medical Officer'}* is ready. You can view it here:\n` +
+      `🔗 ${shareUrl}\n\n` +
+      `📅 *Follow-up Date:* ${displayFollowUp}\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `_Thank you for your visit!_ 🙏`;
+
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const downloadImage = async () => {
+    if (!rxPaperRef.current) return;
+    const canvas = await html2canvas(rxPaperRef.current, { scale: 2 });
+    const link = document.createElement('a');
+    link.download = `Prescription_${ptName}_${date}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const downloadPDF = async () => {
@@ -125,235 +225,214 @@ function PrescriptionPageContent() {
     const canvas = await html2canvas(rxPaperRef.current, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.addImage(imgData, 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
-    pdf.save(`Rx_${ptName}.pdf`);
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Prescription_${ptName}_${date}.pdf`);
   };
 
-  const quickAdd = (setter: any, val: string) => setter((prev: string) => prev ? (prev.includes(val) ? prev : prev + ', ' + val) : val);
+  const quickAdd = (setter: any, val: string) => {
+    setter((prev: string) => prev ? (prev.includes(val) ? prev : prev + ', ' + val) : val);
+  };
 
   return (
-    <div className="min-h-screen mesh-gradient animate-fade-in pb-20">
-      <div className="max-w-7xl mx-auto p-4 lg:p-10">
-        <div className="flex flex-col lg:flex-row gap-10">
-          
-          {/* ── Form Panel ── */}
-          <div className="flex-1 space-y-8">
-            <div className="bg-white rounded-[2.5rem] shadow-premium p-8 lg:p-12 border border-slate-100">
-              <header className="mb-10">
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Create Prescription</h1>
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Precision Medical Console · v2.5</p>
-              </header>
+    <div className={styles.page}>
+      <TopBar title="Digital Prescription" backHref="/portal/doctor" />
 
-              <div className="flex p-1.5 bg-slate-50 rounded-2xl mb-10 overflow-hidden border border-slate-100">
-                <button onClick={() => setActiveTab('info')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'info' ? 'bg-white text-cyan-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>1. Patient Vitals</button>
-                <button onClick={() => setActiveTab('rx')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'rx' ? 'bg-white text-cyan-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>2. Medications</button>
-              </div>
-
-              {activeTab === 'info' ? (
-                <div className="space-y-8 animate-fade-in">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2 col-span-full">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Consulting Doctor</label>
-                      <select value={doctor} onChange={e => setDoctor(e.target.value)} className="input-medical !bg-slate-50">
-                        <option value="">Select Doctor...</option>
-                        {doctors.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Name</label>
-                       <input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Legal Name" className="input-medical" />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Number</label>
-                       <input type="tel" value={ptPhone} onChange={e => setPtPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" className="input-medical" />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Visit Date</label>
-                       <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input-medical" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 col-span-full">
-                      <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Age</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} className="input-medical text-center" /></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)} className="input-medical"><option>Male</option><option>Female</option><option>Other</option></select></div>
-                      <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} className="input-medical text-center" /></div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                     <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Chief Complaints</label>
-                     <div className="flex flex-wrap gap-2 mb-2">
-                       {commonCC.map(t => <button key={t} onClick={() => quickAdd(setCc, t)} className="px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 text-slate-600 hover:text-cyan-700 rounded-full text-[10px] font-black tracking-tight transition-colors border border-slate-200">{t}</button>)}
-                     </div>
-                     <textarea rows={2} value={cc} onChange={e => setCc(e.target.value)} className="input-medical min-h-[100px]" placeholder="Patient's primary symptoms..." />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Final Diagnosis</label>
-                    <textarea rows={2} value={findings} onChange={e => setFindings(e.target.value)} className="input-medical" placeholder="Professional clinical findings..." />
-                  </div>
-                  
-                  <button onClick={() => setActiveTab('rx')} className="btn-medical w-full justify-between h-14 !rounded-2xl">
-                    <span>Continue to Medications</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-8 animate-fade-in">
-                  <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="flex gap-2">
-                          <select value={mType} onChange={e => setMType(e.target.value)} className="input-medical !w-24 px-1 text-center font-bold !bg-white">
-                             <option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option>
-                          </select>
-                          <input list="med-list" value={mName} onChange={e => setMName(e.target.value)} placeholder="Medicine name" className="input-medical flex-1 !bg-white" />
-                          <datalist id="med-list">{commonMeds.map(m => <option key={m} value={m} />)}</datalist>
-                       </div>
-                       <input type="text" value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose (e.g. 500mg)" className="input-medical !bg-white" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                       <select value={mFreq} onChange={e => setMFreq(e.target.value)} className="input-medical !bg-white"><option value="">Freq</option><option>1-0-0</option><option>0-1-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
-                       <select value={mDur} onChange={e => setMDur(e.target.value)} className="input-medical !bg-white"><option value="">Dur</option><option>3 Days</option><option>5 Days</option><option>1 Week</option><option>1 Month</option><option>Custom...</option></select>
-                       <select value={mInst} onChange={e => setMInst(e.target.value)} className="input-medical !bg-white"><option value="">Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
-                    </div>
-                    <button onClick={addMed} className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-xs tracking-widest uppercase hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">+ Add to Prescription</button>
-                  </div>
-
-                  {meds.length > 0 && (
-                    <div className="space-y-3">
-                       {meds.map(m => (
-                         <div key={m.id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-cyan-200 transition-colors group">
-                           <div>
-                              <p className="font-black text-slate-900">{m.type}. {m.name} <span className="text-cyan-600 ml-1">{m.dose}</span></p>
-                              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{[m.freq, m.duration, m.instructions].filter(Boolean).join(' • ')}</p>
-                           </div>
-                           <button onClick={() => removeMed(m.id)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                           </button>
-                         </div>
-                       ))}
-                    </div>
-                  )}
-
-                  <div className="space-y-8 pt-8 border-t border-slate-100">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">General Advice</label>
-                        <textarea value={advice} onChange={e => setAdvice(e.target.value)} className="input-medical min-h-[80px]" placeholder="Rest, diet settings..." />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 tracking-widest uppercase ml-1">Specific Follow-up Date</label>
-                        <input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} className="input-medical" />
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                     <button onClick={handleSave} className="flex flex-col items-center justify-center p-4 bg-cyan-600 text-white rounded-3xl shadow-lg shadow-cyan-200 hover:bg-cyan-700 transition-all gap-2 group">
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M17,3H5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V7L17,3M12,19A3,3 0 1,1 12,13A3,3 0 1,1 12,19M15,9H5V5H15V9Z" /></svg>
-                        <span className="text-[9px] font-black uppercase tracking-widest">Save Rx</span>
-                     </button>
-                     <button onClick={downloadPDF} className="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-3xl hover:border-cyan-300 transition-all gap-2 group">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-slate-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">PDF</span>
-                     </button>
-                     <button onClick={shareWhatsApp} className="flex flex-col items-center justify-center p-4 bg-emerald-500 text-white rounded-3xl shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all gap-2 group">
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12.04,2C6.58,2,2.13,6.45,2.13,11.91c0,1.75,0.45,3.45,1.32,4.95L2,22l5.25-1.38c1.45,0.79,3.08,1.21,4.74,1.21c5.44,0,9.89-4.45,9.89-9.91C21.89,6.45,17.5,2,12.04,2z" /></svg>
-                        <span className="text-[9px] font-black uppercase tracking-widest">WhatsApp</span>
-                     </button>
-                     <button onClick={() => window.print()} className="flex flex-col items-center justify-center p-4 bg-slate-900 text-white rounded-3xl shadow-lg hover:bg-black transition-all gap-2 group">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                        <span className="text-[9px] font-black uppercase tracking-widest">Print</span>
-                     </button>
-                  </div>
-                </div>
-              )}
+      <main className={styles.main}>
+        <div className={styles.grid}>
+          {/* Form Side */}
+          <div className={styles.formPanel}>
+            <div className={styles.tabs}>
+              <button className={`${styles.tab} ${activeTab === 'info' ? styles.tabActive : ''}`} onClick={() => setActiveTab('info')}>1. Patient & Vitals</button>
+              <button className={`${styles.tab} ${activeTab === 'rx' ? styles.tabActive : ''}`} onClick={() => setActiveTab('rx')}>2. Medicines & Advice</button>
             </div>
-          </div>
 
-          {/* ── Preview Panel ── */}
-          <div className="hidden xl:block w-[450px]">
-            <div className="sticky top-24 bg-white rounded-[2.5rem] shadow-premium p-10 border border-slate-100 overflow-hidden" ref={rxPaperRef}>
-               {/* Rx Watermark */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[180px] font-black text-slate-50/50 pointer-events-none select-none z-0">Rx</div>
-               
-               <div className="relative z-10 space-y-10">
-                  {/* Rx Header */}
-                  <header className="flex justify-between items-start border-b-4 border-cyan-600 pb-8">
-                     <div className="space-y-1">
-                        <p className="text-xl font-black text-slate-900 tracking-tight">{doctor ? `Dr. ${doctor}` : 'Consulting Doctor'}</p>
-                        <p className="text-[10px] font-black text-cyan-600 uppercase tracking-widest">{selectedDoctorObj?.qualification || 'Medical Specialist'}</p>
-                        <p className="text-[9px] font-bold text-slate-400">{selectedDoctorObj?.specialty || 'MediNest Partner'}</p>
-                     </div>
-                     <div className="text-right space-y-1">
-                        <p className="text-md font-black text-slate-900 uppercase tracking-tighter">{clinic?.name}</p>
-                        <p className="text-[9px] font-bold text-slate-500 truncate max-w-[150px]">{clinic?.address || 'Clinic Location'}</p>
-                        <p className="text-[10px] font-black text-slate-400">P: {clinic?.phone || '000-111-2222'}</p>
-                     </div>
-                  </header>
-
-                  {/* Patient Info Bar */}
-                  <div className="bg-slate-50/80 p-5 rounded-2xl grid grid-cols-2 gap-y-4 gap-x-8 text-[11px] font-black text-slate-600 border border-slate-100">
-                     <div className="truncate">NAME: <span className="text-slate-900 uppercase ml-1">{ptName || '________________'}</span></div>
-                     <div className="text-right">DATE: <span className="text-slate-900 ml-1">{new Date(date).toLocaleDateString('en-IN')}</span></div>
-                     <div>AGE/SEX: <span className="text-slate-900 uppercase ml-1">{ptAge || '--'} / {ptSex[0]}</span></div>
-                     <div className="text-right">WT: <span className="text-slate-900 ml-1">{ptWeight ? `${ptWeight}Kg` : '--'}</span></div>
+            {activeTab === 'info' && (
+              <div className={styles.tabContent}>
+                <div className={styles.panelBlock}>
+                  <h3 className={styles.blockTitle}>Doctor & Patient Details</h3>
+                  <div className="field">
+                    <label>Consulting Doctor</label>
+                    <select value={doctor} onChange={e => setDoctor(e.target.value)}>
+                      <option value="">Select Doctor...</option>
+                      {doctors.map(d => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
                   </div>
-
-                  {/* Rx Body */}
-                  <div className="min-h-[400px] py-10">
-                     <div className="text-5xl font-black text-cyan-600 mb-8 select-none">Rx</div>
-                     <div className="space-y-6">
-                        {meds.map(m => (
-                          <div key={m.id} className="space-y-1">
-                             <p className="text-sm font-black text-slate-900 leading-tight">{m.type}. {m.name} <span className="text-cyan-600 ml-1">{m.dose}</span></p>
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{[m.freq, m.duration, m.instructions].filter(Boolean).join(' • ')}</p>
-                             {m.note && <p className="text-[9px] font-medium text-slate-400 italic">* {m.note}</p>}
-                          </div>
-                        ))}
-                        {meds.length === 0 && <p className="text-slate-300 font-bold italic text-sm">Medications will appear here...</p>}
-                     </div>
-                     
-                     {(cc || findings) && (
-                       <div className="pt-10 space-y-4">
-                          {cc && <p className="text-[10px] font-bold text-slate-400 leading-relaxed"><b className="text-slate-600 uppercase tracking-widest mr-2">C/C:</b> {cc}</p>}
-                          {findings && <p className="text-[10px] font-bold text-slate-400 leading-relaxed"><b className="text-slate-600 uppercase tracking-widest mr-2">Findings:</b> {findings}</p>}
-                       </div>
-                     )}
+                  <div className="field"><label>Patient Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Name" /></div>
+                  <div className={styles.row2}>
+                      <div className="field"><label>Phone</label><input type="tel" value={ptPhone} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setPtPhone(v); }} placeholder="10-digit number" maxLength={10} inputMode="numeric" /></div>
+                    <div className="field"><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
                   </div>
+                  <div className={styles.row3}>
+                    <div className="field"><label>Age</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Age" /></div>
+                    <div className="field"><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div className="field"><label>Weight</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Kg" /></div>
+                  </div>
+                </div>
+                <div className={styles.panelBlock}>
+                  <h3 className={styles.blockTitle}>Clinical Notes</h3>
+                  <div className="field">
+                    <label>Chief Complaints</label>
+                    <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
+                    <textarea rows={3} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
+                  </div>
+                  <div className="field"><label>Diagnosis</label><textarea rows={3} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Findings..." /></div>
+                </div>
+                <button className="btn-primary" onClick={() => setActiveTab('rx')} style={{ width: '100%', justifyContent: 'center' }}>Next: Medicines →</button>
+              </div>
+            )}
 
-                  {/* Footer */}
-                  <footer className="pt-8 border-t border-slate-100 space-y-6">
-                     {advice && (
-                       <div className="p-4 bg-cyan-50/30 rounded-xl border border-cyan-100">
-                          <p className="text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1">Doctor's Advice</p>
-                          <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic">{advice}</p>
-                       </div>
-                     )}
-                     
-                     <div className="flex justify-between items-end">
-                        {followUp && (
-                          <div className="space-y-1">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Proposed Follow-Up</p>
-                             <p className="text-sm font-black text-cyan-600">{new Date(followUp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            {activeTab === 'rx' && (
+              <div className={styles.tabContent}>
+                <div className={styles.panelBlock}>
+                  <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
+                  <div className={styles.rowMm}>
+                    <select className={styles.mType} value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
+                    <input list="med-suggestions" type="text" className={styles.mName} value={mName} onChange={e => setMName(e.target.value)} placeholder="Medicine Name" />
+                    <datalist id="med-suggestions">{commonMeds.map(m => <option key={m} value={m} />)}</datalist>
+                    <input type="text" className={styles.mDose} value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose" />
+                  </div>
+                    <div className={styles.row3} style={{ marginTop: 12 }}>
+                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="">— Freq —</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <select value={mDur} onChange={e => { setMDur(e.target.value); if (e.target.value !== 'Custom...') setMDurCustom(''); }}>
+                          <option value="">— Duration —</option>
+                          <option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option>
+                          <option value="Custom...">Custom...</option>
+                        </select>
+                        {mDur === 'Custom...' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              type="text"
+                              value={mDurCustom}
+                              onChange={e => setMDurCustom(e.target.value)}
+                              placeholder="e.g. 3 Weeks"
+                              style={{ flex: 1, padding: '10px 12px', border: '1.5px solid var(--teal)', borderRadius: 10, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setMDur(''); setMDurCustom(''); }}
+                              style={{ background: '#fee2e2', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#dc2626', fontWeight: 700 }}
+                              title="Clear custom duration"
+                            >×</button>
                           </div>
                         )}
-                        <div className="text-right">
-                           <div className="w-24 h-1 border-b-2 border-slate-900 ml-auto mb-2" />
-                           <p className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Medical Signature</p>
-                        </div>
-                     </div>
-                  </footer>
-               </div>
-            </div>
+                      </div>
+                      <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="">— Timing —</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                    </div>
+                  <div className="field" style={{ marginTop: 12 }}><label>Instructions</label><input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="e.g. Take with warm water" /></div>
+                  <button className={styles.btnAddItem} onClick={addMed}>+ Add to Rx</button>
+                  {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{[m.freq, m.duration, m.instructions].filter(Boolean).join(' × ')}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
+                </div>
+                <div className={styles.panelBlock}>
+                  <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
+                  <div className="field"><textarea rows={2} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice..." /></div>
+                  <div className="field"><label>Specific Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
+                </div>
+                <div className={styles.exportRow}>
+                  <button className={styles.btnEx} onClick={handleSave} title="Save to Database"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M17,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V7L17,3M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M15,9H5V5H15V9Z" /></svg></button>
+                  <button className={styles.btnEx} onClick={downloadPDF} title="Download PDF"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M14,2L20,8V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2H14M18,20V9H13V4H6V20H18M10,18V12H12V18H10M13,18V12H15V18H13M16,18V12H18V18H16Z" /></svg></button>
+                  <button className={styles.btnEx} onClick={downloadImage} title="Save Image"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M5,5H19V19H5V5Z" /></svg></button>
+                  <button className={styles.btnEx} onClick={shareWhatsApp} title="WhatsApp Share" style={{ background: '#25d366' }}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M12.04,2C6.58,2,2.13,6.45,2.13,11.91c0,1.75,0.45,3.45,1.32,4.95L2,22l5.25-1.38c1.45,0.79,3.08,1.21,4.74,1.21c5.44,0,9.89-4.45,9.89-9.91C21.89,6.45,17.5,2,12.04,2z M16.59,16.27c-0.27,0.76-1.58,1.39-2.16,1.47c-0.58,0.08-1.13,0.01-1.78-0.2c-0.43-0.14-1.01-0.34-1.74-0.66c-3.1-1.36-5.11-4.52-5.26-4.73c-0.15-0.21-1.25-1.63-1.25-3.11c0-1.48,0.73-2.21,1-2.52c0.27-0.3,0.6-0.38,0.79-0.38c0.19,0,0.38,0,0.54,0.01c0.17,0.01,0.39-0.06,0.61,0.46c0.23,0.54,0.79,1.91,0.85,2.04c0.06,0.13,0.11,0.28,0.02,0.46c-0.08,0.18-0.13,0.29-0.26,0.44c-0.13,0.15-0.27,0.34-0.39,0.46c-0.13,0.13-0.28,0.28-0.12,0.54c0.16,0.27,0.7,1.15,1.49,1.85c1.02,0.91,1.88,1.2,2.16,1.32c0.28,0.11,0.44,0.1,0.61-0.09c0.17-0.19,0.73-0.85,0.93-1.14c0.2-0.29,0.39-0.24,0.66-0.15c0.27,0.09,1.7,0.8,2,0.94c0.3,0.14,0.5,0.22,0.57,0.34C17.09,14.88,16.86,15.51,16.59,16.27z" /></svg></button>
+                  <button className={styles.btnEx} onClick={() => window.print()} title="Print"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" /></svg></button>
+                </div>
+              </div>
+            )}
           </div>
 
-        </div>
-      </div>
-    </div>
-  );
-}
+          {/* Preview Side - Enhanced Professional Template */}
+          <div className={styles.previewPanel}>
+            <div className={styles.rxCard} ref={rxPaperRef} id="rx-preview">
+              {/* 1. Header with Qualifications */}
+              <div className={styles.rxHeader}>
+                <div className={styles.headerColumn}>
+                  <div className={styles.drName}>{doctor ? `Dr. ${doctor}` : 'Dr. Consultant Name'}</div>
+                  <div className={styles.drQual}>{selectedDoctorObj?.qualification || 'M.B.B.S., M.D.'}</div>
+                  <div className={styles.drSmall}>{selectedDoctorObj?.specialty || 'General Consultant'}</div>
+                </div>
+                <div className={styles.headerLogo}>
+                  <div className={styles.logoCircle}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg></div>
+                </div>
+                <div className={styles.headerColumn} style={{ textAlign: 'right' }}>
+                  <div className={styles.hospName}>{clinic?.name || 'HOSPITAL NAME'}</div>
+                  <div className={styles.hospSlogan}>{clinic?.tagline || 'Advanced Healthcare Solutions'}</div>
+                  <div className={styles.drSmall} style={{ marginTop: 8, fontSize: '14px', fontWeight: '800' }}>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="22" style={{ verticalAlign: 'middle', marginRight: 6, color: '#0d6e56' }}><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
+                    {clinic?.phone || '000-111-2222'}
+                  </div>
+                </div>
+              </div>
 
-export default function PrescriptionPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><span className="spinner border-cyan-600 !border-t-transparent" /></div>}>
-      <PrescriptionPageContent />
-    </Suspense>
+              {/* 2. Condensed Patient Info Bar */}
+              <div className={styles.rxInfoBar}>
+                <div className={styles.infoGroup}><b>NAME:</b> {ptName || '________________'}</div>
+                <div className={styles.infoGroup}><b>AGE/SEX:</b> {ptAge || '___'} / {ptSex[0]}</div>
+                <div className={styles.infoGroup}><b>WT:</b> {ptWeight ? `${ptWeight}Kg` : '____'}</div>
+                <div className={styles.infoGroup}><b>DATE:</b> {new Date(date).toLocaleDateString('en-IN')}</div>
+              </div>
+
+              {/* 3. Main Body */}
+              <div className={styles.rxMainBody}>
+                <div className={styles.rxWatermark}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg></div>
+
+                <div className={styles.bodySplit}>
+                  <div className={styles.bodyLeftColumn}>
+                    <div className={styles.vitalsSection}>
+                      {cc && <div className={styles.notesBlock}><b>C/C (Chief Complaints):</b><br />{cc}</div>}
+                      {findings && <div className={styles.notesBlock}><b>O/E & Findings:</b><br />{findings}</div>}
+                    </div>
+                  </div>
+                  <div className={styles.bodyRightColumn}>
+                    <div className={styles.rxBigLogo}>Rx</div>
+                    <div className={styles.medsContent}>
+                      {meds.map((m) => (
+                        <div key={m.id} className={styles.previewMedItem}>
+                          <div className={styles.pmHeadline}><b>{m.type}. {m.name}</b> {m.dose}</div>
+                          <div className={styles.pmDetails}>{[m.freq, m.duration, m.instructions].filter(Boolean).join(' ━━ ')}</div>
+                          {m.note && <div className={styles.pmNote}>* {m.note}</div>}
+                        </div>
+                      ))}
+                      {meds.length === 0 && <div className={styles.emptyRx}>Prescribe medicines...</div>}
+                    </div>
+                    {advice && <div className={styles.previewAdvice}><b>Advice:</b><br />{advice}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Revamped Follow-up & Address Section */}
+              <div className={styles.rxFooterSection}>
+                {followUp && (
+                  <div className={styles.revisitBox}>
+                    <div className={styles.revisitLabel}>REVISIT / FOLLOW-UP</div>
+                    <div className={styles.revisitDate}>
+                      {new Date(followUp).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  </div>
+                )}
+
+                <div className={styles.addressLine}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="28" style={{ color: '#0d6e56' }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
+                  <div className={styles.addressText}>
+                    {clinic?.address || 'Clinic Address, City Location'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Clean Baseline Footer */}
+              <div className={styles.rxFooterAesthetic}>
+                <div className={styles.geoRight}></div>
+                <div className={styles.bottomBar}>
+                  <div className={styles.footerLegal}>Digital Document · Child Healthcare Expert · MediNest EHR</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
