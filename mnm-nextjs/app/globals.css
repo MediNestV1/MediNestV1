@@ -51,6 +51,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* EXPERIMENTAL: BLACK SCREEN TEST */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  z-index: 999999;
+  pointer-events: all;
+}
+
+
 /* ── Shared Utilities ── */
 .container {
   max-width: 1200px;
