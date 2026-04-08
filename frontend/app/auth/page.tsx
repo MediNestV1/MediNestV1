@@ -15,7 +15,7 @@ function AuthPageContent() {
   const initialTab = (searchParams?.get('tab') as Tab) ?? 'login';
   const [tab, setTab] = useState<Tab>(initialTab);
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   // ── LOGIN STATE ──
   const [loginEmail, setLoginEmail] = useState('');

@@ -48,7 +48,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const refresh = async () => {
     setLoading(true);
@@ -77,11 +77,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       
       setUser(user);
 
-      console.log('👤 ClinicContext: User found, fetching clinic data...', user.id);
+      console.log('👤 ClinicContext: User found, fetching clinic data...', user?.id);
       const { data: clinicData, error: clinicError } = await supabase
         .from('clinics')
         .select('*')
-        .eq('owner_user_id', user.id)
+        .eq('owner_user_id', user?.id)
         .single();
 
       if (clinicError) {

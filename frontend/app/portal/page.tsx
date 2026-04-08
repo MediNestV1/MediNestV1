@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -36,7 +37,7 @@ const portalCards = [
 export default function PortalPage() {
   const { clinic } = useClinic();
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
