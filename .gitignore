@@ -1,0 +1,65 @@
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment Variables (CRITICAL)
+# =========================
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+backend/.env.*
+mnm-nextjs/.env
+mnm-nextjs/.env.*
+
+# =========================
+# Next.js
+# =========================
+.next/
+out/
+build/
+
+# =========================
+# Logs
+# =========================
+logs
+*.log
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Cache / Temp
+# =========================
+.cache/
+.temp/
+tmp/
+
+# =========================
+# Misc
+# =========================
+coverage/
+dist/
