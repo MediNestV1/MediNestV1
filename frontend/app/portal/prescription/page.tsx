@@ -44,9 +44,10 @@ export default function PrescriptionPage() {
   const [mName, setMName] = useState('');
   const [mType, setMType] = useState('Tab');
   const [mDose, setMDose] = useState('');
-  const [mFreq, setMFreq] = useState('1-0-1');
-  const [mDur, setMDur] = useState('5 Days');
-  const [mInst, setMInst] = useState('After Meal');
+  const [mFreq, setMFreq] = useState('');
+  const [mDur, setMDur] = useState('');
+  const [mDurCustom, setMDurCustom] = useState('');
+  const [mInst, setMInst] = useState('');
   const [mNote, setMNote] = useState('');
 
   const commonMeds = [
@@ -62,19 +63,21 @@ export default function PrescriptionPage() {
 
   const addMed = () => {
     if (!mName) return;
+    const finalDur = mDur === 'Custom...' ? mDurCustom : mDur;
     setMeds([...meds, {
       id: Date.now().toString(),
       name: mName,
       type: mType,
       dose: mDose,
       freq: mFreq,
-      duration: mDur,
+      duration: finalDur,
       instructions: mInst,
       note: mNote
     }]);
     setMName('');
     setMDose('');
     setMNote('');
+    setMDurCustom('');
   };
 
   const removeMed = (id: string) => {
@@ -261,7 +264,7 @@ export default function PrescriptionPage() {
                   </div>
                   <div className="field"><label>Patient Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Name" /></div>
                   <div className={styles.row2}>
-                    <div className="field"><label>Phone</label><input type="tel" value={ptPhone} onChange={e => setPtPhone(e.target.value)} placeholder="10-digit number" /></div>
+                      <div className="field"><label>Phone</label><input type="tel" value={ptPhone} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setPtPhone(v); }} placeholder="10-digit number" maxLength={10} inputMode="numeric" /></div>
                     <div className="field"><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
                   </div>
                   <div className={styles.row3}>
@@ -293,14 +296,37 @@ export default function PrescriptionPage() {
                     <datalist id="med-suggestions">{commonMeds.map(m => <option key={m} value={m} />)}</datalist>
                     <input type="text" className={styles.mDose} value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose" />
                   </div>
-                  <div className={styles.row3} style={{ marginTop: 12 }}>
-                    <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
-                    <select value={mDur} onChange={e => setMDur(e.target.value)}><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option></select>
-                    <select value={mInst} onChange={e => setMInst(e.target.value)}><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
-                  </div>
+                    <div className={styles.row3} style={{ marginTop: 12 }}>
+                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="">— Freq —</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <select value={mDur} onChange={e => { setMDur(e.target.value); if (e.target.value !== 'Custom...') setMDurCustom(''); }}>
+                          <option value="">— Duration —</option>
+                          <option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option>
+                          <option value="Custom...">Custom...</option>
+                        </select>
+                        {mDur === 'Custom...' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              type="text"
+                              value={mDurCustom}
+                              onChange={e => setMDurCustom(e.target.value)}
+                              placeholder="e.g. 3 Weeks"
+                              style={{ flex: 1, padding: '10px 12px', border: '1.5px solid var(--teal)', borderRadius: 10, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setMDur(''); setMDurCustom(''); }}
+                              style={{ background: '#fee2e2', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#dc2626', fontWeight: 700 }}
+                              title="Clear custom duration"
+                            >×</button>
+                          </div>
+                        )}
+                      </div>
+                      <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="">— Timing —</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                    </div>
                   <div className="field" style={{ marginTop: 12 }}><label>Instructions</label><input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="e.g. Take with warm water" /></div>
                   <button className={styles.btnAddItem} onClick={addMed}>+ Add to Rx</button>
-                  {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
+                  {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{[m.freq, m.duration, m.instructions].filter(Boolean).join(' × ')}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
                 </div>
                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
@@ -366,7 +392,7 @@ export default function PrescriptionPage() {
                       {meds.map((m) => (
                         <div key={m.id} className={styles.previewMedItem}>
                           <div className={styles.pmHeadline}><b>{m.type}. {m.name}</b> {m.dose}</div>
-                          <div className={styles.pmDetails}>{m.freq} ━━ {m.duration} ━━ {m.instructions}</div>
+                          <div className={styles.pmDetails}>{[m.freq, m.duration, m.instructions].filter(Boolean).join(' ━━ ')}</div>
                           {m.note && <div className={styles.pmNote}>* {m.note}</div>}
                         </div>
                       ))}

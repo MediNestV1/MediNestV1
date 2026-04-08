@@ -10,6 +10,36 @@ import styles from './page.module.css';
 
 type Tab = 'login' | 'register';
 
+// ── SVG Icons ──
+const IconEmail = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="2" y="4" width="20" height="16" rx="2"/>
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+  </svg>
+);
+
+const IconLock = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
+const IconEyeOff = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+
+const IconEye = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+
 function AuthPageContent() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams?.get('tab') as Tab) ?? 'login';
@@ -22,6 +52,7 @@ function AuthPageContent() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showLoginPass, setShowLoginPass] = useState(false);
 
   // ── REGISTER STATE ──
   const [regEmail, setRegEmail] = useState('');
@@ -30,20 +61,22 @@ function AuthPageContent() {
   const [regError, setRegError] = useState('');
   const [regLoading, setRegLoading] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [showRegConfirm, setShowRegConfirm] = useState(false);
 
   // ── LOGIN ──
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     if (!loginEmail || !loginPass) { setLoginError('Please enter email and password.'); return; }
-    
+
     setLoginLoading(true);
     console.log('🔑 Auth: Attempting login for', loginEmail);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ 
-        email: loginEmail, 
-        password: loginPass 
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPass
       });
 
       if (authError) {
@@ -53,7 +86,7 @@ function AuthPageContent() {
 
       console.log('✅ Auth: Login successful, fetching session user...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+
       if (userError || !user) {
         console.error('❌ Auth: GetUser error:', userError);
         throw new Error('Could not retrieve user session after login.');
@@ -126,7 +159,7 @@ function AuthPageContent() {
         {/* Logo */}
         <div className={styles.logoRow}>
           <div className={styles.logoCircle}>
-            <Image src="/assets/medinest_logo.png" alt="MediNest" width={56} height={56} style={{ objectFit: 'contain' }} />
+            <Image src="/assets/medinest_logo.png" alt="MediNest" width={48} height={48} style={{ objectFit: 'contain' }} />
           </div>
           <div className={styles.logoText}>
             <h1>MediNest</h1>
@@ -146,19 +179,43 @@ function AuthPageContent() {
             <h2>Welcome back 👋</h2>
             <p className={styles.subtitle}>Sign in to access your clinic dashboard</p>
             {loginError && <div className={styles.errorBox}>{loginError}</div>}
-            <div className="field">
-              <label>Email Address</label>
-              <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="doctor@clinic.com" autoComplete="email" />
+
+            <div style={{ marginBottom: 16 }}>
+              <label className={styles.fieldLabel}>Email Address</label>
+              <div className={styles.inputWrapper}>
+                <span className={styles.inputIcon}><IconEmail /></span>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                  placeholder="doctor@clinic.com"
+                  autoComplete="email"
+                />
+              </div>
             </div>
-            <div className="field">
-              <label>Password</label>
-              <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} placeholder="Your password" autoComplete="current-password" />
+
+            <div style={{ marginBottom: 16 }}>
+              <label className={styles.fieldLabel}>Password</label>
+              <div className={styles.inputWrapper}>
+                <span className={styles.inputIcon}><IconLock /></span>
+                <input
+                  type={showLoginPass ? 'text' : 'password'}
+                  value={loginPass}
+                  onChange={e => setLoginPass(e.target.value)}
+                  placeholder="Your password"
+                  autoComplete="current-password"
+                />
+                <button type="button" className={styles.eyeToggle} onClick={() => setShowLoginPass(v => !v)} aria-label="Toggle password">
+                  {showLoginPass ? <IconEyeOff /> : <IconEye />}
+                </button>
+              </div>
             </div>
+
             <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={loginLoading}>
               {loginLoading ? <span className="spinner" /> : 'Sign In →'}
             </button>
             <div className={styles.switchLink}>
-              Don't have an account? <button type="button" onClick={() => setTab('register')}>Register now</button>
+              Don&apos;t have an account? <button type="button" onClick={() => setTab('register')}>Register now</button>
             </div>
           </form>
         )}
@@ -177,18 +234,54 @@ function AuthPageContent() {
             )}
             {!regSuccess && (
               <>
-                <div className="field">
-                  <label>Email Address</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="doctor@yourclinic.com" autoComplete="email" />
+                <div style={{ marginBottom: 16 }}>
+                  <label className={styles.fieldLabel}>Email Address</label>
+                  <div className={styles.inputWrapper}>
+                    <span className={styles.inputIcon}><IconEmail /></span>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={e => setRegEmail(e.target.value)}
+                      placeholder="doctor@yourclinic.com"
+                      autoComplete="email"
+                    />
+                  </div>
                 </div>
-                <div className="field">
-                  <label>Password</label>
-                  <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} placeholder="Min 8 characters" autoComplete="new-password" />
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className={styles.fieldLabel}>Password</label>
+                  <div className={styles.inputWrapper}>
+                    <span className={styles.inputIcon}><IconLock /></span>
+                    <input
+                      type={showRegPass ? 'text' : 'password'}
+                      value={regPass}
+                      onChange={e => setRegPass(e.target.value)}
+                      placeholder="Min 8 characters"
+                      autoComplete="new-password"
+                    />
+                    <button type="button" className={styles.eyeToggle} onClick={() => setShowRegPass(v => !v)} aria-label="Toggle password">
+                      {showRegPass ? <IconEyeOff /> : <IconEye />}
+                    </button>
+                  </div>
                 </div>
-                <div className="field">
-                  <label>Confirm Password</label>
-                  <input type="password" value={regConfirm} onChange={e => setRegConfirm(e.target.value)} placeholder="Repeat password" autoComplete="new-password" />
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className={styles.fieldLabel}>Confirm Password</label>
+                  <div className={styles.inputWrapper}>
+                    <span className={styles.inputIcon}><IconLock /></span>
+                    <input
+                      type={showRegConfirm ? 'text' : 'password'}
+                      value={regConfirm}
+                      onChange={e => setRegConfirm(e.target.value)}
+                      placeholder="Repeat password"
+                      autoComplete="new-password"
+                    />
+                    <button type="button" className={styles.eyeToggle} onClick={() => setShowRegConfirm(v => !v)} aria-label="Toggle confirm password">
+                      {showRegConfirm ? <IconEyeOff /> : <IconEye />}
+                    </button>
+                  </div>
                 </div>
+
                 <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={regLoading}>
                   {regLoading ? <span className="spinner" /> : 'Create Account →'}
                 </button>

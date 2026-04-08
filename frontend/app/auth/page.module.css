@@ -1,75 +1,344 @@
-/* Auth Page */
+/* ═══════════════════════════════════════════════
+   Auth Page  —  Dark SaaS Glassmorphism Theme
+   ═══════════════════════════════════════════════ */
+
+/* ─── Animated Gradient Background ─── */
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a7c6e 0%, #064e45 40%, #1e293b 100%);
-  display: flex; align-items: center; justify-content: center;
+  background: #050d1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 80px 20px 40px;
   position: relative;
+  overflow: hidden;
 }
 
+/* Floating gradient blobs */
+.page::before,
+.page::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: blobFloat 8s ease-in-out infinite alternate;
+}
+
+.page::before {
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle, rgba(10,122,110,0.45) 0%, rgba(6,78,69,0.2) 60%, transparent 100%);
+  top: -120px;
+  right: -100px;
+  animation-duration: 9s;
+}
+
+.page::after {
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, rgba(124,58,237,0.15) 60%, transparent 100%);
+  bottom: -100px;
+  left: -80px;
+  animation-duration: 11s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes blobFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(30px, -20px) scale(1.05); }
+  100% { transform: translate(-20px, 30px) scale(0.97); }
+}
+
+/* ─── Back Home Button ─── */
 .backHome {
-  position: fixed; top: 20px; left: 20px;
-  display: flex; align-items: center; gap: 6px;
-  color: rgba(255,255,255,.8); font-size: 13px; font-weight: 600;
-  background: rgba(255,255,255,.1); padding: 8px 14px;
-  border-radius: 30px; border: 1px solid rgba(255,255,255,.2);
-  text-decoration: none; transition: .2s; z-index: 10;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,.75);
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255,255,255,.07);
+  padding: 8px 14px;
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,.15);
+  text-decoration: none;
+  transition: .2s;
+  z-index: 10;
+  backdrop-filter: blur(8px);
 }
-.backHome:hover { background: rgba(255,255,255,.2); }
+.backHome:hover {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+}
 
+/* ─── Frosted Glass Card ─── */
 .authCard {
-  background: #fff; border-radius: 24px;
-  width: 100%; max-width: 440px;
-  padding: 36px 36px 32px;
-  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 28px;
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 36px 36px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 32px 80px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.12);
 }
 
-.logoRow { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+/* ─── Logo Row ─── */
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
 .logoCircle {
-  width: 64px; height: 64px; border-radius: 16px;
-  overflow: hidden; background: transparent; flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(10,122,110,0.2);
+  border: 1px solid rgba(10,122,110,0.4);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.logoText h1 { font-size: 22px; font-weight: 900; color: var(--teal); }
-.logoText p { font-size: 12px; color: var(--ink-l); margin-top: 2px; }
 
+.logoText h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.logoText p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 3px;
+}
+
+/* ─── Tabs ─── */
 .tabs {
-  display: flex; background: #f1f5f9; border-radius: 12px;
-  padding: 4px; margin-bottom: 24px; gap: 4px;
+  display: flex;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+  gap: 4px;
 }
+
 .tab {
-  flex: 1; padding: 10px; border: none; border-radius: 9px;
-  background: transparent; font-size: 14px; font-weight: 600;
-  cursor: pointer; color: var(--ink-l); transition: .2s; font-family: 'Inter', sans-serif;
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  transition: .2s;
+  font-family: 'Inter', sans-serif;
 }
-.tabActive { background: #fff; color: var(--teal); box-shadow: 0 1px 6px rgba(0,0,0,.1); }
 
-.formSection h2 { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
-.subtitle { font-size: 13px; color: var(--ink-l); margin-bottom: 20px; }
+.tabActive {
+  background: rgba(10,122,110,0.35);
+  color: #4dd9c8;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+}
 
+/* ─── Form Section ─── */
+.formSection h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 22px;
+}
+
+/* Override global .field styles inside the dark card */
+.authCard :global(.field) label {
+  color: rgba(255,255,255,0.55);
+}
+
+.authCard :global(.field) input,
+.authCard :global(.field) select {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: 12px;
+}
+
+.authCard :global(.field) input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+.authCard :global(.field) input:focus,
+.authCard :global(.field) select:focus {
+  background: rgba(255,255,255,0.1);
+  border-color: #4dd9c8;
+  box-shadow: 0 0 0 3px rgba(77,217,200,0.15);
+}
+
+/* ─── Input Wrapper (icon + eye toggle) ─── */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 14px;
+  color: rgba(255,255,255,0.35);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.inputWrapper input {
+  width: 100%;
+  padding: 12px 44px 12px 40px;
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #fff;
+  transition: .2s;
+  outline: none;
+}
+
+.inputWrapper input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
+.inputWrapper input:focus {
+  background: rgba(255,255,255,0.1);
+  border-color: #4dd9c8;
+  box-shadow: 0 0 0 3px rgba(77,217,200,0.15);
+}
+
+.eyeToggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.4);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color .15s;
+}
+
+.eyeToggle:hover {
+  color: rgba(255,255,255,0.75);
+}
+
+/* ─── Submit Button ─── */
+.submitBtn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 6px;
+  background: linear-gradient(135deg, #0a7c6e, #0d9e8c) !important;
+  box-shadow: 0 4px 20px rgba(10,122,110,0.4);
+  border-radius: 12px !important;
+  font-size: 15px !important;
+  letter-spacing: 0.2px;
+}
+
+.submitBtn:hover {
+  box-shadow: 0 8px 28px rgba(10,122,110,0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ─── Error / Success Boxes ─── */
 .errorBox {
-  background: #fef2f2; border: 1px solid #fecaca;
-  color: var(--danger); border-radius: 10px;
-  padding: 11px 14px; font-size: 13px; font-weight: 600; margin-bottom: 14px;
+  background: rgba(220,38,38,0.15);
+  border: 1px solid rgba(220,38,38,0.4);
+  color: #fca5a5;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
 }
 
 .successBox {
-  background: #f0fdf4; border: 1px solid #bbf7d0;
-  border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 14px;
+  background: rgba(22,163,74,0.15);
+  border: 1px solid rgba(22,163,74,0.35);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 14px;
 }
-.successBox h3 { color: var(--success); font-size: 16px; margin-bottom: 6px; }
-.successBox p { font-size: 13px; color: #4ade80; }
 
-.submitBtn { width: 100%; justify-content: center; margin-top: 4px; }
+.successBox h3 {
+  color: #4ade80;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
 
+.successBox p {
+  font-size: 13px;
+  color: rgba(74,222,128,0.7);
+}
+
+/* ─── Switch Link ─── */
 .switchLink {
-  text-align: center; font-size: 13px; color: var(--ink-l); margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 20px;
 }
-.switchLink button {
-  background: none; border: none; color: var(--teal); font-weight: 700;
-  cursor: pointer; font-size: 13px; padding: 0; font-family: 'Inter', sans-serif;
-}
-.switchLink button:hover { text-decoration: underline; }
 
+.switchLink button {
+  background: none;
+  border: none;
+  color: #4dd9c8;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  transition: opacity .15s;
+}
+
+.switchLink button:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* ─── Field Label override ─── */
+.fieldLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 6px;
+}
+
+/* ─── Responsive ─── */
 @media (max-width: 480px) {
-  .authCard { padding: 24px 20px; }
+  .authCard { padding: 28px 20px 24px; }
 }

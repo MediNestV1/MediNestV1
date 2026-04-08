@@ -306,3 +306,78 @@
   }
 }
 .notesBlock { margin-bottom: 24px; line-height: 1.6; }
+
+/* ─── Row layout helpers for medicine inputs ─── */
+.rowMm {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.mType { flex: 0 0 72px; }
+.mName { flex: 1; }
+.mDose { flex: 0 0 90px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.blockTitle { font-size: 13px; font-weight: 800; color: var(--ink-l); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 16px; }
+.btnAddItem { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--teal), var(--teal-mid)); color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 14px; font-family: 'Inter', sans-serif; transition: .2s; }
+.btnAddItem:hover { opacity: .9; transform: translateY(-1px); }
+.medsList { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.medItem { display: flex; align-items: flex-start; justify-content: space-between; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.mLeft { flex: 1; font-size: 13px; }
+.mDetails { font-size: 11px; color: var(--ink-l); margin-top: 3px; }
+.mNote { font-size: 11px; color: var(--blue); font-style: italic; margin-top: 2px; }
+.btnRemove { background: none; border: none; font-size: 18px; color: var(--danger); cursor: pointer; padding: 0 4px; line-height: 1; margin-left: 8px; }
+.emptyRx { font-size: 14px; color: var(--ink-l); font-style: italic; }
+.previewAdvice { font-size: 12px; color: #334155; margin-top: 16px; border-top: 1px dashed #cbd5e1; padding-top: 12px; line-height: 1.6; }
+.vitalsSection { padding-top: 8px; }
+
+/* ─── Mobile Responsive ─── */
+@media screen and (max-width: 768px) {
+  .grid {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .formPanel {
+    width: 100%;
+  }
+
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+
+  .row3 {
+    grid-template-columns: 1fr;
+  }
+
+  .rowMm {
+    flex-wrap: wrap;
+  }
+
+  .mType { flex: 0 0 60px; }
+  .mDose { flex: 0 0 70px; }
+
+  /* A4 Preview: scale + horizontal scroll container */
+  .previewPanel {
+    width: 100%;
+    overflow-x: auto;
+    position: static;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* Override the @media screen scale so mobile gets its own smaller scale */
+  .rxCard {
+    transform: scale(0.45) !important;
+    transform-origin: top center !important;
+    margin-bottom: -430px !important;
+  }
+
+  .exportRow {
+    flex-wrap: wrap;
+  }
+
+  .btnEx {
+    flex: 0 0 calc(33.33% - 8px);
+  }
+}

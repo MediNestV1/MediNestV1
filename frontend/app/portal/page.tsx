@@ -1,11 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
 import styles from './page.module.css';
 
 const portalCards = [
@@ -36,19 +33,11 @@ const portalCards = [
 
 export default function PortalPage() {
   const { clinic } = useClinic();
-  const router = useRouter();
-  const [supabase] = useState(() => createClient());
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth');
-  };
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.header}>
-          <button onClick={handleLogout} className={styles.signOutBtn}>Sign Out ⏏️</button>
           <div className={styles.logoCircle}>
             <Image src="/assets/medinest_logo.png" alt="MediNest" width={100} height={100} style={{ objectFit: 'contain' }} />
           </div>
