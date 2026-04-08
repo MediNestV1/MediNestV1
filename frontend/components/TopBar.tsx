@@ -9,17 +9,10 @@ interface TopBarProps {
   title: string;
   backHref?: string;
   backLabel?: string;
-  showLogout?: boolean;
 }
 
-export default function TopBar({ title, backHref, backLabel = 'Back', showLogout = true }: TopBarProps) {
+export default function TopBar({ title, backHref, backLabel = 'Back' }: TopBarProps) {
   const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth');
-  };
 
   return (
     <header className="ssk-topbar">
@@ -42,11 +35,7 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
       </div>
 
       <div className="topbar-spacer-right">
-        {showLogout && (
-          <button className="btn-signout" onClick={handleLogout}>
-            Sign Out
-          </button>
-        )}
+        <div style={{ minWidth: 80 }} />
       </div>
     </header>
   );
