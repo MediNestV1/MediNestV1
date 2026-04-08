@@ -54,6 +54,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     console.log('🔄 ClinicContext: Refreshing data...');
     try {
+      // First check if we have a session to avoid throwing AuthSessionMissingError
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('ℹ️ ClinicContext: No active user session');
+        setUser(null);
+        setClinic(null);
+        setDoctors([]);
+        setLoading(false);
+        return;
+      }
+
+      // We have a session, safe to get the secure user object
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) {
         console.error('❌ ClinicContext: Auth error:', userError);
@@ -63,13 +76,6 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       }
       
       setUser(user);
-      if (!user) {
-        console.log('ℹ️ ClinicContext: No active user session');
-        setClinic(null);
-        setDoctors([]);
-        setLoading(false);
-        return;
-      }
 
       console.log('👤 ClinicContext: User found, fetching clinic data...', user.id);
       const { data: clinicData, error: clinicError } = await supabase
