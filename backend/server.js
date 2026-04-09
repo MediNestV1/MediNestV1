@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -14,8 +15,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole);
 const patientHistoryRouter = require('./routes/patientHistory');
 
 // Middleware
+app.use(helmet()); // Professional security headers
 app.use(cors({
-    origin: '*', // Allows Vercel frontend to communicate with Render backend
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -27,8 +29,28 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'MediNest API is running' });
 });
 
-app.get('/api/ping', (req, res) => {
-    res.json({ success: true, timestamp: new Date().toISOString() });
+app.get('/api/ping', async (req, res) => {
+    try {
+        // Verify Supabase connectivity
+        const { data, error } = await supabase.from('medicines').select('count', { count: 'exact', head: true });
+        
+        if (error) throw error;
+        
+        res.json({ 
+            success: true, 
+            status: 'online', 
+            database: 'connected',
+            timestamp: new Date().toISOString() 
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            status: 'degraded',
+            database: 'disconnected',
+            error: err.message,
+            timestamp: new Date().toISOString() 
+        });
+    }
 });
 
 
