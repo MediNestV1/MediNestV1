@@ -41,6 +41,34 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
+    try {
+      console.log('🤖 Triggering Instant On-Demand AI Summary...');
+      const response = await fetch(`http://localhost:4001/api/prescriptions/${id}/ai-summary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientName: pt?.name || 'Patient',
+          complaints: currentRx.complaints,
+          findings: currentRx.findings,
+          medicines: typeof currentRx.medicines === 'string' ? JSON.parse(currentRx.medicines) : currentRx.medicines,
+          advice: currentRx.advice,
+          followUp: currentRx.valid_till
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ AI Summary Generated:', result);
+        if (result.summary) {
+          setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
+        }
+      }
+    } catch (err) {
+      console.error('❌ AI Trigger Error:', err);
+    }
+  }
+
   async function fetchRxData() {
     const supabase = createClient();
     try {
@@ -54,12 +82,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
       if (rxError) throw rxError;
       setRx(rxData);
 
-      // Once we have a summary, we don't need to fetch patient/clinic again if already set
-      if (!patient && rxData.patient_id) {
+      if (rxData.patient_id) {
         const { data: pData } = await supabase.from('patients').select('*').eq('id', rxData.patient_id).single();
         if (pData) setPatient(pData);
       }
-      if (!clinic && rxData.clinic_id) {
+      if (rxData.clinic_id) {
         const { data: cData } = await supabase.from('clinics').select('*').eq('id', rxData.clinic_id).single();
         if (cData) setClinic(cData);
       }
@@ -72,9 +99,12 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   }
 
   useEffect(() => {
-    fetchRxData();
+    async function init() {
+      await fetchRxData();
+    }
+    init();
 
-    // 1. Instant Track: Supabase Realtime
+    // --- INSTANT UPDATES: Supabase Realtime ---
     const supabase = createClient();
     const channel = supabase
       .channel(`rx-update-${id}`)
@@ -88,20 +118,18 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
       )
       .subscribe();
 
-    // 2. Safety Track: Polling Fallback (runs every 3s until we have ai_summary)
-    const pollInterval = setInterval(() => {
-      // If summary is missing, keep checking
-      if (!rx?.ai_summary) {
-        console.log('⏱️ Polling fallback check...');
-        fetchRxData();
-      }
-    }, 3000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
     };
-  }, [id, !!rx?.ai_summary]);
+  }, [id]);
+
+  // Logic to trigger AI once Rx is loaded but summary is missing
+  useEffect(() => {
+    if (rx && !rx.ai_summary && !loading) {
+      generateAiSummary(rx, patient);
+    }
+  }, [rx?.id, !!rx?.ai_summary, loading]);
+
 
 
   if (loading) {

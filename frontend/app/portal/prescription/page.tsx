@@ -179,45 +179,9 @@ export default function PrescriptionPage() {
       // Update local ID for use in sharing
       if (pData?.id) {
         setSavedRxId(pData.id);
-
-        // --- ULTRA-FAST: Send Data Directly (Zero-DB Strategy) ---
-        console.log('🤖 Triggering Ultra-Fast AI Summary...');
-        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patientName: ptName,
-            complaints: cc,
-            findings: findings,
-            medicines: meds.map(m => ({
-              type: m.type,
-              name: m.name,
-              dose: m.dose,
-              freq: m.freq,
-              dur: m.duration,
-              inst: m.instructions
-            })),
-            advice: finalAdvice,
-            followUp: followUp
-          })
-        })
-          .then(async r => {
-
-            if (!r.ok) {
-              const txt = await r.text();
-              throw new Error(`Backend Error ${r.status}: ${txt.slice(0, 500)}`);
-            }
-            return r.json();
-          })
-          .then(data => {
-            console.log('✅ AI Summary Generated:', data);
-            alert('AI Summary is being generated in the background!');
-          })
-          .catch(err => {
-            console.error('❌ AI Summary Trigger Failed:', err);
-            // alert('AI Summary could not be generated: ' + err.message);
-          });
+        alert('Prescription saved successfully!');
       }
+
 
       alert('Prescription saved successfully!');
     } catch (err: any) {
