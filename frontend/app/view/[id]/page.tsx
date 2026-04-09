@@ -123,7 +123,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     }
     init();
 
-    // --- INSTANT UPDATES: Supabase Realtime ---
     const supabase = createClient();
     const channel = supabase
       .channel(`rx-update-${id}`)
@@ -142,26 +141,39 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     };
   }, [id]);
 
-  // Logic to trigger AI once Rx is loaded but summary is missing
   useEffect(() => {
-    if (rx && !rx.ai_summary && !loading) {
-      generateAiSummary(rx, patient);
+    async function triggerSequentially() {
+      if (!rx || loading) return;
+
+      // 1. English Priority & Self-Healing
+      // Check if current slot is empty or contains Hindi script (Devanagari range)
+      const isEnglishSlotHindi = rx.ai_summary?.greeting && /[\u0900-\u097F]/.test(rx.ai_summary.greeting);
+      
+      if (!rx.ai_summary || isEnglishSlotHindi) {
+        console.log("⏱️ English priority fetch starting...");
+        await generateAiSummary(rx, patient, 'English');
+      }
+
+      // 2. Silent Hindi Background (with 1.5s staggered start)
+      if (!hindiCache) {
+        setTimeout(() => {
+          console.log("⏱️ Staggered Hindi background fetch starting...");
+          generateAiSummary(rx, patient, 'Hindi');
+        }, 1500);
+      }
     }
-  }, [rx?.id, !!rx?.ai_summary, loading]);
 
-
+    triggerSequentially();
+  }, [rx?.id, !!rx?.ai_summary, loading, !!hindiCache]);
 
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
-  
-  const meds = typeof rx?.medicines === 'string' ? JSON.parse(rx.medicines) : rx?.medicines;
   const followUpDate = rx?.valid_till;
+  const meds = rx?.medicines ? (typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines) : [];
 
-  // Wait for mount to avoid hydration mismatch
   if (!mounted) return null;
 
   return (
     <>
-      {/* 🚀 BULLETPROOF NAV: Fixed at the very top of the DOM */}
       <nav 
         style={{
           position: 'fixed',
@@ -218,214 +230,214 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           </div>
         ) : (
           <>
-            {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
             {activeSummary || isGeneratingHindi ? (
-        <div className={styles.aiContainer}>
-          <div className={styles.aiHeaderCard}>
-            <div className={styles.aiBadge}>
-              <span>✦</span> Secure AI Agent Record
-            </div>
+              <div className={styles.aiContainer}>
+                <div className={styles.aiHeaderCard}>
+                  <div className={styles.aiBadge}>
+                    <span>✦</span> Secure AI Agent Record
+                  </div>
 
-            {isGeneratingHindi ? (
-              <div style={{ padding: '20px 0' }}>
-                <div className={styles.aiLoadingPulse} style={{ width: '30px', height: '30px', marginBottom: '15px' }}></div>
-                <p style={{ opacity: 0.8 }}>तैयार किया जा रहा है... (Creating Hindi version)</p>
+                  {/* Show loader ONLY if we are ACTIVELY switched to Hindi and it's not ready yet */}
+                  {(selectedLang === 'Hindi' && isGeneratingHindi && !hindiCache) ? (
+                    <div style={{ padding: '20px 0' }}>
+                      <div className={styles.aiLoadingPulse} style={{ width: '30px', height: '30px', marginBottom: '15px' }}></div>
+                      <p style={{ opacity: 0.8 }}>तैयार किया जा रहा है... (Creating Hindi version)</p>
+                    </div>
+                  ) : (
+                    <>
+                      <h1 className={styles.aiGreeting}>{activeSummary?.greeting}</h1>
+                      <p className={styles.aiCondition}>{activeSummary?.condition}</p>
+                    </>
+                  )}
+                </div>
+
+                {!isGeneratingHindi && activeSummary && (
+                  <div className={styles.aiGrid}>
+                    <div className={`${styles.aiStepCard} ${styles.medCard}`}>
+                      <div className={styles.cardIcon}>💊</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आपकी औषधियाँ' : 'YOUR MEDICINES'}</div>
+                      <div className={styles.cardContent}>
+                        <ul className={styles.aiList}>
+                          {activeSummary.medicines?.map((m: any, i: number) => (
+                            <li key={i}>
+                              <strong>{m.name}</strong>: {m.purpose}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
+                      <div className={styles.cardIcon}>⏳</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'स्वस्थ होने की उम्मीद' : 'WHAT TO EXPECT'}</div>
+                      <p className={styles.cardContent}>{activeSummary.expectations}</p>
+                    </div>
+
+                    <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
+                      <div className={styles.cardIcon}>🥗</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आहार और देखभाल के निर्देश' : 'CARE & DIET INSTRUCTIONS'}</div>
+                      <p className={styles.cardContent}>{activeSummary.care}</p>
+                    </div>
+
+                    <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
+                      <div className={styles.cardIcon}>🚨</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'WARNING SIGNS'}</div>
+                      <div className={styles.cardContent}>
+                        {Array.isArray(activeSummary.warnings) ? (
+                          <ul className={styles.warningList}>
+                            {activeSummary.warnings.map((w: string, i: number) => (
+                              <li key={i}><span>!</span> {w}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{activeSummary.warnings || (selectedLang === 'Hindi' ? 'कोई विशेष खतरे के संकेत नहीं हैं' : 'No specific warning signs')}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
+                      <div className={styles.cardIcon}>📅</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'अगला कदम' : 'NEXT STEPS'}</div>
+                      <p className={styles.cardContent}>{activeSummary.next_steps}</p>
+                    </div>
+                  </div>
+                )}
+                <div style={{textAlign: 'center', opacity: 0.5, fontSize: '12px', marginBottom: '20px'}}>
+                  {selectedLang === 'Hindi' ? 'पूरी औपचारिक पर्ची के लिए नीचे स्क्रॉल करें ↓' : 'Scroll down for formal clinical prescription ↓'}
+                </div>
               </div>
             ) : (
-              <>
-                <h1 className={styles.aiGreeting}>{activeSummary?.greeting}</h1>
-                <p className={styles.aiCondition}>{activeSummary?.condition}</p>
-              </>
+              <div className={styles.aiLoadingHero}>
+                <div className={styles.aiLoadingPulse}></div>
+                <div className={styles.aiBadge}>AI Assistant is preparing your guide...</div>
+                <p>Analyzing prescription data and crafting your personalized care summary.</p>
+              </div>
             )}
-          </div>
 
-          {!isGeneratingHindi && activeSummary && (
-            <div className={styles.aiGrid}>
-              <div className={`${styles.aiStepCard} ${styles.medCard}`}>
-                <div className={styles.cardIcon}>💊</div>
-                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आपकी दवाइयां' : 'Your Medicines'}</div>
-                <div className={styles.cardContent}>
-                  <ul className={styles.aiList}>
-                    {activeSummary.medicines?.map((m: {name: string, purpose: string}, i: number) => (
-                      <li key={i}>
-                        <strong>{m.name}</strong>: {m.purpose}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
-                <div className={styles.cardIcon}>⏳</div>
-                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'उम्मीद' : 'What to Expect'}</div>
-                <p className={styles.cardContent}>{activeSummary.expectations}</p>
-              </div>
-
-              <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
-                <div className={styles.cardIcon}>🥗</div>
-                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आहार और देखभाल' : 'Care & Diet Instructions'}</div>
-                <p className={styles.cardContent}>{activeSummary.care}</p>
-              </div>
-
-              <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
-                <div className={styles.cardIcon}>🚨</div>
-                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'Warning Signs'}</div>
-                <ul className={styles.warningList}>
-                  {activeSummary.warnings?.map((w: string, i: number) => (
-                    <li key={i}><span>!</span> {w}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
-                <div className={styles.cardIcon}>📅</div>
-                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'अगला कदम' : 'Next Steps'}</div>
-                <p className={styles.cardContent}>{activeSummary.next_steps}</p>
-              </div>
-            </div>
-          )}
-          
-          <div style={{textAlign: 'center', opacity: 0.5, fontSize: '12px', marginBottom: '20px'}}>
-            {selectedLang === 'Hindi' ? 'पूरी औपचारिक पर्ची के लिए नीचे स्क्रॉल करें ↓' : 'Scroll down for formal clinical prescription ↓'}
-          </div>
-        </div>
-      ) : (
-        <div className={styles.aiLoadingHero}>
-          <div className={styles.aiLoadingPulse}></div>
-          <div className={styles.aiBadge}>AI Assistant is preparing your guide...</div>
-          <p>Analyzing prescription data and crafting your personalized care summary.</p>
-        </div>
-      )}
-
-      <div className={styles.paper}>
-        {/* Clinic Header */}
-        <header className={styles.header}>
-          <div className={styles.clinicHeader}>
-            <div className={styles.clinicInfo}>
-              <h1 className={styles.clinicName}>{clinic?.name || 'Sitapur Shishu Kendra'}</h1>
-              <p className={styles.tagline}>{clinic?.tagline || 'Health is Wealth'}</p>
-              <div className={styles.clinicContact}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                <span>{clinic?.phone || '+917380520394'}</span>
-              </div>
-            </div>
-            <div className={styles.headerLogo}>
-              <div className={styles.logoCircle}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              </div>
-            </div>
-            <div className={styles.doctorInfo}>
-              <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
-              <p className={styles.drQual}>MBBS, MD</p>
-            </div>
-          </div>
-        </header>
-
-        <section className={styles.patientBar}>
-          <div className={styles.meta}>
-            <span className={styles.label}>NAME:</span>
-            <span className={styles.value}>{patient?.name || 'Valued Patient'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>AGE/SEX:</span>
-            <span className={styles.value}>{patient?.age || '—'} / {patient?.gender?.[0] || '—'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>WT:</span>
-            <span className={styles.value}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
-          </div>
-          <div className={styles.meta}>
-            <span className={styles.label}>DATE:</span>
-            <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN')}</span>
-          </div>
-        </section>
-
-        {/* Main Body */}
-        <main className={styles.mainContent}>
-          <div className={styles.watermark}>Rx</div>
-          
-          <div className={styles.dualColumn}>
-            <div className={styles.leftCol}>
-              {rx.complaints && (
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>C/C (CHIEF COMPLAINTS)</h3>
-                  <p className={styles.text}>{rx.complaints}</p>
-                </div>
-              )}
-              {rx.findings && (
-                <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>O/E & FINDINGS</h3>
-                  <p className={styles.text}>{rx.findings}</p>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.rightCol}>
-              <div className={styles.rxIcon}>Rx</div>
-              <div className={styles.medsList}>
-                {meds && meds.length > 0 ? (
-                  meds.map((m: any, idx: number) => (
-                    <div key={idx} className={styles.medItem}>
-                      <div className={styles.medHeader}>
-                        <strong>{m.type}. {m.name}</strong> <span>{m.dose}</span>
-                      </div>
-                      <div className={styles.medSchedule}>
-                        {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
-                      </div>
-                      {m.note && <div className={styles.medNote}>* {m.note}</div>}
+            <div className={styles.paper}>
+              <header className={styles.header}>
+                <div className={styles.clinicHeader}>
+                  <div className={styles.clinicInfo}>
+                    <h1 className={styles.clinicName}>{clinic?.name || 'Sitapur Shishu Kendra'}</h1>
+                    <p className={styles.tagline}>{clinic?.tagline || 'Health is Wealth'}</p>
+                    <div className={styles.clinicContact}>
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                      <span>{clinic?.phone || '+917380520394'}</span>
                     </div>
-                  ))
-                ) : (
-                  <p className={styles.empty}>No specific medicines prescribed.</p>
-                )}
-              </div>
-
-              {rx.advice && (
-                <div className={styles.adviceSection}>
-                  <h3 className={styles.sectionTitle}>Adv. (Advice/Instructions)</h3>
-                  <p className={styles.text}>{rx.advice.split('\n\n[')[0]}</p>
+                  </div>
+                  <div className={styles.headerLogo}>
+                    <div className={styles.logoCircle}>
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    </div>
+                  </div>
+                  <div className={styles.doctorInfo}>
+                    <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
+                    <p className={styles.drQual}>MBBS, MD</p>
+                  </div>
                 </div>
+              </header>
+
+              <section className={styles.patientBar}>
+                <div className={styles.meta}>
+                  <span className={styles.label}>NAME:</span>
+                  <span className={styles.value}>{patient?.name || 'Valued Patient'}</span>
+                </div>
+                <div className={styles.meta}>
+                  <span className={styles.label}>AGE/SEX:</span>
+                  <span className={styles.value}>{patient?.age || '—'} / {patient?.gender?.[0] || '—'}</span>
+                </div>
+                <div className={styles.meta}>
+                  <span className={styles.label}>WT:</span>
+                  <span className={styles.value}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
+                </div>
+                <div className={styles.meta}>
+                  <span className={styles.label}>DATE:</span>
+                  <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN')}</span>
+                </div>
+              </section>
+
+              <main className={styles.mainContent}>
+                <div className={styles.watermark}>Rx</div>
+                <div className={styles.dualColumn}>
+                  <div className={styles.leftCol}>
+                    {rx.complaints && (
+                      <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>C/C (CHIEF COMPLAINTS)</h3>
+                        <p className={styles.text}>{rx.complaints}</p>
+                      </div>
+                    )}
+                    {rx.findings && (
+                      <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>O/E & FINDINGS</h3>
+                        <p className={styles.text}>{rx.findings}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.rightCol}>
+                    <div className={styles.rxIcon}>Rx</div>
+                    <div className={styles.medsList}>
+                      {meds && meds.length > 0 ? (
+                        meds.map((m: any, idx: number) => (
+                          <div key={idx} className={styles.medItem}>
+                            <div className={styles.medHeader}>
+                              <strong>{m.type}. {m.name}</strong> <span>{m.dose}</span>
+                            </div>
+                            <div className={styles.medSchedule}>
+                              {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
+                            </div>
+                            {m.note && <div className={styles.medNote}>* {m.note}</div>}
+                          </div>
+                        ))
+                      ) : (
+                        <p className={styles.empty}>No specific medicines prescribed.</p>
+                      )}
+                    </div>
+
+                    {rx.advice && (
+                      <div className={styles.adviceSection}>
+                        <h3 className={styles.sectionTitle}>Adv. (Advice/Instructions)</h3>
+                        <p className={styles.text}>{rx.advice.split('\n\n[')[0]}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </main>
+
+              {followUpDate && (
+                <section className={styles.followUp}>
+                  <div className={styles.followUpCard}>
+                    <div className={styles.followUpLabel}>FOLLOW-UP VISIT</div>
+                    <div className={styles.followUpValue}>
+                      {new Date(followUpDate).toLocaleDateString('en-IN', { 
+                        weekday: 'long', 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </div>
+                  </div>
+                </section>
               )}
-            </div>
-          </div>
-        </main>
 
-        {/* Follow-up Section */}
-        {followUpDate && (
-          <section className={styles.followUp}>
-            <div className={styles.followUpCard}>
-              <div className={styles.followUpLabel}>FOLLOW-UP VISIT</div>
-              <div className={styles.followUpValue}>
-                {new Date(followUpDate).toLocaleDateString('en-IN', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </div>
+              <footer className={styles.footer}>
+                <div className={styles.contactInfo}>
+                  <p>{clinic?.address || 'Clinic Address'}</p>
+                  <p>Phone: {clinic?.phone || 'Contact Number'}</p>
+                </div>
+                <div className={styles.legal}>
+                  Digital Prescription • Not for Medico-Legal use
+                </div>
+              </footer>
             </div>
-          </section>
+          </>
         )}
-
-        {/* Footer */}
-        <footer className={styles.footer}>
-          <div className={styles.contactInfo}>
-            <p>{clinic?.address || 'Clinic Address'}</p>
-            <p>Phone: {clinic?.phone || 'Contact Number'}</p>
-          </div>
-          <div className={styles.legal}>
-            Digital Prescription • Not for Medico-Legal use
-          </div>
-        </footer>
       </div>
 
       <div className={styles.actions}>
         <button className={styles.printBtn} onClick={() => window.print()}>
           Print Prescription
         </button>
-      </div>
-          </>
-        )}
       </div>
     </>
   );
