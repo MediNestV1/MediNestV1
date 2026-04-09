@@ -44,9 +44,10 @@ export default function PrescriptionPage() {
   const [mName, setMName] = useState('');
   const [mType, setMType] = useState('Tab');
   const [mDose, setMDose] = useState('');
-  const [mFreq, setMFreq] = useState('1-0-1');
-  const [mDur, setMDur] = useState('5 Days');
-  const [mInst, setMInst] = useState('After Meal');
+  const [mFreq, setMFreq] = useState('');
+  const [mDur, setMDur] = useState('');
+  const [showCustomDur, setShowCustomDur] = useState(false);
+  const [mInst, setMInst] = useState('');
   const [mNote, setMNote] = useState('');
 
   // 🏥 Medicine Database Suggestion Logic
@@ -102,6 +103,10 @@ export default function PrescriptionPage() {
     setMName('');
     setMDose('');
     setMNote('');
+    setMFreq('');
+    setMDur('');
+    setShowCustomDur(false);
+    setMInst('');
     setDbSuggestions([]);
   };
 
@@ -350,9 +355,24 @@ export default function PrescriptionPage() {
                   </div>
 
                   <div className={styles.row3} style={{ marginTop: 12 }}>
-                    <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
-                    <select value={mDur} onChange={e => setMDur(e.target.value)}><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option></select>
-                    <select value={mInst} onChange={e => setMInst(e.target.value)}><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                    <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="" disabled>Frequency</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                    
+                    {showCustomDur ? (
+                      <input type="text" placeholder="Custom Days..." value={mDur} onChange={e => setMDur(e.target.value)} autoFocus onBlur={() => { if(!mDur) setShowCustomDur(false); }} />
+                    ) : (
+                      <select value={mDur} onChange={e => {
+                        if (e.target.value === 'Custom') {
+                          setShowCustomDur(true);
+                          setMDur('');
+                        } else {
+                          setMDur(e.target.value);
+                        }
+                      }}>
+                        <option value="" disabled>Duration</option><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option><option value="Custom">Custom</option>
+                      </select>
+                    )}
+
+                    <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="" disabled>Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
                   </div>
                   <div className="field" style={{ marginTop: 12 }}><label>Instructions</label><input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="e.g. Take with warm water" /></div>
                   <button className={styles.btnAddItem} onClick={addMed}>+ Add to Rx</button>
