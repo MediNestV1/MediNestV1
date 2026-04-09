@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { createClient } from '@/lib/supabase';
+import { API_BASE_URL } from '@/lib/api';
 import styles from './page.module.css';
 
 interface Prescription {
@@ -44,8 +45,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
     try {
       console.log('🤖 Triggering Instant On-Demand AI Summary...');
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4001';
-      const response = await fetch(`${backendUrl}/api/prescriptions/${id}/ai-summary`, {
+      const response = await fetch(`${API_BASE_URL}/api/prescriptions/${id}/ai-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
