@@ -59,39 +59,32 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         const patientName = rx.patients?.name || 'Patient';
         const medicines = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
         
-        const prompt = `You are an expert, compassionate doctor's medical assistant. Analyze the patient's clinical prescription to act as their personal health guide.
-        Patient Name: ${patientName}
-        Chief Complaints (Symptoms): ${rx.complaints}
+        const prompt = `Medical Assistant specialized in patient-friendly summaries.
+        Patient: ${patientName}
+        Chief Complaints: ${rx.complaints}
         Clinical Findings: ${rx.findings}
         Prescribed Medicines: ${JSON.stringify(medicines)}
-        Doctor's Advice: ${rx.advice}
+        Advice: ${rx.advice}
         Follow-up: ${rx.valid_till || 'N/A'}
 
-        Task: Use your vast medical knowledge to generate a highly personalized, empathetic, and reassuring summary for the patient. 
-        You MUST provide:
-        - A warm, comforting greeting.
-        - A layman explanation of what they are likely experiencing based on their symptoms. Reassure them if it's common.
-        - Clear instructions for their medicines.
-        - What to expect during recovery (e.g., timeline, normal side effects of the illness).
-        - Important lifestyle advice or home remedies that are safe and complement the doctor's advice.
-        - Clear warning signs on when they should seek immediate medical help.
-
-        Output MUST be valid JSON only matching this exact structure:
+        Task: Generate a warm, reassuring patient summary in valid JSON format. Keep instructions clear and language simple.
+        
+        Format:
         {
           "greeting": "Hello ${patientName} 👋",
-          "visit_reason": "[Polite summary of their visit and symptoms].",
-          "explanation": "[Empathetic, clear explanation of their condition. Add a comforting remark.]",
-          "medicines": ["[Medicine Name] -> [Clear Instruction]"],
-          "expectations": "[What they will feel in the coming days + reassurance]",
-          "warning": "[When to be concerned/contact the clinic]",
-          "lifestyle": "[Personalized extra advice (diet, rest, specific home care)]",
-          "follow_up": "Visit again after [Days/Date] OR if symptoms worsen."
+          "visit_reason": "Summary of symptoms.",
+          "explanation": "Simple explanation + reassurance.",
+          "medicines": ["Med Name -> Instruction"],
+          "expectations": "Recovery timeline + reassurance",
+          "warning": "When to seek medical help",
+          "lifestyle": "Diet/rest/home care tips",
+          "follow_up": "Next steps"
         }`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-        console.log(`🤖 [AI 3/4] Calling NVIDIA API...`);
+        console.log(`🤖 [AI 3/4] Calling NVIDIA API (8B model for speed)...`);
         const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -99,7 +92,7 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "meta/llama-3.1-70b-instruct",
+                model: "meta/llama-3.1-8b-instruct",
                 messages: [{ role: "user", content: prompt }]
             }),
             signal: controller.signal
