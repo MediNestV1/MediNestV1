@@ -1,0 +1,170 @@
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  border-right: 1.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  z-index: 100;
+}
+
+.top {
+  margin-bottom: 40px;
+  padding: 0 8px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoCircle {
+  width: 36px;
+  height: 36px;
+  background: var(--teal);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.logoText {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--teal-d);
+  letter-spacing: -0.5px;
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--ink-l);
+  font-size: 14px;
+  font-weight: 600;
+  transition: 0.2s;
+  position: relative;
+}
+
+.navItem:hover:not(.disabled) {
+  background: var(--bg);
+  color: var(--teal);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.activeIndicator {
+  position: absolute;
+  right: 14px;
+  width: 6px;
+  height: 6px;
+  background: var(--teal);
+  border-radius: 50%;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.soonBadge {
+  font-size: 9px;
+  background: var(--border);
+  color: var(--ink-l);
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: auto;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.clinicLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.clinicLabelText {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-l);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.clinicValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 80px;
+    padding: 24px 12px;
+  }
+  .logoText, .labelText, .soonBadge, .bottom {
+    display: none;
+  }
+  .navItem {
+    justify-content: center;
+    padding: 14px;
+  }
+  .icon {
+    width: 24px;
+    height: 24px;
+  }
+  .activeIndicator {
+    right: 4px;
+    top: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+}
