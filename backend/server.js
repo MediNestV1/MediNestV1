@@ -45,13 +45,13 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     console.log(`🤖 [AI 1/4] Starting generation for Rx: ${id}`);
 
     try {
-        let rx = req.body;
+        let rx = req.body || {};
         let patientName = rx.patientName || 'Patient';
-        let medicines = rx.medicines;
+        let medicines = rx.medicines || [];
 
-        // 1. Fetch Rx Data ONLY if not provided (Zero-Fetch Strategy)
-        if (!rx.complaints && !rx.findings) {
-            console.log(`🤖 [AI 2/4] Zero-Fetch skipped. Fetching from DB...`);
+        // 1. Fetch Rx Data ONLY if not provided or incomplete (Zero-Fetch Strategy)
+        if (!rx.complaints || !rx.findings) {
+            console.log(`🤖 [AI 2/4] Data incomplete. Fetching from DB...`);
             const { data: dbRx, error: rxError } = await supabase
                 .from('prescriptions')
                 .select('*, patients(name)')
@@ -123,7 +123,7 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             summaryStr = JSON.stringify({
                 greeting: `Hello ${patientName} 👋`,
                 condition: "Based on your symptoms, it seems you have a common condition affecting your health.",
-                medicines: medicines.map(m => ({ name: m.name, purpose: "To treat your symptoms" })),
+                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "To treat your symptoms" })) : [],
                 expectations: "You should see improvement within a few days of starting treatment.",
                 care: "Get plenty of rest and stay hydrated.",
                 warnings: ["If symptoms worsen", "High fever persists"],
@@ -131,11 +131,25 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             });
         }
         
-        // Clean accidental markdown code blocks
-        summaryStr = summaryStr.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
-        const summaryJson = JSON.parse(summaryStr);
-        console.log(`🤖 [AI 4/4] Summary generated. Saving to DB...`);
+        let summaryJson;
+        try {
+            // Clean accidental markdown code blocks
+            const cleanedStr = summaryStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+            summaryJson = JSON.parse(cleanedStr);
+        } catch (parseErr) {
+            console.error(`⚠️ AI JSON Parse Failed. Using emergency structural fallback.`, parseErr.message);
+            summaryJson = {
+                greeting: `Hello ${patientName} 👋`,
+                condition: "We have summarized your prescription for your convenience.",
+                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "As prescribed" })) : [],
+                expectations: "Follow the doctor's advice for a smooth recovery.",
+                care: "Rest well and stay hydrated.",
+                warnings: ["Contact the clinic if you feel worse"],
+                next_steps: "Refer to the formal prescription below."
+            };
+        }
+
+        console.log(`🤖 [AI 4/4] Summary ready. Saving...`);
 
         // 3. Save to DB
         const { error: updateError } = await supabase
