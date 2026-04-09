@@ -51,15 +51,19 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   const refresh = async () => {
-    setLoading(true);
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // First check local session (fast)
+      const { data: { session } } = await supabase.auth.getSession();
+      let currentUser = session?.user || null;
+
+      // If no local session, verify with server (thorough)
+      if (!currentUser) {
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        currentUser = verifiedUser;
+      }
       
-      if (userError) {
-        if (userError.name !== 'AuthSessionMissingError') {
-          console.error('❌ ClinicContext: Auth error:', userError);
-        }
-        setUser(null);
+      setUser(currentUser);
+      if (!currentUser) {
         setClinic(null);
         setDoctors([]);
         return;
@@ -110,7 +114,8 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes to sync state instantly
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+      console.log('🔔 ClinicContext: Auth Event:', event);
+      if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED', 'TOKEN_REFRESHED', 'INITIAL_SESSION'].includes(event)) {
         refresh();
       }
     });
