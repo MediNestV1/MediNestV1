@@ -147,30 +147,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
 
 
-  if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loader}></div>
-        <p>Fetching your digital prescription...</p>
-      </div>
-    );
-  }
-
-  if (error || !rx) {
-    return (
-      <div className={styles.errorContainer}>
-        <h1>Oops!</h1>
-        <p>{error || 'We couldn\'t find that prescription.'}</p>
-        <button onClick={() => window.location.reload()}>Try Again</button>
-      </div>
-    );
-  }
-
-  const activeSummary = selectedLang === 'English' ? rx.ai_summary : hindiCache;
+  const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
 
   return (
     <div className={styles.container}>
-      {/* 🚀 PREMIUM STICKY NAV: Pill Toggle (English | Hindi) */}
+      {/* 🚀 FIXED NAV: Always rendered, even during loading/error */}
       <nav className={styles.stickyNav}>
         <div className={styles.pillContainer}>
           <div 
@@ -187,7 +168,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             className={`${styles.pillBtn} ${selectedLang === 'Hindi' ? styles.btnTextActive : ''}`}
             onClick={() => {
               setSelectedLang('Hindi');
-              if (!hindiCache) generateAiSummary(rx, patient, 'Hindi');
+              if (!hindiCache && rx) generateAiSummary(rx, patient, 'Hindi');
             }}
           >
             हिन्दी
@@ -195,8 +176,21 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         </div>
       </nav>
 
-      {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
-      {activeSummary || isGeneratingHindi ? (
+      {loading ? (
+        <div className={styles.loadingContainer}>
+          <div className={styles.loader}></div>
+          <p>Fetching your digital prescription...</p>
+        </div>
+      ) : (error || !rx) ? (
+        <div className={styles.errorContainer}>
+          <h1>Oops!</h1>
+          <p>{error || 'We couldn\'t find that prescription.'}</p>
+          <button onClick={() => window.location.reload()}>Try Again</button>
+        </div>
+      ) : (
+        <>
+          {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
+          {activeSummary || isGeneratingHindi ? (
         <div className={styles.aiContainer}>
           <div className={styles.aiHeaderCard}>
             <div className={styles.aiBadge}>
