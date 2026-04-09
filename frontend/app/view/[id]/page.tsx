@@ -173,15 +173,15 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         <div className={styles.aiCard}>
           <div className={styles.aiBadge}>Doctor's AI Assistant Note</div>
           <h1 className={styles.aiGreeting}>{rx.ai_summary.greeting}</h1>
-          <p className={styles.aiIntro}>{rx.ai_summary.visit_reason}</p>
-          <div className={styles.aiExplanation}>
-            <span className={styles.aiIcon}>💡</span>
-            <p>{rx.ai_summary.explanation}</p>
-          </div>
-
-          <div className={styles.aiGrid}>
+          
+          <div className={styles.aiStack}>
             <div className={styles.aiSection}>
-              <h3>💊 Your Medicines:</h3>
+              <h3>📝 Your Condition:</h3>
+              <p>{rx.ai_summary.condition_summary}</p>
+            </div>
+
+            <div className={styles.aiSection}>
+              <h3>💊 Your Medicines & Purpose:</h3>
               <ul className={styles.aiList}>
                 {rx.ai_summary.medicines?.map((m: any, i: number) => (
                   <li key={i}>{formatAiMed(m)}</li>
@@ -190,26 +190,32 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             </div>
             
             <div className={styles.aiSection}>
-              <h3>🧠 What You Might Feel:</h3>
-              <p>{rx.ai_summary.expectations}</p>
-            </div>
-
-            <div className={styles.aiSection}>
-              <h3>⚠️ Be Careful:</h3>
-              <p>{rx.ai_summary.warning}</p>
+              <h3>⏳ What to Expect:</h3>
+              <p>{rx.ai_summary.timeline}</p>
             </div>
 
             <div className={styles.aiSection}>
               <h3>🥗 What You Should Do:</h3>
               <p>{rx.ai_summary.lifestyle}</p>
             </div>
-          </div>
 
-          <div className={styles.aiFooter}>
-            <div className={styles.aiFollowUp}>{rx.ai_summary.follow_up}</div>
+            <div className={styles.aiSection}>
+              <h3 className={styles.warningTitle}>⚠️ Warning Signs:</h3>
+              <ul className={styles.aiList}>
+                {rx.ai_summary.warning_signs?.map((s: any, i: number) => (
+                  <li key={i} className={styles.warningItem}>{s}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles.aiSection}>
+              <h3>📅 Follow-up Details:</h3>
+              <p>{rx.ai_summary.follow_up}</p>
+            </div>
           </div>
         </div>
       ) : (
+
         <div className={styles.aiLoadingHero}>
           <div className={styles.aiLoadingBadge}>AI Assistant is preparing your guide...</div>
           <div className={styles.aiLoadingPulse}></div>

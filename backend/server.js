@@ -40,16 +40,16 @@ app.use('/api/patient-history', patientHistoryRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'SSK Backend is running' });
+    res.json({ status: 'ok', message: ' Backend is running' });
 });
 
 // ─── SUPER ADMIN MIDDLEWARE ───
 const requireSuperAdmin = (req, res, next) => {
     const providedKey = req.headers['x-admin-key'];
     const actualKey = (process.env.ADMIN_PASSWORD || '').trim();
-    
+
     console.log(`📡 [ADMIN REQ] ${req.method} ${req.path}`);
-    
+
     if (!providedKey || providedKey !== actualKey) {
         console.warn(`⛔ [AUTH FAIL] ${req.method} ${req.path}`);
         console.log(`   - Provided length: ${providedKey ? providedKey.length : 0}`);
@@ -80,7 +80,7 @@ app.get('/api/superadmin/clinics', requireSuperAdmin, async (req, res) => {
 app.post('/api/superadmin/clinics/status', requireSuperAdmin, async (req, res) => {
     const { clinicId, status } = req.body;
     console.log('📬 Status Update Request:', { clinicId, status });
-    
+
     if (!clinicId || !['active', 'suspended'].includes(status)) {
         console.warn('⚠️ Invalid parameters received:', { clinicId, status });
         return res.status(400).json({ success: false, error: 'Invalid parameters' });
@@ -153,21 +153,37 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         patientId = rx.patient_id;
         patientName = rx.patients?.name || 'Patient';
         const medicines = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
-        
+
         console.log(`🤖 [AI 2/4] Data ready. Patient: ${patientName}`);
 
         // 2. Prepare Prompt
-        const prompt = `You are an expert, compassionate doctor's medical assistant. Analyze the patient's clinical prescription to act as their personal health guide.
-        Patient Name: ${patientName}
-        Chief Complaints (Symptoms): ${rx.complaints}
-        Clinical Findings: ${rx.findings}
-        Prescribed Medicines: ${JSON.stringify(medicines)}
-        Doctor's Advice: ${rx.advice}
-        Follow-up: ${rx.valid_till || 'N/A'}
+        const prompt = `You are an expert, compassionate doctor's medical assistant. Analyze the clinical prescription and generate a structured patient summary in the following strict JSON format.
+        
+        Format:
+        {
+          "greeting": "A warm greeting using ${patientName}'s name",
+          "condition_summary": "Simple, non-medical explanation of the symptoms and findings",
+          "medicines": ["List of medicines with their purpose, format: Name - Dose (To help with [Purpose])"],
+          "timeline": "When the patient can expect to feel better and duration of care",
+          "lifestyle": "Specific diet advice (mention specific foods to eat/avoid), care instructions, and precautions",
+          "warning_signs": ["Bullet points of specific symptoms that mean the patient should contact the clinic immediately"],
+          "follow_up": "Specific details on when to revisit or next steps"
+        }
 
-        Task: Generate a warm, comforting summary. Valid JSON ONLY.
-        Structure: greeting, visit_reason, explanation, medicines[], expectations, warning, lifestyle, follow_up
-        CRITICAL: The "medicines" field MUST be an array of simple strings (e.g. ["Med A -> 1 tab daily"]). Do NOT return objects inside the medicines array.`;
+        Rules:
+        - Keep language simple and warm.
+        - Avoid medical jargon (e.g., use 'swelling' instead of 'edema').
+        - No assumptions beyond given data.
+        - The "medicines" field MUST be an array of simple strings.
+        - The "warning_signs" field MUST be an array of simple strings.
+
+        Clinical Data:
+        Patient Name: ${patientName}
+        Chief Complaints: ${rx.complaints}
+        Clinical Findings: ${rx.findings}
+        Medicines: ${JSON.stringify(medicines)}
+        Advice: ${rx.advice}
+        Follow-up: ${rx.valid_till || 'As advised'}`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -196,16 +212,16 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         if (!summaryStr) {
             summaryStr = JSON.stringify({
                 greeting: `Hello ${patientName} 👋`,
-                visit_reason: "Thank you for visiting today.",
-                explanation: "Please follow the instructions on your prescription for recovery.",
-                medicines: ["Follow dosage accurately."],
-                expectations: "Improvement expected soon.",
-                warning: "Contact clinic if symptoms worsen.",
-                lifestyle: "Rest and stay hydrated.",
-                follow_up: "Visit as advised."
+                condition_summary: "We're taking care of your health based on your symptoms today.",
+                medicines: ["Follow the dosage instructions on your prescription."],
+                timeline: "You should start feeling better as you follow the treatment.",
+                lifestyle: "Rest well, stay hydrated, and follow the diet as advised.",
+                warning_signs: ["Severe pain", "High fever", "Difficulty breathing"],
+                follow_up: "Please visit us again as mentioned in your prescription."
             });
         }
-        
+
+
         summaryStr = summaryStr.replace(/```json/gi, '').replace(/```/g, '').trim();
         const summaryJson = JSON.parse(summaryStr);
         console.log(`🤖 [AI 4/4] Summary generated. Saving...`);
@@ -219,23 +235,23 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             // We do this in the background (don't await) 
             (async () => {
                 try {
-                const { data: allRx } = await supabase
-                    .from('prescriptions')
-                    .select('*')
-                    .eq('patient_id', patientId)
-                    .order('date', { ascending: false });
-                
-                const { data: patient } = await supabase.from('patients').select('*').eq('id', patientId).single();
-                
-                if (patient && allRx) {
-                    const newHistory = await generatePatientSummary(patient, allRx);
-                    await supabase.from('patient_histories').upsert({
-                        patient_id: patientId,
-                        summary_text: newHistory,
-                        updated_at: new Date()
-                    });
-                    console.log(`✅ [HISTORY] Snapshot updated successfully.`);
-                }
+                    const { data: allRx } = await supabase
+                        .from('prescriptions')
+                        .select('*')
+                        .eq('patient_id', patientId)
+                        .order('date', { ascending: false });
+
+                    const { data: patient } = await supabase.from('patients').select('*').eq('id', patientId).single();
+
+                    if (patient && allRx) {
+                        const newHistory = await generatePatientSummary(patient, allRx);
+                        await supabase.from('patient_histories').upsert({
+                            patient_id: patientId,
+                            summary_text: newHistory,
+                            updated_at: new Date()
+                        });
+                        console.log(`✅ [HISTORY] Snapshot updated successfully.`);
+                    }
                 } catch (e) {
                     console.error("❌ [HISTORY ERROR]:", e.message);
                 }
