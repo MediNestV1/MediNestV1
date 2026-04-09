@@ -170,33 +170,37 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   return (
     <div className={styles.container}>
+      {/* 🚀 PREMIUM STICKY NAV: Pill Toggle (English | Hindi) */}
+      <nav className={styles.stickyNav}>
+        <div className={styles.pillContainer}>
+          <div 
+            className={styles.pillActive} 
+            style={{ transform: `translateX(${selectedLang === 'English' ? '0' : '100%'})` }}
+          ></div>
+          <button 
+            className={`${styles.pillBtn} ${selectedLang === 'English' ? styles.btnTextActive : ''}`}
+            onClick={() => setSelectedLang('English')}
+          >
+            English
+          </button>
+          <button 
+            className={`${styles.pillBtn} ${selectedLang === 'Hindi' ? styles.btnTextActive : ''}`}
+            onClick={() => {
+              setSelectedLang('Hindi');
+              if (!hindiCache) generateAiSummary(rx, patient, 'Hindi');
+            }}
+          >
+            हिन्दी
+          </button>
+        </div>
+      </nav>
+
       {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
       {activeSummary || isGeneratingHindi ? (
         <div className={styles.aiContainer}>
           <div className={styles.aiHeaderCard}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div className={styles.aiBadge}>
-                <span>✦</span> Secure AI Agent Record
-              </div>
-              
-              {/* Language Toggle */}
-              <div className={styles.langToggle}>
-                <button 
-                  className={`${styles.langBtn} ${selectedLang === 'English' ? styles.langBtnActive : ''}`}
-                  onClick={() => setSelectedLang('English')}
-                >
-                  English
-                </button>
-                <button 
-                  className={`${styles.langBtn} ${selectedLang === 'Hindi' ? styles.langBtnActive : ''}`}
-                  onClick={() => {
-                    setSelectedLang('Hindi');
-                    if (!hindiCache) generateAiSummary(rx, patient, 'Hindi');
-                  }}
-                >
-                  हिन्दी
-                </button>
-              </div>
+            <div className={styles.aiBadge}>
+              <span>✦</span> Secure AI Agent Record
             </div>
 
             {isGeneratingHindi ? (
@@ -206,8 +210,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               </div>
             ) : (
               <>
-                <h1 className={styles.aiGreeting}>{activeSummary.greeting}</h1>
-                <p className={styles.aiCondition}>{activeSummary.condition}</p>
+                <h1 className={styles.aiGreeting}>{activeSummary?.greeting}</h1>
+                <p className={styles.aiCondition}>{activeSummary?.condition}</p>
               </>
             )}
           </div>
