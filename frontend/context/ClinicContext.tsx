@@ -69,19 +69,12 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         setDoctors([]);
         return;
       }
-      
-      setUser(user);
-      if (!user) {
-        setClinic(null);
-        setDoctors([]);
-        return;
-      }
 
-      console.log('👤 ClinicContext: User found, fetching clinic data...', user.id);
+      console.log('👤 ClinicContext: User found, fetching clinic data...', currentUser.id);
       const { data: clinicData, error: clinicError } = await supabase
         .from('clinics')
         .select('*')
-        .eq('owner_user_id', user.id)
+        .eq('owner_user_id', currentUser.id)
         .single();
 
       if (clinicError) {
