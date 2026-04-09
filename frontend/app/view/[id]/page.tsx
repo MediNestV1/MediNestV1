@@ -42,6 +42,10 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // --- HYDRATION GUARD ---
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // --- MULTI-LANG STATE ---
   const [selectedLang, setSelectedLang] = useState<'English' | 'Hindi'>('English');
   const [hindiCache, setHindiCache] = useState<any>(null);
@@ -148,6 +152,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
 
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
+
+  // Wait for mount to avoid hydration mismatch
+  if (!mounted) return null;
 
   return (
     <>
@@ -415,6 +422,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           Print Prescription
         </button>
       </div>
-    </div>
+    </>
   );
 }
