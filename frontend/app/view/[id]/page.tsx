@@ -152,6 +152,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
 
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
+  
+  const meds = typeof rx?.medicines === 'string' ? JSON.parse(rx.medicines) : rx?.medicines;
+  const followUpDate = rx?.valid_till;
 
   // Wait for mount to avoid hydration mismatch
   if (!mounted) return null;
@@ -420,6 +423,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         <button className={styles.printBtn} onClick={() => window.print()}>
           Print Prescription
         </button>
+      </div>
+          </>
+        )}
       </div>
     </>
   );
