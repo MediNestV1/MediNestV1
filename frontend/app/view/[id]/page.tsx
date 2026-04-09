@@ -150,13 +150,32 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
 
   return (
-    <div className={styles.container}>
-      {/* 🚀 FIXED NAV: Always rendered, even during loading/error */}
-      <nav className={styles.stickyNav}>
+    <>
+      {/* 🚀 BULLETPROOF NAV: Fixed at the very top of the DOM */}
+      <nav 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          background: 'rgba(255, 255, 255, 0.98)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '12px 0',
+          display: 'flex',
+          justifyContent: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+        }}
+      >
         <div className={styles.pillContainer}>
           <div 
             className={styles.pillActive} 
-            style={{ transform: `translateX(${selectedLang === 'English' ? '0' : '100%'})` }}
+            style={{ 
+              transform: `translateX(${selectedLang === 'English' ? '0' : '100%'})`,
+              // Force visibility of the pill background if needed
+              backgroundColor: '#1a1a1a'
+            }}
           ></div>
           <button 
             className={`${styles.pillBtn} ${selectedLang === 'English' ? styles.btnTextActive : ''}`}
@@ -176,21 +195,22 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         </div>
       </nav>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <div className={styles.loader}></div>
-          <p>Fetching your digital prescription...</p>
-        </div>
-      ) : (error || !rx) ? (
-        <div className={styles.errorContainer}>
-          <h1>Oops!</h1>
-          <p>{error || 'We couldn\'t find that prescription.'}</p>
-          <button onClick={() => window.location.reload()}>Try Again</button>
-        </div>
-      ) : (
-        <>
-          {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
-          {activeSummary || isGeneratingHindi ? (
+      <div className={styles.container} style={{ paddingTop: '80px' }}>
+        {loading ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.loader}></div>
+            <p>Fetching your digital prescription...</p>
+          </div>
+        ) : (error || !rx) ? (
+          <div className={styles.errorContainer}>
+            <h1>Oops!</h1>
+            <p>{error || 'We couldn\'t find that prescription.'}</p>
+            <button onClick={() => window.location.reload()}>Try Again</button>
+          </div>
+        ) : (
+          <>
+            {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
+            {activeSummary || isGeneratingHindi ? (
         <div className={styles.aiContainer}>
           <div className={styles.aiHeaderCard}>
             <div className={styles.aiBadge}>
