@@ -4,7 +4,7 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4001;
 
 // Supabase Initialization
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -15,14 +15,20 @@ const patientHistoryRouter = require('./routes/patientHistory');
 
 // Middleware
 app.use(cors({
-    origin: '*'
+    origin: '*', // Allows Vercel frontend to communicate with Render backend
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use('/api/patient-history', patientHistoryRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'SSK Backend is running' });
+    res.json({ status: 'ok', message: 'MediNest API is running' });
+});
+
+app.get('/api/ping', (req, res) => {
+    res.json({ success: true, timestamp: new Date().toISOString() });
 });
 
 
