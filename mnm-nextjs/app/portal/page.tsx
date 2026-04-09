@@ -38,22 +38,22 @@ export default function PortalPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth');
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <div className={styles.welcomeSection}>
-          <div className={styles.logoContainer}>
-            <Image 
-              src="/assets/medinest_logo.png" 
-              alt="MediNest Logo" 
-              width={120} 
-              height={120} 
-              style={{ objectFit: 'contain' }} 
-            />
+        <header className={styles.header}>
+          <button onClick={handleLogout} className={styles.signOutBtn}>Sign Out ⏏️</button>
+          <div className={styles.logoCircle}>
+            <Image src="/assets/medinest_logo.png" alt="MediNest" width={100} height={100} style={{ objectFit: 'contain' }} />
           </div>
           <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
           <p className={styles.clinicTagline}>Premium Clinic Management Console</p>
-        </div>
+        </header>
 
         <div className={styles.grid}>
           {portalCards.map((card) => (
