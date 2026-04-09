@@ -52,22 +52,23 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
   const refresh = async () => {
     setLoading(true);
-    console.log('🔄 ClinicContext: Refreshing data...');
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
       if (userError) {
-        console.error('❌ ClinicContext: Auth error:', userError);
+        if (userError.name !== 'AuthSessionMissingError') {
+          console.error('❌ ClinicContext: Auth error:', userError);
+        }
         setUser(null);
-        setLoading(false);
+        setClinic(null);
+        setDoctors([]);
         return;
       }
       
       setUser(user);
       if (!user) {
-        console.log('ℹ️ ClinicContext: No active user session');
         setClinic(null);
         setDoctors([]);
-        setLoading(false);
         return;
       }
 
@@ -79,7 +80,9 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (clinicError) {
-        console.error('❌ ClinicContext: Clinic fetch error:', clinicError);
+        if (clinicError.code !== 'PGRST116') {
+          console.error('❌ ClinicContext: Clinic fetch error:', clinicError);
+        }
         setClinic(null);
       } else {
         console.log('🏥 ClinicContext: Clinic data loaded:', clinicData.name);
@@ -95,15 +98,27 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (docError) console.error('❌ ClinicContext: Doctors fetch error:', docError);
         setDoctors(doctorData || []);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('🔥 ClinicContext: Critical error in refresh:', e);
     } finally {
       setLoading(false);
-      console.log('✅ ClinicContext: Refresh operation complete');
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+
+    // Listen for auth changes to sync state instantly
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh }}>
