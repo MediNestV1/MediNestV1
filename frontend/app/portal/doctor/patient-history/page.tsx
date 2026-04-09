@@ -2,7 +2,9 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useClinic } from '@/context/ClinicContext';
 import html2canvas from 'html2canvas';
+
 import jsPDF from 'jspdf';
 import { createClient } from '@/lib/supabase';
 import TopBar from '@/components/TopBar';
@@ -26,6 +28,7 @@ function PatientHistoryContent() {
   const router = useRouter();
   const patientId = searchParams?.get('patientId');
   
+  const { clinic, loading: clinicLoading } = useClinic();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [summary, setSummary] = useState<string>('');
@@ -36,15 +39,16 @@ function PatientHistoryContent() {
   const [isSearching, setIsSearching] = useState(false);
   const supabase = createClient();
 
-  // Load patients if no ID is provided
+  // Load patients if no ID is provided, filtered by current clinic
   useEffect(() => {
-    if (patientId) return;
+    if (patientId || !clinic?.id) return;
     
     const fetchPatients = async () => {
       setIsSearching(true);
       const { data, error } = await supabase
         .from('patients')
         .select('*')
+        .eq('clinic_id', clinic.id)
         .ilike('name', `%${searchTerm}%`)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -60,14 +64,14 @@ function PatientHistoryContent() {
     }, 300);
     
     return () => clearTimeout(delayDebounceFn);
-  }, [patientId, searchTerm]);
+  }, [patientId, searchTerm, clinic?.id]);
 
   // Load specific patient history if ID is provided
   useEffect(() => {
-    if (!patientId) return;
+    if (!patientId || !clinic?.id) return;
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
-    fetch(`${apiUrl}/api/patient-history/${patientId}`)
+    fetch(`${apiUrl}/api/patient-history/${patientId}?clinicId=${clinic.id}`)
       .then(async r => {
         if (!r.ok) {
            const errText = await r.text();
@@ -76,6 +80,7 @@ function PatientHistoryContent() {
         }
         return r.json();
       })
+
       .then(data => {
         setPatient(data.patient);
         setVisits(data.visits);

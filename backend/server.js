@@ -134,21 +134,45 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     console.log(`-----------------------------------------`);
 
     try {
+        const { clinicId, rxData } = req.body;
+        
+        if (!clinicId) {
+            console.warn(`⛔ [AUTH FAIL] AI Summary requested without clinicId for Rx: ${id}`);
+            return res.status(400).json({ success: false, error: 'Missing clinicId for authorization' });
+        }
+
         let rx = rxData;
         let patientId = null;
         let patientName = 'Patient';
 
-        // 1. Get Rx Data (either from body or DB)
+        // 1. Get Rx Data (either from body or DB) and verify ownership
         if (!rx) {
-            console.log(`🤖 [AI 1/4] Fetching Rx from DB (no rxData in body)`);
+            console.log(`🤖 [AI 1/4] Fetching Rx from DB and verifying Clinic: ${clinicId}`);
             const { data, error } = await supabase
                 .from('prescriptions')
                 .select('*, patients(name, age, gender, contact)')
                 .eq('id', id)
+                .eq('clinic_id', clinicId)
                 .single();
-            if (error || !data) throw new Error('Prescription not found');
+            if (error || !data) {
+                console.warn(`⛔ [Access Denied] Clinic ${clinicId} tried to generate AI summary for Rx ${id}`);
+                throw new Error('Prescription not found or access denied');
+            }
             rx = data;
+        } else {
+            // Even if rxData is provided, verify it belongs to the clinicId
+            console.log(`🤖 [AI 1/4] Verifying Rx Ownership for Clinic: ${clinicId}`);
+            const { data, error } = await supabase
+                .from('prescriptions')
+                .select('clinic_id')
+                .eq('id', id)
+                .single();
+            if (error || !data || data.clinic_id !== clinicId) {
+                console.warn(`⛔ [Access Denied] Clinic ${clinicId} tried to spoof AI summary for Rx ${id}`);
+                throw new Error('Access denied: Ownership verification failed');
+            }
         }
+
 
         patientId = rx.patient_id;
         patientName = rx.patients?.name || 'Patient';
@@ -229,9 +253,9 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         // 3. Save Rx Summary
         await supabase.from('prescriptions').update({ ai_summary: summaryJson }).eq('id', id);
 
-        // 4. Background Task: Update Patient History Snapshot
-        if (patientId) {
-            console.log(`🔄 [HISTORY] Triggering snapshot update for Patient: ${patientId}`);
+        // 4. Background Task: Update Patient History Snapshot (Clinic Isolated)
+        if (patientId && clinicId) {
+            console.log(`🔄 [HISTORY] Triggering snapshot update for Patient: ${patientId} at Clinic: ${clinicId}`);
             // We do this in the background (don't await) 
             (async () => {
                 try {
@@ -239,24 +263,32 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
                         .from('prescriptions')
                         .select('*')
                         .eq('patient_id', patientId)
+                        .eq('clinic_id', clinicId)
                         .order('date', { ascending: false });
 
-                    const { data: patient } = await supabase.from('patients').select('*').eq('id', patientId).single();
+                    const { data: patient } = await supabase
+                        .from('patients')
+                        .select('*')
+                        .eq('id', patientId)
+                        .eq('clinic_id', clinicId)
+                        .single();
 
                     if (patient && allRx) {
                         const newHistory = await generatePatientSummary(patient, allRx);
                         await supabase.from('patient_histories').upsert({
                             patient_id: patientId,
+                            clinic_id: clinicId, // Keep snapshots isolated per clinic
                             summary_text: newHistory,
                             updated_at: new Date()
                         });
-                        console.log(`✅ [HISTORY] Snapshot updated successfully.`);
+                        console.log(`✅ [HISTORY] Snapshot updated for Clinic: ${clinicId}`);
                     }
                 } catch (e) {
                     console.error("❌ [HISTORY ERROR]:", e.message);
                 }
             })();
         }
+
 
         res.json({ success: true, summary: summaryJson });
     } catch (err) {

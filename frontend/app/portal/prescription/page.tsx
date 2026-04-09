@@ -97,13 +97,15 @@ export default function PrescriptionPage() {
 
     try {
       let patientId: string;
-      // Use cleanedPhone for lookup and save
+      // Use cleanedPhone for lookup and save, isolated by clinic
       const { data: existing, error: pError } = await supabase
         .from('patients')
         .select('id')
         .eq('name', ptName)
         .eq('contact', cleanedPhone)
+        .eq('clinic_id', clinic?.id)
         .limit(1);
+
 
       if (pError) throw pError;
 
@@ -169,8 +171,12 @@ export default function PrescriptionPage() {
         fetch(`${apiUrl}/api/prescriptions/${pData.id}/ai-summary`, { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rxData: rxDataForAI })
+          body: JSON.stringify({ 
+            clinicId: clinic?.id,
+            rxData: rxDataForAI 
+          })
         })
+
           .then(async r => {
             if (!r.ok) {
               const txt = await r.text();
