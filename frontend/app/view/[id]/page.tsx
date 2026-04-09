@@ -41,76 +41,67 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      const supabase = createClient();
-      try {
-        // 1. Fetch Prescription
-        const { data: rxData, error: rxError } = await supabase
-          .from('prescriptions')
-          .select('*')
-          .eq('id', id)
-          .single();
+  async function fetchRxData() {
+    const supabase = createClient();
+    try {
+      console.log('🔄 Fetching/Refreshing RX data...');
+      const { data: rxData, error: rxError } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-        if (rxError) throw rxError;
-        setRx(rxData);
+      if (rxError) throw rxError;
+      setRx(rxData);
 
-        // 2. Fetch Patient
-        if (rxData.patient_id) {
-          const { data: pData, error: pError } = await supabase
-            .from('patients')
-            .select('*')
-            .eq('id', rxData.patient_id)
-            .single();
-          if (pError) console.error('Patient fetch error:', pError);
-          else setPatient(pData);
-        }
-
-        // 3. Fetch Clinic
-        if (rxData.clinic_id) {
-          const { data: cData, error: cError } = await supabase
-            .from('clinics')
-            .select('*')
-            .eq('id', rxData.clinic_id)
-            .single();
-          if (cError) console.error('Clinic fetch error:', cError);
-          else setClinic(cData);
-        }
-      } catch (err: any) {
-        console.error('Fetch error:', err);
-        setError(err.message || 'Prescription not found');
-      } finally {
-        setLoading(false);
+      // Once we have a summary, we don't need to fetch patient/clinic again if already set
+      if (!patient && rxData.patient_id) {
+        const { data: pData } = await supabase.from('patients').select('*').eq('id', rxData.patient_id).single();
+        if (pData) setPatient(pData);
       }
+      if (!clinic && rxData.clinic_id) {
+        const { data: cData } = await supabase.from('clinics').select('*').eq('id', rxData.clinic_id).single();
+        if (cData) setClinic(cData);
+      }
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      setError(err.message || 'Prescription not found');
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchData();
+  useEffect(() => {
+    fetchRxData();
 
-    // --- INSTANT UPDATES: Supabase Realtime ---
+    // 1. Instant Track: Supabase Realtime
     const supabase = createClient();
     const channel = supabase
       .channel(`rx-update-${id}`)
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'prescriptions',
-          filter: `id=eq.${id}`,
-        },
-        (payload) => {
-          console.log('🔄 Realtime update received:', payload);
-          if (payload.new && payload.new.ai_summary) {
-            setRx(prev => prev ? ({ ...prev, ai_summary: payload.new.ai_summary }) : null);
-          }
+        { event: 'UPDATE', schema: 'public', table: 'prescriptions', filter: `id=eq.${id}` },
+        () => {
+          console.log('⚡ Realtime Update Detected! Re-fetching...');
+          fetchRxData();
         }
       )
       .subscribe();
 
+    // 2. Safety Track: Polling Fallback (runs every 3s until we have ai_summary)
+    const pollInterval = setInterval(() => {
+      // If summary is missing, keep checking
+      if (!rx?.ai_summary) {
+        console.log('⏱️ Polling fallback check...');
+        fetchRxData();
+      }
+    }, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
-  }, [id]);
+  }, [id, !!rx?.ai_summary]);
 
 
   if (loading) {
