@@ -417,10 +417,12 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             Digital Prescription • Not for Medico-Legal use
           </div>
         </footer>
-      </div>
+      </>
+    )}
+  </div>
 
-      <div className={styles.actions}>
-        <button className={styles.printBtn} onClick={() => window.print()}>
+  <div className={styles.actions}>
+    <button className={styles.printBtn} onClick={() => window.print()}>
           Print Prescription
         </button>
       </div>
