@@ -44,7 +44,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
     try {
       console.log('🤖 Triggering Instant On-Demand AI Summary...');
-      const response = await fetch(`http://localhost:4001/api/prescriptions/${id}/ai-summary`, {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4001';
+      const response = await fetch(`${backendUrl}/api/prescriptions/${id}/ai-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

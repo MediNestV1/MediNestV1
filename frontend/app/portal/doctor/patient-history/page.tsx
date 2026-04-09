@@ -66,7 +66,8 @@ function PatientHistoryContent() {
   useEffect(() => {
     if (!patientId) return;
     
-    fetch(`http://localhost:4001/api/patient-history/${patientId}`)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4001';
+    fetch(`${backendUrl}/api/patient-history/${patientId}`)
       .then(async r => {
         if (!r.ok) {
            const errText = await r.text();
