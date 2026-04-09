@@ -297,14 +297,16 @@ export default function PrescriptionPage() {
                     </select>
                   </div>
                   <div className="field"><label>Patient Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Name" /></div>
-                  <div className={styles.row2}>
-                    <div className="field"><label>Phone</label><input type="tel" value={ptPhone} onChange={e => setPtPhone(e.target.value)} placeholder="10-digit number" /></div>
-                    <div className="field"><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+                  
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <div className="field" style={{ flex: 1.5 }}><label>Phone</label><input type="tel" value={ptPhone} onChange={e => setPtPhone(e.target.value)} placeholder="10-digit number" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
                   </div>
-                  <div className={styles.row3}>
-                    <div className="field"><label>Age</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Age" /></div>
-                    <div className="field"><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div className="field"><label>Weight</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Kg" /></div>
+                  
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Years" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div className="field" style={{ flex: 1 }}><label>Weight</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Kg" /></div>
                   </div>
                 </div>
                 <div className={styles.panelBlock}>
