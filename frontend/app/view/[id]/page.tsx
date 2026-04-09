@@ -142,10 +142,17 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   }, [id]);
 
   useEffect(() => {
-    if (rx && !rx.ai_summary && !loading) {
-      generateAiSummary(rx, patient);
+    if (rx && !loading) {
+      // 1. Ensure English is ready (Persisted)
+      if (!rx.ai_summary) {
+        generateAiSummary(rx, patient, 'English');
+      }
+      // 2. Pre-generate Hindi for zero-latency switching
+      if (!hindiCache) {
+        generateAiSummary(rx, patient, 'Hindi');
+      }
     }
-  }, [rx?.id, !!rx?.ai_summary, loading]);
+  }, [rx?.id, !!rx?.ai_summary, loading, !!hindiCache]);
 
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
   const followUpDate = rx?.valid_till;

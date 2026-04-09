@@ -76,21 +76,22 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
         Instructions:
-        - LANGUAGE: Respond strictly in ${lang}. If Hindi, use simple, emotional Hindi script (Devanagari).
-        - Be warm, empathetic, and reassuring.
-        - Explain the condition in VERY simple, human terms.
-        - provide specific, detailed diet and rest advice based on the symptoms.
+        - LANGUAGE: Respond strictly in formal, pure Hindi prose (Devanagari script). 
+        - STRICT RULE: Avoid Hinglish, transliteration, or mixing English words (e.g., use 'औषधियाँ' instead of 'Medicines', 'उपचार' instead of 'Treatment').
+        - Be warm, empathetic, and reassuring (Dr. Persona).
+        - Explain the condition in VERY simple terms that an elderly person or child would understand.
+        - Provide specific, detailed diet and rest advice based on the symptoms.
         - Respond ONLY with VALID JSON.
 
         JSON Structure (Keys must be in English):
         {
-          "greeting": "Warm, personalized greeting in ${lang}",
-          "condition": "Simple explanation + reassurance in ${lang}",
-          "medicines": [{"name": "Med Name", "purpose": "Why to take it in ${lang}"}],
-          "expectations": "Recovery timeline & reassurance in ${lang}",
-          "care": "Detailed Diet + Rest + Precautions in ${lang}",
-          "warnings": ["Sign in ${lang}"],
-          "next_steps": "Follow-up details in ${lang}"
+          "greeting": "Personalized greeting in pure Hindi",
+          "condition": "Explanation + reassurance in pure Hindi",
+          "medicines": [{"name": "Med Name", "purpose": "Pure Hindi purpose"}],
+          "expectations": "Recovery timeline in pure Hindi",
+          "care": "Detailed Diet/Rest/Precautions in pure Hindi",
+          "warnings": ["Pure Hindi warning signs"],
+          "next_steps": "Follow-up details in pure Hindi"
         }`;
 
         const controller = new AbortController();
