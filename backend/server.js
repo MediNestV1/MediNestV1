@@ -66,8 +66,8 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             console.log(`🚀 [AI 2/4] Ultra-Fast: Using provided data (Zero-Fetch)`);
         }
 
-        // 2. Prepare Prompt & Timeout
-        const prompt = `Assistant: Summarize prescription for ${patientName}.
+        // 2. Prepare Prompt (STRICT 7-POINT DATA)
+        const prompt = `Medical Assistant: Create a SIMPLE patient guide for ${patientName}.
         Complaints: ${rx.complaints}
         Findings: ${rx.findings}
         Meds: ${JSON.stringify(medicines)}
@@ -76,14 +76,15 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
 
         Task: Return ONLY valid JSON:
         {
-          "greeting": "Hello ${patientName} 👋",
-          "visit_reason": "Summary of symptoms",
-          "explanation": "Simple explanation",
-          "medicines": ["Med Name -> Instruction"],
-          "expectations": "Timeline/reassurance",
-          "warning": "Warning signs",
-          "lifestyle": "Diet/rest/care",
+          "greeting": "Personalized hello",
+          "condition": "Explain why they feel this way simply",
+          "medicines": [{"name": "Med Name", "purpose": "Why to take it"}],
+          "expectations": "Recovery timeline",
+          "care": "Diet + Rest + Precautions",
+          "warnings": ["Sign 1", "Sign 2"],
+          "next_steps": "Follow-up details"
         }`;
+
         const controller = new AbortController();
 
 
@@ -121,13 +122,12 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             console.warn(`⚠️ AI Response empty or null. Using fallback generic summary.`);
             summaryStr = JSON.stringify({
                 greeting: `Hello ${patientName} 👋`,
-                visit_reason: "Thank you for visiting the clinic today.",
-                explanation: "Take your prescribed medications regularly for a speedy recovery.",
-                medicines: ["Please follow the exact dosage on your prescription."],
-                expectations: "You should see improvement within a few days.",
-                warning: "If your symptoms worsen or persist, please contact us immediately.",
-                lifestyle: "Drink plenty of water and get enough rest.",
-                follow_up: "Visit again as advised by the doctor."
+                condition: "Based on your symptoms, it seems you have a common condition affecting your health.",
+                medicines: medicines.map(m => ({ name: m.name, purpose: "To treat your symptoms" })),
+                expectations: "You should see improvement within a few days of starting treatment.",
+                care: "Get plenty of rest and stay hydrated.",
+                warnings: ["If symptoms worsen", "High fever persists"],
+                next_steps: "Visit again as advised by the doctor."
             });
         }
         

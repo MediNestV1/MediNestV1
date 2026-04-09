@@ -157,53 +157,70 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   return (
     <div className={styles.container}>
-      {/* 🤖 NEW: AI Summary "First Page" Card */}
+      {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
       {rx.ai_summary ? (
-        <div className={styles.aiCard}>
-          <div className={styles.aiBadge}>Doctor's AI Assistant Note</div>
-          <h1 className={styles.aiGreeting}>{rx.ai_summary.greeting}</h1>
-          <p className={styles.aiIntro}>{rx.ai_summary.visit_reason}</p>
-          <div className={styles.aiExplanation}>
-            <span className={styles.aiIcon}>💡</span>
-            <p>{rx.ai_summary.explanation}</p>
+        <div className={styles.aiContainer}>
+          <div className={styles.aiHeaderCard}>
+            <div className={styles.aiBadge}>
+              <span>✦</span> Secure AI Agent Record
+            </div>
+            <h1 className={styles.aiGreeting}>{rx.ai_summary.greeting}</h1>
+            <p className={styles.aiCondition}>{rx.ai_summary.condition}</p>
           </div>
 
           <div className={styles.aiGrid}>
-            <div className={styles.aiSection}>
-              <h3>💊 Your Medicines:</h3>
-              <ul className={styles.aiList}>
-                {rx.ai_summary.medicines?.map((m: string, i: number) => (
-                  <li key={i}>{m}</li>
+            <div className={`${styles.aiStepCard} ${styles.medCard}`}>
+              <div className={styles.cardIcon}>💊</div>
+              <div className={styles.cardTitle}>Your Medicines</div>
+              <div className={styles.cardContent}>
+                <ul className={styles.aiList}>
+                  {rx.ai_summary.medicines?.map((m: {name: string, purpose: string}, i: number) => (
+                    <li key={i}>
+                      <strong>{m.name}</strong>: {m.purpose}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
+              <div className={styles.cardIcon}>⏳</div>
+              <div className={styles.cardTitle}>What to Expect</div>
+              <p className={styles.cardContent}>{rx.ai_summary.expectations}</p>
+            </div>
+
+            <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
+              <div className={styles.cardIcon}>🥗</div>
+              <div className={styles.cardTitle}>Care & Diet Instructions</div>
+              <p className={styles.cardContent}>{rx.ai_summary.care}</p>
+            </div>
+
+            <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
+              <div className={styles.cardIcon}>🚨</div>
+              <div className={styles.cardTitle}>Warning Signs</div>
+              <ul className={styles.warningList}>
+                {rx.ai_summary.warnings?.map((w: string, i: number) => (
+                  <li key={i}><span>!</span> {w}</li>
                 ))}
               </ul>
             </div>
-            
-            <div className={styles.aiSection}>
-              <h3>🧠 What You Might Feel:</h3>
-              <p>{rx.ai_summary.expectations}</p>
-            </div>
 
-            <div className={styles.aiSection}>
-              <h3>⚠️ Be Careful:</h3>
-              <p>{rx.ai_summary.warning}</p>
-            </div>
-
-            <div className={styles.aiSection}>
-              <h3>🥗 What You Should Do:</h3>
-              <p>{rx.ai_summary.lifestyle}</p>
+            <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
+              <div className={styles.cardIcon}>📅</div>
+              <div className={styles.cardTitle}>Next Steps</div>
+              <p className={styles.cardContent}>{rx.ai_summary.next_steps}</p>
             </div>
           </div>
-
-          <div className={styles.aiFooter}>
-            <div className={styles.aiFollowUp}>{rx.ai_summary.follow_up}</div>
-            <div className={styles.aiScrollTip}>Scroll down for full formal prescription ↓</div>
+          
+          <div style={{textAlign: 'center', opacity: 0.5, fontSize: '12px', marginBottom: '20px'}}>
+            Scroll down for formal clinical prescription ↓
           </div>
         </div>
       ) : (
         <div className={styles.aiLoadingHero}>
-          <div className={styles.aiLoadingBadge}>AI Assistant is preparing your guide...</div>
           <div className={styles.aiLoadingPulse}></div>
-          <p>Please wait a moment while I prepare a friendly summary of your prescription.</p>
+          <div className={styles.aiBadge}>AI Assistant is preparing your guide...</div>
+          <p>Analyzing prescription data and crafting your personalized care summary.</p>
         </div>
       )}
 
