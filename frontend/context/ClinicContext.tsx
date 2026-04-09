@@ -51,6 +51,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   const refresh = async () => {
+    setLoading(true);
     try {
       // First check local session (fast)
       const { data: { session } } = await supabase.auth.getSession();
