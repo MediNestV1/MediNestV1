@@ -180,7 +180,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             className={styles.pillActive} 
             style={{ 
               transform: `translateX(${selectedLang === 'English' ? '0' : '100%'})`,
-              // Force visibility of the pill background if needed
               backgroundColor: '#1a1a1a'
             }}
           ></div>
