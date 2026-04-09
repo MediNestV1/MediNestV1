@@ -66,21 +66,28 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             console.log(`🚀 [AI 2/4] Ultra-Fast: Using provided data (Zero-Fetch)`);
         }
 
-        // 2. Prepare Prompt (STRICT 7-POINT DATA)
-        const prompt = `Medical Assistant: Create a SIMPLE patient guide for ${patientName}.
+        // 2. Prepare Prompt (EMPATHETIC & DETAILED)
+        const prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
+        Patient Name: ${patientName}
         Complaints: ${rx.complaints}
         Findings: ${rx.findings}
-        Meds: ${JSON.stringify(medicines)}
-        Advice: ${rx.advice}
+        Medicines & Dosages: ${JSON.stringify(medicines)}
+        Doctor's Advice: ${rx.advice}
         Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        Task: Return ONLY valid JSON:
+        Instructions:
+        - Be warm, empathetic, and reassuring (e.g., "I'm sorry you're feeling under the weather").
+        - Explain the condition in VERY simple, human terms.
+        - provide specific, detailed diet and rest advice based on the symptoms (e.g., if cough: warm salt water gargles; if fever: light cotton clothes and fluids).
+        - Respond ONLY with VALID JSON.
+
+        JSON Structure:
         {
-          "greeting": "Personalized hello",
-          "condition": "Explain why they feel this way simply",
-          "medicines": [{"name": "Med Name", "purpose": "Why to take it"}],
-          "expectations": "Recovery timeline",
-          "care": "Diet + Rest + Precautions",
+          "greeting": "Warm, personalized greeting",
+          "condition": "Simple explanation + reassurance",
+          "medicines": [{"name": "Med Name", "purpose": "Why to take it in simple words"}],
+          "expectations": "Recovery timeline & reassurance",
+          "care": "Detailed Diet + Rest + Precautions",
           "warnings": ["Sign 1", "Sign 2"],
           "next_steps": "Follow-up details"
         }`;
@@ -118,34 +125,22 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             summaryStr = aiResponse.choices?.[0]?.message?.content;
         }
 
-        if (!summaryStr) {
-            console.warn(`⚠️ AI Response empty or null. Using fallback generic summary.`);
-            summaryStr = JSON.stringify({
-                greeting: `Hello ${patientName} 👋`,
-                condition: "Based on your symptoms, it seems you have a common condition affecting your health.",
-                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "To treat your symptoms" })) : [],
-                expectations: "You should see improvement within a few days of starting treatment.",
-                care: "Get plenty of rest and stay hydrated.",
-                warnings: ["If symptoms worsen", "High fever persists"],
-                next_steps: "Visit again as advised by the doctor."
-            });
-        }
-        
         let summaryJson;
         try {
-            // Clean accidental markdown code blocks
-            const cleanedStr = summaryStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+            // Robust Regex extraction for JSON block
+            const jsonMatch = summaryStr.match(/\{[\s\S]*\}/);
+            const cleanedStr = jsonMatch ? jsonMatch[0] : summaryStr;
             summaryJson = JSON.parse(cleanedStr);
         } catch (parseErr) {
-            console.error(`⚠️ AI JSON Parse Failed. Using emergency structural fallback.`, parseErr.message);
+            console.error(`⚠️ AI JSON Parse Failed. Using emergency humanized fallback.`, parseErr.message);
             summaryJson = {
                 greeting: `Hello ${patientName} 👋`,
-                condition: "We have summarized your prescription for your convenience.",
-                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "As prescribed" })) : [],
-                expectations: "Follow the doctor's advice for a smooth recovery.",
-                care: "Rest well and stay hydrated.",
-                warnings: ["Contact the clinic if you feel worse"],
-                next_steps: "Refer to the formal prescription below."
+                condition: "I'm sorry to hear you're not feeling your best. I've put together this quick guide based on your visit today to help you recover quickly.",
+                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "To help you feel better and treat your specific symptoms." })) : [],
+                expectations: "With the right rest and medicine, you should start feeling much more comfortable in a few days.",
+                care: "Try to get plenty of sleep, stay well-hydrated with warm fluids, and eat light, easily digestible meals like porridge or soup.",
+                warnings: ["If your fever stays very high", "If you find it difficult to breathe"],
+                next_steps: "Please reach out or visit us again as advised by the doctor."
             };
         }
 
