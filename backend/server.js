@@ -76,22 +76,22 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
         Instructions:
-        - LANGUAGE: Respond strictly in formal, pure Hindi prose (Devanagari script). 
-        - STRICT RULE: Avoid Hinglish, transliteration, or mixing English words (e.g., use 'औषधियाँ' instead of 'Medicines', 'उपचार' instead of 'Treatment').
+        - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
+        - MEDICINE NAMES: Keep all medicine names in their original English spelling (e.g., 'Paracetamol', 'Amoxicillin') for accuracy.
+        - PROSE RULE: Use ONLY Devanagari fonts for all explanations, greetings, and advice. DO NOT use English letters for Hindi words (No Hinglish).
         - Be warm, empathetic, and reassuring (Dr. Persona).
-        - Explain the condition in VERY simple terms that an elderly person or child would understand.
-        - Provide specific, detailed diet and rest advice based on the symptoms.
+        - Explain in VERY simple terms.
         - Respond ONLY with VALID JSON.
 
         JSON Structure (Keys must be in English):
         {
-          "greeting": "Personalized greeting in pure Hindi",
-          "condition": "Explanation + reassurance in pure Hindi",
-          "medicines": [{"name": "Med Name", "purpose": "Pure Hindi purpose"}],
-          "expectations": "Recovery timeline in pure Hindi",
-          "care": "Detailed Diet/Rest/Precautions in pure Hindi",
-          "warnings": ["Pure Hindi warning signs"],
-          "next_steps": "Follow-up details in pure Hindi"
+          "greeting": "Personalized greeting in Pure Hindi Devanagari",
+          "condition": "Explanation + reassurance in Pure Hindi Devanagari",
+          "medicines": [{"name": "Med Name in English", "purpose": "Purpose in Pure Hindi Devanagari"}],
+          "expectations": "Recovery timeline in Pure Hindi Devanagari",
+          "care": "Diet/Rest in Pure Hindi Devanagari",
+          "warnings": ["Warning signs in Pure Hindi Devanagari"],
+          "next_steps": "Follow-up details in Pure Hindi Devanagari"
         }`;
 
         const controller = new AbortController();
