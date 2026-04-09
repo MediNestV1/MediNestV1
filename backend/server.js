@@ -80,13 +80,19 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             Instructions (STRICT HINDI PROSE):
             - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
             - MEDICINE NAMES: Keep medicine names (e.g., 'Paracetamol') in their original English spelling.
-            - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts. 
+            - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts.
+            - DETAIL RULE: Be warm and provide detailed, multi-sentence explanations for each section.
             - NEGATIVE CONSTRAINT: DO NOT use Latin (English) letters for Hindi words. No Hinglish allowed.
             
-            Format Example:
+            JSON Structure (STRICT):
             {
-              "greeting": "नमस्ते ${patientName} जी, मैं डॉक्टर [Name] हूँ।",
-              "medicines": [{"name": "Med Name in English", "purpose": "साफ़ हिंदी में उद्देश्य"}]
+              "greeting": "Personalized greeting in Devanagari",
+              "condition": "Detailed explanation of condition in Devanagari (2-3 sentences)",
+              "medicines": [{"name": "Med Name in English", "purpose": "Clear purpose in Devanagari"}],
+              "expectations": "Detailed recovery timeline in Devanagari",
+              "care": "Rich Diet/Rest/Precautions advice in Devanagari (3-4 sentences)",
+              "warnings": ["Warning signs to watch for in Devanagari"],
+              "next_steps": "Detailed follow-up instructions in Devanagari"
             }
 
             - Respond ONLY with VALID JSON.
