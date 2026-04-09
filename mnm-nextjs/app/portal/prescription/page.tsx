@@ -249,7 +249,10 @@ export default function PrescriptionPage() {
             {activeTab === 'info' && (
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Doctor & Patient Details</h3>
+                  <h3 className={styles.blockTitle}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--teal)'}}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Doctor & Patient Details
+                  </h3>
                   <div className="field">
                     <label>Consulting Doctor</label>
                     <select value={doctor} onChange={e => setDoctor(e.target.value)}>
@@ -271,7 +274,10 @@ export default function PrescriptionPage() {
                   </div>
                 </div>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Clinical Notes</h3>
+                  <h3 className={styles.blockTitle}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--teal)'}}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                    Clinical Notes
+                  </h3>
                   <div className="field">
                     <label>Chief Complaints</label>
                     <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
@@ -286,7 +292,10 @@ export default function PrescriptionPage() {
             {activeTab === 'rx' && (
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
+                  <h3 className={styles.blockTitle}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--teal)'}}><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg>
+                    Prescribe Medicine
+                  </h3>
                   <div className={styles.rowMm}>
                     <select className={styles.mType} value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
                     <input list="med-suggestions" type="text" className={styles.mName} value={mName} onChange={e => setMName(e.target.value)} placeholder="Medicine Name" />
@@ -303,7 +312,10 @@ export default function PrescriptionPage() {
                   {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
                 </div>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
+                  <h3 className={styles.blockTitle}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: 'var(--teal)'}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Final Advice & Follow-up
+                  </h3>
                   <div className="field"><textarea rows={2} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice..." /></div>
                   <div className="field"><label>Specific Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
                 </div>

@@ -72,16 +72,16 @@ function AuthPageContent() {
 
       if (!clinic) {
         console.log('ℹ️ Auth: No clinic found, sending to onboarding');
-        router.push('/onboarding');
+        window.location.href = '/onboarding';
         return;
       }
 
       console.log('📊 Auth: Clinic status is', clinic.status);
       if (clinic.status === 'active') {
-        router.push('/portal');
+        window.location.href = '/portal';
         console.log('🚀 Auth: Redirecting to portal...');
       } else if (clinic.status === 'pending') {
-        router.push('/pending');
+        window.location.href = '/pending';
         console.log('⏳ Auth: Redirecting to pending page...');
       } else {
         setLoginError('Your clinic is ' + clinic.status);
@@ -106,7 +106,7 @@ function AuthPageContent() {
       const { error } = await supabase.auth.signUp({ email: regEmail, password: regPass });
       if (error) throw error;
       setRegSuccess(true);
-      setTimeout(() => router.push('/onboarding'), 1800);
+      setTimeout(() => window.location.href = '/onboarding', 1800);
     } catch (err: any) {
       setRegError(err.message || 'Registration failed. Please try again.');
       setRegLoading(false);

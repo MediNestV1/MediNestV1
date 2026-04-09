@@ -18,7 +18,7 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/auth');
+    window.location.href = '/auth';
   };
 
   return (
