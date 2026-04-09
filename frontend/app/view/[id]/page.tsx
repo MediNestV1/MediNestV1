@@ -168,91 +168,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   return (
     <div className={styles.container}>
-      {/* 🧾 SECTION 1: Formal Prescription Paper (Always Top) */}
-      <div className={styles.paper}>
-        {/* Clinic Header */}
-        <header className={styles.header}>
-          <div className={styles.clinicHeader}>
-            <div className={styles.clinicInfo}>
-              <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
-              <p className={styles.tagline}>{clinic?.tagline || 'Your Health, Our Priority'}</p>
-              <div className={styles.clinicContact}>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                <span>{clinic?.phone || 'Contact Info'}</span>
-              </div>
-            </div>
-            <div className={styles.headerLogo}>
-              <div className={styles.logoCircle}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              </div>
-            </div>
-            <div className={styles.doctorInfo}>
-              <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
-              <p className={styles.drQual}>MBBS, MD</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Patient Bar */}
-        <div className={styles.patientBar}>
-          <div className={styles.pItem}><strong>Patient:</strong> {patient?.name || 'N/A'}</div>
-          <div className={styles.pItem}><strong>Age/Sex:</strong> {patient?.age || 'N/A'} / {patient?.gender || 'N/A'}</div>
-          <div className={styles.pItem}><strong>Weight:</strong> {rx.weight || 'N/A'} kg</div>
-          <div className={styles.pItem}><strong>Date:</strong> {new Date(rx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-        </div>
-
-        {/* Clinical Section */}
-        <div className={styles.clinicalGrid}>
-          <div className={styles.clinicalLeft}>
-            <div className={styles.clinicalBlock}>
-              <h4>Chief Complaints</h4>
-              <p>{rx.complaints || 'None listed'}</p>
-            </div>
-            <div className={styles.clinicalBlock}>
-              <h4>Clinical Findings</h4>
-              <p>{rx.findings || 'None listed'}</p>
-            </div>
-          </div>
-          <div className={styles.clinicalRight}>
-            <div className={styles.rxSymbol}>℞</div>
-            <div className={styles.medsList}>
-              {meds.map((m: any, i: number) => (
-                <div key={i} className={styles.medItem}>
-                  <div className={styles.medName}>
-                    {i + 1}. <strong>{m.name}</strong> 
-                    <span className={styles.medDose}>{m.dosage || m.dose}</span>
-                  </div>
-                  {m.note && <div className={styles.medNote}>{m.note}</div>}
-                  <div className={styles.medSchedule}>
-                    {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.adviceBlock}>
-              <h4>Advice / Lifestyle</h4>
-              <p>{rx.advice || 'Follow as advised'}</p>
-            </div>
-
-            <div className={styles.footerRow}>
-              <div className={styles.followUpLine}>
-                <strong>Follow up:</strong> {followUpDate ? new Date(followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'As advised'}
-              </div>
-              <div className={styles.signature}>
-                <div className={styles.sigLine}></div>
-                <p>Doctor's Signature</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.divider}>
-        <span>AI SMART GUIDE</span>
-      </div>
-
-      {/* 🤖 SECTION 2: AI Summary Companion (Below Paper) */}
+      {/* 🤖 SECTION 1: AI Summary Companion (Now Top) */}
       {rx.ai_summary ? (
         <div className={styles.aiCard}>
           <div className={styles.aiBadge}>Doctor's AI Assistant Note</div>
@@ -301,11 +217,101 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <div className={styles.divider}>
+        <span>FORMAL PRESCRIPTION</span>
+      </div>
+
+      {/* 🧾 SECTION 2: Formal Prescription Paper (Now Below Summary) */}
+      <div className={styles.paper}>
+        {/* Clinic Header */}
+        <header className={styles.header}>
+          <div className={styles.clinicHeader}>
+            <div className={styles.clinicInfo}>
+              <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
+              <p className={styles.tagline}>{clinic?.tagline || 'Your Health, Our Priority'}</p>
+              <div className={styles.clinicContact}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                <span>{clinic?.phone || 'Contact Info'}</span>
+              </div>
+            </div>
+            <div className={styles.headerLogo}>
+              <div className={styles.logoCircle}>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </div>
+            </div>
+            <div className={styles.doctorInfo}>
+              <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
+              <p className={styles.drQual}>MBBS, MD</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Patient Bar */}
+        <div className={styles.patientBar}>
+          <div className={styles.pItem}><strong>Patient:</strong> {patient?.name || 'N/A'}</div>
+          <div className={styles.pItem}><strong>Age/Sex:</strong> {patient?.age || 'N/A'} / {patient?.gender || 'N/A'}</div>
+          <div className={styles.pItem}><strong>Weight:</strong> {rx.weight || 'N/A'} kg</div>
+          <div className={styles.pItem}><strong>Date:</strong> {new Date(rx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+        </div>
+
+        {/* Clinical Section */}
+        <div className={styles.dualColumn}>
+          <div className={styles.leftCol}>
+            <div className={styles.section}>
+              <h4 className={styles.sectionTitle}>Chief Complaints</h4>
+              <p className={styles.text}>{rx.complaints || 'None listed'}</p>
+            </div>
+            <div className={styles.section}>
+              <h4 className={styles.sectionTitle}>Clinical Findings</h4>
+              <p className={styles.text}>{rx.findings || 'None listed'}</p>
+            </div>
+          </div>
+          <div className={styles.rightCol}>
+            <div className={styles.rxIcon}>℞</div>
+            <div className={styles.medsList}>
+              {meds.map((m: any, i: number) => (
+                <div key={i} className={styles.medItem}>
+                  <div className={styles.medHeader}>
+                    {i + 1}. <strong>{m.name}</strong> 
+                    <span className={styles.medDose}>{m.dosage || m.dose}</span>
+                  </div>
+                  {m.note && <div className={styles.medNote}>{m.note}</div>}
+                  <div className={styles.medSchedule}>
+                    {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.adviceSection}>
+              <h4 className={styles.sectionTitle}>Advice / Lifestyle</h4>
+              <p className={styles.text}>{rx.advice || 'Follow as advised'}</p>
+            </div>
+
+            <div className={styles.footer}>
+              <div className={styles.followUp}>
+                <div className={styles.followUpCard}>
+                  <div className={styles.followUpLabel}>FOLLOW UP</div>
+                  <div className={styles.followUpValue}>
+                    {followUpDate ? new Date(followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'As advised'}
+                  </div>
+                </div>
+              </div>
+              <div className={styles.doctorSig}>
+                <div className={styles.sigLine}></div>
+                <p>Doctor's Signature</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className={styles.actions}>
         <button className={styles.printBtn} onClick={() => window.print()}>
           Print Prescription
         </button>
       </div>
+
     </div>
   );
 }
