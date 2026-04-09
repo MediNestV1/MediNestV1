@@ -192,9 +192,7 @@ export default function PrescriptionPage() {
       // Update local ID for use in sharing
       if (pData?.id) {
         setSavedRxId(pData.id);
-        alert('Prescription saved successfully!');
       }
-
 
       alert('Prescription saved successfully!');
     } catch (err: any) {
