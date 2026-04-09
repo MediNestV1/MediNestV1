@@ -90,17 +90,17 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             JSON Structure (STRICT HINDI INSTRUCTIONS):
             {
               "greeting": "👋 नमस्ते ${patientName}",
-              "condition": "2-3 लाइन में सरल हिंदी में स्थिति का सार। Symptoms साफ लिखो। कोई exaggeration या repetition नहीं।",
+              "condition": "सरल हिंदी में स्थिति का विस्तृत सार (Detailed Summary)। Symptoms और बीमारी को गहराई से विस्तार से समझाएं।",
               "medicines": [
                 {
                   "name": "MedicineName (English only)",
-                  "purpose": "हिंदी में: क्यों दी गई है + कैसे लेना है (max 1 लाइन, repeat नहीं करना)"
+                  "purpose": "हिंदी में विस्तृत विवरण: क्यों दी गई है + खुराक और लेने के सही तरीके की पूरी जानकारी (Detailed purpose, no repetition)"
                 }
               ],
-              "expectations": "ठीक होने में कितना समय लगेगा + reassurance (max 2 लाइन, realistic)",
-              "care": "सिर्फ काम की सलाह। generic लाइन नहीं। max 3 points एक छोटे paragraph में।",
+              "expectations": "ठीक होने का विस्तृत विवरण + आश्वासन और सकारात्मक उम्मीद (Detailed recovery details and reassurance)",
+              "care": "विस्तृत और व्यावहारिक सलाह। लक्षणों के आधार पर खान-पान, आराम और परहेज की पूरी जानकारी दें (Comprehensive advice).",
               "warnings": "सिर्फ ज़रूरी warning signs। अगर कुछ खास नहीं है तो \"\" लौटाओ।",
-              "next_steps": "Follow-up या अगला कदम (1-2 लाइन, बिना repeat किए)"
+              "next_steps": "अगला कदम या फॉलो-अप की विस्तृत जानकारी (Detailed next steps)"
             }
 
             - Respond ONLY with VALID JSON.
