@@ -42,7 +42,9 @@ app.post('/api/secure-save', async (req, res) => {
 // ─── AI SUMMARY (OPENROUTER) ──────────────────────────────────
 app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     const { id } = req.params;
-    console.log(`🤖 [AI 1/4] Starting generation for Rx: ${id}`);
+    const { lang = 'English', persist = true } = req.body || req.query || {};
+    
+    console.log(`🤖 [AI 1/4] Starting ${lang} generation for Rx: ${id} (Persist: ${persist})`);
 
     try {
         let rx = req.body || {};
@@ -62,8 +64,6 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             rx = dbRx;
             patientName = dbRx.patients?.name || 'Patient';
             medicines = typeof dbRx.medicines === 'string' ? JSON.parse(dbRx.medicines) : dbRx.medicines;
-        } else {
-            console.log(`🚀 [AI 2/4] Ultra-Fast: Using provided data (Zero-Fetch)`);
         }
 
         // 2. Prepare Prompt (EMPATHETIC & DETAILED)
@@ -76,28 +76,27 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
         Instructions:
-        - Be warm, empathetic, and reassuring (e.g., "I'm sorry you're feeling under the weather").
+        - LANGUAGE: Respond strictly in ${lang}. If Hindi, use simple, emotional Hindi script (Devanagari).
+        - Be warm, empathetic, and reassuring.
         - Explain the condition in VERY simple, human terms.
-        - provide specific, detailed diet and rest advice based on the symptoms (e.g., if cough: warm salt water gargles; if fever: light cotton clothes and fluids).
+        - provide specific, detailed diet and rest advice based on the symptoms.
         - Respond ONLY with VALID JSON.
 
-        JSON Structure:
+        JSON Structure (Keys must be in English):
         {
-          "greeting": "Warm, personalized greeting",
-          "condition": "Simple explanation + reassurance",
-          "medicines": [{"name": "Med Name", "purpose": "Why to take it in simple words"}],
-          "expectations": "Recovery timeline & reassurance",
-          "care": "Detailed Diet + Rest + Precautions",
-          "warnings": ["Sign 1", "Sign 2"],
-          "next_steps": "Follow-up details"
+          "greeting": "Warm, personalized greeting in ${lang}",
+          "condition": "Simple explanation + reassurance in ${lang}",
+          "medicines": [{"name": "Med Name", "purpose": "Why to take it in ${lang}"}],
+          "expectations": "Recovery timeline & reassurance in ${lang}",
+          "care": "Detailed Diet + Rest + Precautions in ${lang}",
+          "warnings": ["Sign in ${lang}"],
+          "next_steps": "Follow-up details in ${lang}"
         }`;
 
         const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-        console.log(`🤖 [AI 3/4] Calling NVIDIA API (8B model for speed)...`);
+        console.log(`🤖 [AI 3/4] Calling NVIDIA API in ${lang}...`);
         const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -113,54 +112,43 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         clearTimeout(timeoutId);
 
         let summaryStr = null;
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error(`❌ [AI RATE LIMIT/ERROR] NVIDIA API returned ${response.status}: ${errText}`);
-            // Do NOT throw an error that crashes the backend 500 response.
-            // Just let summaryStr remain null so the generic fallback takes over.
-        } else {
+        if (response.ok) {
             const aiResponse = await response.json();
-            console.log(`🤖 [AI RAW] NVIDIA Response:`, JSON.stringify(aiResponse).slice(0, 500));
             summaryStr = aiResponse.choices?.[0]?.message?.content;
         }
 
         let summaryJson;
         try {
-            // Robust Regex extraction for JSON block
-            const jsonMatch = summaryStr.match(/\{[\s\S]*\}/);
-            const cleanedStr = jsonMatch ? jsonMatch[0] : summaryStr;
-            summaryJson = JSON.parse(cleanedStr);
+            const jsonMatch = summaryStr?.match(/\{[\s\S]*\}/);
+            summaryJson = JSON.parse(jsonMatch ? jsonMatch[0] : summaryStr);
         } catch (parseErr) {
-            console.error(`⚠️ AI JSON Parse Failed. Using emergency humanized fallback.`, parseErr.message);
+            console.error(`⚠️ AI JSON Parse Failed. Using emergency fallback.`);
             summaryJson = {
-                greeting: `Hello ${patientName} 👋`,
-                condition: "I'm sorry to hear you're not feeling your best. I've put together this quick guide based on your visit today to help you recover quickly.",
-                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "To help you feel better and treat your specific symptoms." })) : [],
-                expectations: "With the right rest and medicine, you should start feeling much more comfortable in a few days.",
-                care: "Try to get plenty of sleep, stay well-hydrated with warm fluids, and eat light, easily digestible meals like porridge or soup.",
-                warnings: ["If your fever stays very high", "If you find it difficult to breathe"],
-                next_steps: "Please reach out or visit us again as advised by the doctor."
+                greeting: lang === 'Hindi' ? `नमस्ते ${patientName} 👋` : `Hello ${patientName} 👋`,
+                condition: lang === 'Hindi' ? "हमें आपकी सेहत की फिक्र है। आपकी जल्दी रिकवरी के लिए हमने यह गाइड बनाई है।" : "We care about your health. We've created this guide for your quick recovery.",
+                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "As prescribed" })) : [],
+                expectations: lang === 'Hindi' ? "थोड़े ही दिनों में आप बेहतर महसूस करेंगे।" : "You will feel better within a few days.",
+                care: lang === 'Hindi' ? "भरपूर आराम करें और तरल पदार्थ लेते रहें।" : "Rest well and stay hydrated.",
+                warnings: [lang === 'Hindi' ? "अगर तबियत बिगड़े तो तुरंत बताएं" : "Contact us if symptoms worsen"],
+                next_steps: lang === 'Hindi' ? "डॉक्टर की सलाह का पालन करें।" : "Follow the doctor's advice."
             };
         }
 
-        console.log(`🤖 [AI 4/4] Summary ready. Saving...`);
-
-        // 3. Save to DB
-        const { error: updateError } = await supabase
-            .from('prescriptions')
-            .update({ ai_summary: summaryJson })
-            .eq('id', id);
-
-        if (updateError) throw updateError;
-        console.log(`✅ [AI SUCCESS] Summary ready for Rx: ${id}`);
+        // 3. Save to DB ONLY if persist is true (Stateless Hindi Support)
+        if (persist === true || persist === 'true') {
+            console.log(`🤖 [AI 4/4] Persisting summary to DB...`);
+            await supabase.from('prescriptions').update({ ai_summary: summaryJson }).eq('id', id);
+        } else {
+            console.log(`🤖 [AI 4/4] Stateless generation (Skipping DB update)`);
+        }
 
         res.json({ success: true, summary: summaryJson });
     } catch (err) {
-        console.error(`❌ [AI ERROR] Rx ${id}:`, err.message);
+        console.error(`❌ [AI ERROR]:`, err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
 
 // --- GLOBAL JSON ERROR HANDLER ---
 app.use((req, res, next) => {

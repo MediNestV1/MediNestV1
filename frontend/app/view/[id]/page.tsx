@@ -41,10 +41,16 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // --- MULTI-LANG STATE ---
+  const [selectedLang, setSelectedLang] = useState<'English' | 'Hindi'>('English');
+  const [hindiCache, setHindiCache] = useState<any>(null);
+  const [isGeneratingHindi, setIsGeneratingHindi] = useState(false);
 
-  async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
+  async function generateAiSummary(currentRx: Prescription, pt: Patient | null, lang: 'English' | 'Hindi' = 'English') {
+    if (lang === 'Hindi') setIsGeneratingHindi(true);
     try {
-      console.log('🤖 Triggering Instant On-Demand AI Summary...');
+      console.log(`🤖 Triggering ${lang} AI Summary (Stateless: ${lang === 'Hindi'})...`);
       const response = await fetch(`${API_BASE_URL}/api/prescriptions/${id}/ai-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,19 +60,27 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           findings: currentRx.findings,
           medicines: typeof currentRx.medicines === 'string' ? JSON.parse(currentRx.medicines) : currentRx.medicines,
           advice: currentRx.advice,
-          followUp: currentRx.valid_till
+          followUp: currentRx.valid_till,
+          lang: lang,
+          persist: lang === 'English' // Only save English to DB
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ AI Summary Generated:', result);
+        console.log(`✅ ${lang} AI Summary Generated:`, result);
         if (result.summary) {
-          setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
+          if (lang === 'English') {
+            setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
+          } else {
+            setHindiCache(result.summary);
+          }
         }
       }
     } catch (err) {
-      console.error('❌ AI Trigger Error:', err);
+      console.error(`❌ ${lang} AI Trigger Error:`, err);
+    } finally {
+      if (lang === 'Hindi') setIsGeneratingHindi(false);
     }
   }
 
@@ -152,68 +166,100 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     );
   }
 
-  const meds = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
-  const followUpDate = rx.advice?.match(/\[REVISIT DATE: (.*?)\]/)?.[1] || rx.valid_till;
+  const activeSummary = selectedLang === 'English' ? rx.ai_summary : hindiCache;
 
   return (
     <div className={styles.container}>
       {/* 🤖 REDESIGNED: Premium AI Summary "Patient Guide" */}
-      {rx.ai_summary ? (
+      {activeSummary || isGeneratingHindi ? (
         <div className={styles.aiContainer}>
           <div className={styles.aiHeaderCard}>
-            <div className={styles.aiBadge}>
-              <span>✦</span> Secure AI Agent Record
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div className={styles.aiBadge}>
+                <span>✦</span> Secure AI Agent Record
+              </div>
+              
+              {/* Language Toggle */}
+              <div className={styles.langToggle}>
+                <button 
+                  className={`${styles.langBtn} ${selectedLang === 'English' ? styles.langBtnActive : ''}`}
+                  onClick={() => setSelectedLang('English')}
+                >
+                  English
+                </button>
+                <button 
+                  className={`${styles.langBtn} ${selectedLang === 'Hindi' ? styles.langBtnActive : ''}`}
+                  onClick={() => {
+                    setSelectedLang('Hindi');
+                    if (!hindiCache) generateAiSummary(rx, patient, 'Hindi');
+                  }}
+                >
+                  हिन्दी
+                </button>
+              </div>
             </div>
-            <h1 className={styles.aiGreeting}>{rx.ai_summary.greeting}</h1>
-            <p className={styles.aiCondition}>{rx.ai_summary.condition}</p>
+
+            {isGeneratingHindi ? (
+              <div style={{ padding: '20px 0' }}>
+                <div className={styles.aiLoadingPulse} style={{ width: '30px', height: '30px', marginBottom: '15px' }}></div>
+                <p style={{ opacity: 0.8 }}>तैयार किया जा रहा है... (Creating Hindi version)</p>
+              </div>
+            ) : (
+              <>
+                <h1 className={styles.aiGreeting}>{activeSummary.greeting}</h1>
+                <p className={styles.aiCondition}>{activeSummary.condition}</p>
+              </>
+            )}
           </div>
 
-          <div className={styles.aiGrid}>
-            <div className={`${styles.aiStepCard} ${styles.medCard}`}>
-              <div className={styles.cardIcon}>💊</div>
-              <div className={styles.cardTitle}>Your Medicines</div>
-              <div className={styles.cardContent}>
-                <ul className={styles.aiList}>
-                  {rx.ai_summary.medicines?.map((m: {name: string, purpose: string}, i: number) => (
-                    <li key={i}>
-                      <strong>{m.name}</strong>: {m.purpose}
-                    </li>
+          {!isGeneratingHindi && activeSummary && (
+            <div className={styles.aiGrid}>
+              <div className={`${styles.aiStepCard} ${styles.medCard}`}>
+                <div className={styles.cardIcon}>💊</div>
+                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आपकी दवाइयां' : 'Your Medicines'}</div>
+                <div className={styles.cardContent}>
+                  <ul className={styles.aiList}>
+                    {activeSummary.medicines?.map((m: {name: string, purpose: string}, i: number) => (
+                      <li key={i}>
+                        <strong>{m.name}</strong>: {m.purpose}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
+                <div className={styles.cardIcon}>⏳</div>
+                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'उम्मीद' : 'What to Expect'}</div>
+                <p className={styles.cardContent}>{activeSummary.expectations}</p>
+              </div>
+
+              <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
+                <div className={styles.cardIcon}>🥗</div>
+                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आहार और देखभाल' : 'Care & Diet Instructions'}</div>
+                <p className={styles.cardContent}>{activeSummary.care}</p>
+              </div>
+
+              <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
+                <div className={styles.cardIcon}>🚨</div>
+                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'Warning Signs'}</div>
+                <ul className={styles.warningList}>
+                  {activeSummary.warnings?.map((w: string, i: number) => (
+                    <li key={i}><span>!</span> {w}</li>
                   ))}
                 </ul>
               </div>
-            </div>
-            
-            <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
-              <div className={styles.cardIcon}>⏳</div>
-              <div className={styles.cardTitle}>What to Expect</div>
-              <p className={styles.cardContent}>{rx.ai_summary.expectations}</p>
-            </div>
 
-            <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
-              <div className={styles.cardIcon}>🥗</div>
-              <div className={styles.cardTitle}>Care & Diet Instructions</div>
-              <p className={styles.cardContent}>{rx.ai_summary.care}</p>
+              <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
+                <div className={styles.cardIcon}>📅</div>
+                <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'अगला कदम' : 'Next Steps'}</div>
+                <p className={styles.cardContent}>{activeSummary.next_steps}</p>
+              </div>
             </div>
-
-            <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
-              <div className={styles.cardIcon}>🚨</div>
-              <div className={styles.cardTitle}>Warning Signs</div>
-              <ul className={styles.warningList}>
-                {rx.ai_summary.warnings?.map((w: string, i: number) => (
-                  <li key={i}><span>!</span> {w}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
-              <div className={styles.cardIcon}>📅</div>
-              <div className={styles.cardTitle}>Next Steps</div>
-              <p className={styles.cardContent}>{rx.ai_summary.next_steps}</p>
-            </div>
-          </div>
+          )}
           
           <div style={{textAlign: 'center', opacity: 0.5, fontSize: '12px', marginBottom: '20px'}}>
-            Scroll down for formal clinical prescription ↓
+            {selectedLang === 'Hindi' ? 'पूरी औपचारिक पर्ची के लिए नीचे स्क्रॉल करें ↓' : 'Scroll down for formal clinical prescription ↓'}
           </div>
         </div>
       ) : (
