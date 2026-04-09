@@ -42,56 +42,102 @@ app.post('/api/secure-save', async (req, res) => {
 // ─── AI SUMMARY (OPENROUTER) ──────────────────────────────────
 app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     const { id } = req.params;
-    console.log(`🤖 [AI 1/4] Starting generation for Rx: ${id}`);
+    const { lang = 'English', persist = true } = req.body || req.query || {};
+    
+    console.log(`🤖 [AI 1/4] Starting ${lang} generation for Rx: ${id} (Persist: ${persist})`);
 
     try {
-        // 1. Fetch Rx Data
-        const { data: rx, error: rxError } = await supabase
-            .from('prescriptions')
-            .select('*, patients(name)')
-            .eq('id', id)
-            .single();
+        let rx = req.body || {};
+        let patientName = rx.patientName || 'Patient';
+        let medicines = rx.medicines || [];
 
-        if (rxError || !rx) throw new Error('Prescription not found');
-        console.log(`🤖 [AI 2/4] Rx Data loaded. Patient: ${rx.patients?.name}`);
+        // 1. Fetch Rx Data ONLY if not provided or incomplete (Zero-Fetch Strategy)
+        if (!rx.complaints || !rx.findings) {
+            console.log(`🤖 [AI 2/4] Data incomplete. Fetching from DB...`);
+            const { data: dbRx, error: rxError } = await supabase
+                .from('prescriptions')
+                .select('*, patients(name)')
+                .eq('id', id)
+                .single();
 
-        // 2. Prepare Prompt & Timeout
-        const patientName = rx.patients?.name || 'Patient';
-        const medicines = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
-        
-        const prompt = `You are an expert, compassionate doctor's medical assistant. Analyze the patient's clinical prescription to act as their personal health guide.
-        Patient Name: ${patientName}
-        Chief Complaints (Symptoms): ${rx.complaints}
-        Clinical Findings: ${rx.findings}
-        Prescribed Medicines: ${JSON.stringify(medicines)}
-        Doctor's Advice: ${rx.advice}
-        Follow-up: ${rx.valid_till || 'N/A'}
+            if (rxError || !dbRx) throw new Error('Prescription not found');
+            rx = dbRx;
+            patientName = dbRx.patients?.name || 'Patient';
+            medicines = typeof dbRx.medicines === 'string' ? JSON.parse(dbRx.medicines) : dbRx.medicines;
+        }
 
-        Task: Use your vast medical knowledge to generate a highly personalized, empathetic, and reassuring summary for the patient. 
-        You MUST provide:
-        - A warm, comforting greeting.
-        - A layman explanation of what they are likely experiencing based on their symptoms. Reassure them if it's common.
-        - Clear instructions for their medicines.
-        - What to expect during recovery (e.g., timeline, normal side effects of the illness).
-        - Important lifestyle advice or home remedies that are safe and complement the doctor's advice.
-        - Clear warning signs on when they should seek immediate medical help.
+        // 2. Prepare Prompt (EMPATHETIC & DETAILED)
+        let prompt;
+        if (lang === 'Hindi') {
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+            
+            INPUT DATA:
+            Patient Name: ${patientName}
+            Symptoms: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        Output MUST be valid JSON only matching this exact structure:
-        {
-          "greeting": "Hello ${patientName} 👋",
-          "visit_reason": "[Polite summary of their visit and symptoms].",
-          "explanation": "[Empathetic, clear explanation of their condition. Add a comforting remark.]",
-          "medicines": ["[Medicine Name] -> [Clear Instruction]"],
-          "expectations": "[What they will feel in the coming days + reassurance]",
-          "warning": "[When to be concerned/contact the clinic]",
-          "lifestyle": "[Personalized extra advice (diet, rest, specific home care)]",
-          "follow_up": "Visit again after [Days/Date] OR if symptoms worsen."
-        }`;
+            STRICT RULES:
+            - Write in simple, natural Hindi (not robotic or repetitive).
+            - Keep all medicine names strictly in English.
+            - Avoid repeating any sentence or idea.
+            - Tone: Caring, human, and trustworthy.
+            - Do NOT hallucinate diseases or risks.
+            - Do NOT use Latin letters for Hindi words.
+
+            JSON Structure (STRICT HINDI INSTRUCTIONS):
+            {
+              "greeting": "👋 नमस्ते ${patientName}",
+              "condition": "सरल हिंदी में स्थिति का विस्तृत सार (Detailed Summary)। Symptoms और बीमारी को गहराई से विस्तार से समझाएं।",
+              "medicines": [
+                {
+                  "name": "MedicineName (English only)",
+                  "purpose": "हिंदी में विस्तृत विवरण: क्यों दी गई है + खुराक और लेने के सही तरीके की पूरी जानकारी (Detailed purpose, no repetition)"
+                }
+              ],
+              "expectations": "ठीक होने का विस्तृत विवरण + आश्वासन और सकारात्मक उम्मीद (Detailed recovery details and reassurance)",
+              "care": "विस्तृत और व्यावहारिक सलाह। लक्षणों के आधार पर खान-पान, आराम और परहेज की पूरी जानकारी दें (Comprehensive advice).",
+              "warnings": "सिर्फ ज़रूरी warning signs। अगर कुछ खास नहीं है तो \"\" लौटाओ।",
+              "next_steps": "अगला कदम या फॉलो-अप की विस्तृत जानकारी (Detailed next steps)"
+            }
+
+            - Respond ONLY with VALID JSON.
+            `;
+        } else {
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+            
+            INPUT DATA:
+            Patient Name: ${patientName}
+            Symptoms: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines: ${JSON.stringify(medicines)}
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+
+            Instructions (ENGLISH):
+            - Explain the medical condition in simple, reassuring, and professional terms.
+            - Provide clear diet, rest, and precaution instructions based on symptoms.
+            - Tone: Caring, human, and trustworthy.
+            - Respond ONLY with VALID JSON.
+
+            JSON Structure:
+            {
+              "greeting": "👋 Hello ${patientName}",
+              "condition": "Explanation + reassurance",
+              "medicines": [{"name": "Med Name", "purpose": "Clear purpose and how to take it"}],
+              "expectations": "Recovery timeline & reassurance",
+              "care": "Diet/Rest/Precautions (No filler)",
+              "warnings": ["Real sign to watch out for if condition worsens"],
+              "next_steps": "Follow-up details (Keep it concise)"
+            }`;
+        }
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        console.log(`🤖 [AI 3/4] Calling NVIDIA API...`);
+        console.log(`🤖 [AI 3/4] Calling NVIDIA API in ${lang}...`);
         const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -99,61 +145,53 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "meta/llama-3.1-70b-instruct",
-                messages: [{ role: "user", content: prompt }]
+                model: "meta/llama-3.1-8b-instruct",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2, // Lower temperature for stricter rule adherence
+                top_p: 0.7
             }),
             signal: controller.signal
         });
         clearTimeout(timeoutId);
 
         let summaryStr = null;
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error(`❌ [AI RATE LIMIT/ERROR] NVIDIA API returned ${response.status}: ${errText}`);
-            // Do NOT throw an error that crashes the backend 500 response.
-            // Just let summaryStr remain null so the generic fallback takes over.
-        } else {
+        if (response.ok) {
             const aiResponse = await response.json();
-            console.log(`🤖 [AI RAW] NVIDIA Response:`, JSON.stringify(aiResponse).slice(0, 500));
             summaryStr = aiResponse.choices?.[0]?.message?.content;
         }
 
-        if (!summaryStr) {
-            console.warn(`⚠️ AI Response empty or null. Using fallback generic summary.`);
-            summaryStr = JSON.stringify({
-                greeting: `Hello ${patientName} 👋`,
-                visit_reason: "Thank you for visiting the clinic today.",
-                explanation: "Take your prescribed medications regularly for a speedy recovery.",
-                medicines: ["Please follow the exact dosage on your prescription."],
-                expectations: "You should see improvement within a few days.",
-                warning: "If your symptoms worsen or persist, please contact us immediately.",
-                lifestyle: "Drink plenty of water and get enough rest.",
-                follow_up: "Visit again as advised by the doctor."
-            });
+        let summaryJson;
+        try {
+            const jsonMatch = summaryStr?.match(/\{[\s\S]*\}/);
+            summaryJson = JSON.parse(jsonMatch ? jsonMatch[0] : summaryStr);
+        } catch (parseErr) {
+            console.error(`⚠️ AI JSON Parse Failed. Using emergency fallback.`);
+            summaryJson = {
+                greeting: lang === 'Hindi' ? `नमस्ते ${patientName} 👋` : `Hello ${patientName} 👋`,
+                condition: lang === 'Hindi' ? "हमें आपकी सेहत की फिक्र है। आपकी जल्दी रिकवरी के लिए हमने यह गाइड बनाई है।" : "We care about your health. We've created this guide for your quick recovery.",
+                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "As prescribed" })) : [],
+                expectations: lang === 'Hindi' ? "थोड़े ही दिनों में आप बेहतर महसूस करेंगे।" : "You will feel better within a few days.",
+                care: lang === 'Hindi' ? "भरपूर आराम करें और तरल पदार्थ लेते रहें।" : "Rest well and stay hydrated.",
+                warnings: [lang === 'Hindi' ? "अगर तबियत बिगड़े तो तुरंत बताएं" : "Contact us if symptoms worsen"],
+                next_steps: lang === 'Hindi' ? "डॉक्टर की सलाह का पालन करें।" : "Follow the doctor's advice."
+            };
         }
-        
-        // Clean accidental markdown code blocks
-        summaryStr = summaryStr.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
-        const summaryJson = JSON.parse(summaryStr);
-        console.log(`🤖 [AI 4/4] Summary generated. Saving to DB...`);
 
-        // 3. Save to DB
-        const { error: updateError } = await supabase
-            .from('prescriptions')
-            .update({ ai_summary: summaryJson })
-            .eq('id', id);
-
-        if (updateError) throw updateError;
-        console.log(`✅ [AI SUCCESS] Summary ready for Rx: ${id}`);
+        // 3. Save to DB ONLY if persist is true (Stateless Hindi Support)
+        if (persist === true || persist === 'true') {
+            console.log(`🤖 [AI 4/4] Persisting summary to DB...`);
+            await supabase.from('prescriptions').update({ ai_summary: summaryJson }).eq('id', id);
+        } else {
+            console.log(`🤖 [AI 4/4] Stateless generation (Skipping DB update)`);
+        }
 
         res.json({ success: true, summary: summaryJson });
     } catch (err) {
-        console.error(`❌ [AI ERROR] Rx ${id}:`, err.message);
+        console.error(`❌ [AI ERROR]:`, err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
 
 // --- GLOBAL JSON ERROR HANDLER ---
 app.use((req, res, next) => {

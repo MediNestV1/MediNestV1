@@ -41,23 +41,20 @@ function AuthPageContent() {
     console.log('🔑 Auth: Attempting login for', loginEmail);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ 
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({ 
         email: loginEmail, 
         password: loginPass 
       });
-
+ 
       if (authError) {
         console.error('❌ Auth: Login error:', authError);
         throw authError;
       }
-
-      console.log('✅ Auth: Login successful, fetching session user...');
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('❌ Auth: GetUser error:', userError);
-        throw new Error('Could not retrieve user session after login.');
+ 
+      if (!user) {
+        throw new Error('Login successful but no user record found.');
       }
+
 
       console.log('🏥 Auth: Checking clinic status for user:', user.id);
       const { data: clinic, error: clinicError } = await supabase

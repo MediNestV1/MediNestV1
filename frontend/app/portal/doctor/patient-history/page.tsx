@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { createClient } from '@/lib/supabase';
+import { API_BASE_URL } from '@/lib/api';
 import TopBar from '@/components/TopBar';
 import styles from './page.module.css';
 
@@ -66,7 +67,7 @@ function PatientHistoryContent() {
   useEffect(() => {
     if (!patientId) return;
     
-    fetch(`http://localhost:4001/api/patient-history/${patientId}`)
+    fetch(`${API_BASE_URL}/api/patient-history/${patientId}`)
       .then(async r => {
         if (!r.ok) {
            const errText = await r.text();

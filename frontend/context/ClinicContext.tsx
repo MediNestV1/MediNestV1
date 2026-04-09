@@ -52,34 +52,35 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
   const refresh = async () => {
     setLoading(true);
-    console.log('🔄 ClinicContext: Refreshing data...');
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('❌ ClinicContext: Auth error:', userError);
-        setUser(null);
-        setLoading(false);
-        return;
+      // First check local session (fast)
+      const { data: { session } } = await supabase.auth.getSession();
+      let currentUser = session?.user || null;
+
+      // If no local session, verify with server (thorough)
+      if (!currentUser) {
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        currentUser = verifiedUser;
       }
       
-      setUser(user);
-      if (!user) {
-        console.log('ℹ️ ClinicContext: No active user session');
+      setUser(currentUser);
+      if (!currentUser) {
         setClinic(null);
         setDoctors([]);
-        setLoading(false);
         return;
       }
 
-      console.log('👤 ClinicContext: User found, fetching clinic data...', user.id);
+      console.log('👤 ClinicContext: User found, fetching clinic data...', currentUser.id);
       const { data: clinicData, error: clinicError } = await supabase
         .from('clinics')
         .select('*')
-        .eq('owner_user_id', user.id)
+        .eq('owner_user_id', currentUser.id)
         .single();
 
       if (clinicError) {
-        console.error('❌ ClinicContext: Clinic fetch error:', clinicError);
+        if (clinicError.code !== 'PGRST116') {
+          console.error('❌ ClinicContext: Clinic fetch error:', clinicError);
+        }
         setClinic(null);
       } else {
         console.log('🏥 ClinicContext: Clinic data loaded:', clinicData.name);
@@ -95,15 +96,28 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (docError) console.error('❌ ClinicContext: Doctors fetch error:', docError);
         setDoctors(doctorData || []);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('🔥 ClinicContext: Critical error in refresh:', e);
     } finally {
       setLoading(false);
-      console.log('✅ ClinicContext: Refresh operation complete');
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+
+    // Listen for auth changes to sync state instantly
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log('🔔 ClinicContext: Auth Event:', event);
+      if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED', 'TOKEN_REFRESHED', 'INITIAL_SESSION'].includes(event)) {
+        refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh }}>
