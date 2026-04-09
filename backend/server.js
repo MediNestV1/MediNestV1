@@ -45,43 +45,48 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     console.log(`🤖 [AI 1/4] Starting generation for Rx: ${id}`);
 
     try {
-        // 1. Fetch Rx Data
-        const { data: rx, error: rxError } = await supabase
-            .from('prescriptions')
-            .select('*, patients(name)')
-            .eq('id', id)
-            .single();
+        let rx = req.body;
+        let patientName = rx.patientName || 'Patient';
+        let medicines = rx.medicines;
 
-        if (rxError || !rx) throw new Error('Prescription not found');
-        console.log(`🤖 [AI 2/4] Rx Data loaded. Patient: ${rx.patients?.name}`);
+        // 1. Fetch Rx Data ONLY if not provided (Zero-Fetch Strategy)
+        if (!rx.complaints && !rx.findings) {
+            console.log(`🤖 [AI 2/4] Zero-Fetch skipped. Fetching from DB...`);
+            const { data: dbRx, error: rxError } = await supabase
+                .from('prescriptions')
+                .select('*, patients(name)')
+                .eq('id', id)
+                .single();
+
+            if (rxError || !dbRx) throw new Error('Prescription not found');
+            rx = dbRx;
+            patientName = dbRx.patients?.name || 'Patient';
+            medicines = typeof dbRx.medicines === 'string' ? JSON.parse(dbRx.medicines) : dbRx.medicines;
+        } else {
+            console.log(`🚀 [AI 2/4] Ultra-Fast: Using provided data (Zero-Fetch)`);
+        }
 
         // 2. Prepare Prompt & Timeout
-        const patientName = rx.patients?.name || 'Patient';
-        const medicines = typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines;
-        
-        const prompt = `Medical Assistant specialized in patient-friendly summaries.
-        Patient: ${patientName}
-        Chief Complaints: ${rx.complaints}
-        Clinical Findings: ${rx.findings}
-        Prescribed Medicines: ${JSON.stringify(medicines)}
+        const prompt = `Assistant: Summarize prescription for ${patientName}.
+        Complaints: ${rx.complaints}
+        Findings: ${rx.findings}
+        Meds: ${JSON.stringify(medicines)}
         Advice: ${rx.advice}
-        Follow-up: ${rx.valid_till || 'N/A'}
+        Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        Task: Generate a warm, reassuring patient summary in valid JSON format. Keep instructions clear and language simple.
-        
-        Format:
+        Task: Return ONLY valid JSON:
         {
           "greeting": "Hello ${patientName} 👋",
-          "visit_reason": "Summary of symptoms.",
-          "explanation": "Simple explanation + reassurance.",
+          "visit_reason": "Summary of symptoms",
+          "explanation": "Simple explanation",
           "medicines": ["Med Name -> Instruction"],
-          "expectations": "Recovery timeline + reassurance",
-          "warning": "When to seek medical help",
-          "lifestyle": "Diet/rest/home care tips",
-          "follow_up": "Next steps"
+          "expectations": "Timeline/reassurance",
+          "warning": "Warning signs",
+          "lifestyle": "Diet/rest/care",
         }`;
-
         const controller = new AbortController();
+
+
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
         console.log(`🤖 [AI 3/4] Calling NVIDIA API (8B model for speed)...`);

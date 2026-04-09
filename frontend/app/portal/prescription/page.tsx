@@ -180,10 +180,29 @@ export default function PrescriptionPage() {
       if (pData?.id) {
         setSavedRxId(pData.id);
 
-        // --- NEW: Trigger AI Summary ---
-        console.log('🤖 Triggering AI Summary...');
-        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
+        // --- ULTRA-FAST: Send Data Directly (Zero-DB Strategy) ---
+        console.log('🤖 Triggering Ultra-Fast AI Summary...');
+        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientName: ptName,
+            complaints: cc,
+            findings: findings,
+            medicines: meds.map(m => ({
+              type: m.type,
+              name: m.name,
+              dose: m.dose,
+              freq: m.freq,
+              dur: m.duration,
+              inst: m.instructions
+            })),
+            advice: finalAdvice,
+            followUp: followUp
+          })
+        })
           .then(async r => {
+
             if (!r.ok) {
               const txt = await r.text();
               throw new Error(`Backend Error ${r.status}: ${txt.slice(0, 500)}`);
