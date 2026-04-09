@@ -53,11 +53,17 @@ export default function PrescriptionPage() {
   // 🏥 Medicine Database Suggestion Logic
   const [dbSuggestions, setDbSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const skipSearchRef = useRef(false);
   const supabase = createClient();
 
   useEffect(() => {
     if (!mName || mName.length < 2) {
       setDbSuggestions([]);
+      return;
+    }
+
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
       return;
     }
 
@@ -82,6 +88,7 @@ export default function PrescriptionPage() {
   }, [mName]);
 
   const handleSelectMedicine = (med: any) => {
+    skipSearchRef.current = true;
     setMName(med.name);
     if (med.category) setMType(med.category);
     if (med.strength) setMDose(med.strength);
@@ -317,14 +324,15 @@ export default function PrescriptionPage() {
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
-                  <div className={styles.rowMm} style={{ position: 'relative' }}>
-                    <select className={styles.mType} value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
-                    <div style={{ flex: 1, position: 'relative' }}>
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                    <div className="field" style={{ width: '120px', marginBottom: 0 }}>
+                      <select value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
+                    </div>
+                    <div className="field" style={{ flex: 1, position: 'relative', marginBottom: 0 }}>
                       <input 
                         type="text" 
-                        className={styles.mName} 
                         value={mName} 
-                        onChange={e => setMName(e.target.value)} 
+                        onChange={e => { skipSearchRef.current = false; setMName(e.target.value); }} 
                         placeholder="Medicine Name or Symptom..." 
                         autoComplete="off"
                       />
@@ -349,31 +357,42 @@ export default function PrescriptionPage() {
                       )}
                       {isLoadingSuggestions && <div className={styles.sugLoading}>Searching...</div>}
                     </div>
-                    <input type="text" className={styles.mDose} value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose" />
+                    <div className="field" style={{ width: '150px', marginBottom: 0 }}>
+                      <input type="text" value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose (e.g. 650mg)" />
+                    </div>
                   </div>
 
-                  <div className={styles.row3} style={{ marginTop: 12 }}>
-                    <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="" disabled>Frequency</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="" disabled>Frequency</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                    </div>
                     
-                    {showCustomDur ? (
-                      <input type="text" placeholder="Custom Days..." value={mDur} onChange={e => setMDur(e.target.value)} autoFocus onBlur={() => { if(!mDur) setShowCustomDur(false); }} />
-                    ) : (
-                      <select value={mDur} onChange={e => {
-                        if (e.target.value === 'Custom') {
-                          setShowCustomDur(true);
-                          setMDur('');
-                        } else {
-                          setMDur(e.target.value);
-                        }
-                      }}>
-                        <option value="" disabled>Duration</option><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option><option value="Custom">Custom</option>
-                      </select>
-                    )}
+                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                      {showCustomDur ? (
+                        <input type="text" placeholder="Custom Days..." value={mDur} onChange={e => setMDur(e.target.value)} autoFocus onBlur={() => { if(!mDur) setShowCustomDur(false); }} />
+                      ) : (
+                        <select value={mDur} onChange={e => {
+                          if (e.target.value === 'Custom') {
+                            setShowCustomDur(true);
+                            setMDur('');
+                          } else {
+                            setMDur(e.target.value);
+                          }
+                        }}>
+                          <option value="" disabled>Duration</option><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option><option value="Custom">Custom</option>
+                        </select>
+                      )}
+                    </div>
 
-                    <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="" disabled>Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                      <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="" disabled>Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                    </div>
                   </div>
-                  <div className="field" style={{ marginTop: 12 }}><label>Instructions</label><input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="e.g. Take with warm water" /></div>
-                  <button className={styles.btnAddItem} onClick={addMed}>+ Add to Rx</button>
+                  
+                  <div className="field" style={{ marginBottom: '16px' }}>
+                    <input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="Special Instructions (e.g. Take with warm water)" />
+                  </div>
+                  <button className="btn-secondary" style={{ width: '100%', marginBottom: '24px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }} onClick={addMed}>+ Add to Rx</button>
                   {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
                 </div>
                 <div className={styles.panelBlock}>
@@ -382,7 +401,7 @@ export default function PrescriptionPage() {
                   <div className="field"><label>Specific Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
                 </div>
                 <div className={styles.exportRow}>
-                  <button className={styles.btnEx} onClick={handleSave} title="Save to Database"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M17,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V7L17,3M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M15,9H5V5H15V9Z" /></svg></button>
+                  <button className={styles.btnEx} onClick={handleSave} title="Save to Database" disabled={isSaving} style={{ opacity: isSaving ? 0.5 : 1 }}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M17,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V7L17,3M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M15,9H5V5H15V9Z" /></svg></button>
                   <button className={styles.btnEx} onClick={downloadPDF} title="Download PDF"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M14,2L20,8V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2H14M18,20V9H13V4H6V20H18M10,18V12H12V18H10M13,18V12H15V18H13M16,18V12H18V18H16Z" /></svg></button>
                   <button className={styles.btnEx} onClick={downloadImage} title="Save Image"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M5,5H19V19H5V5Z" /></svg></button>
                   <button className={styles.btnEx} onClick={shareWhatsApp} title="WhatsApp Share" style={{ background: '#25d366' }}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M12.04,2C6.58,2,2.13,6.45,2.13,11.91c0,1.75,0.45,3.45,1.32,4.95L2,22l5.25-1.38c1.45,0.79,3.08,1.21,4.74,1.21c5.44,0,9.89-4.45,9.89-9.91C21.89,6.45,17.5,2,12.04,2z M16.59,16.27c-0.27,0.76-1.58,1.39-2.16,1.47c-0.58,0.08-1.13,0.01-1.78-0.2c-0.43-0.14-1.01-0.34-1.74-0.66c-3.1-1.36-5.11-4.52-5.26-4.73c-0.15-0.21-1.25-1.63-1.25-3.11c0-1.48,0.73-2.21,1-2.52c0.27-0.3,0.6-0.38,0.79-0.38c0.19,0,0.38,0,0.54,0.01c0.17,0.01,0.39-0.06,0.61,0.46c0.23,0.54,0.79,1.91,0.85,2.04c0.06,0.13,0.11,0.28,0.02,0.46c-0.08,0.18-0.13,0.29-0.26,0.44c-0.13,0.15-0.27,0.34-0.39,0.46c-0.13,0.13-0.28,0.28-0.12,0.54c0.16,0.27,0.7,1.15,1.49,1.85c1.02,0.91,1.88,1.2,2.16,1.32c0.28,0.11,0.44,0.1,0.61-0.09c0.17-0.19,0.73-0.85,0.93-1.14c0.2-0.29,0.39-0.24,0.66-0.15c0.27,0.09,1.7,0.8,2,0.94c0.3,0.14,0.5,0.22,0.57,0.34C17.09,14.88,16.86,15.51,16.59,16.27z" /></svg></button>
