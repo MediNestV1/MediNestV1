@@ -53,9 +53,25 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   async function generateAiSummary(currentRx: Prescription, pt: Patient | null, lang: 'English' | 'Hindi' = 'English') {
     if (lang === 'Hindi') setIsGeneratingHindi(true);
+    
+    // Hardened Retry Wrapper
+    const fetchWithRetry = async (url: string, opts: any, retries = 2): Promise<any> => {
+      for (let i = 0; i <= retries; i++) {
+        try {
+          const res = await fetch(url, opts);
+          if (res.ok) return await res.json();
+          if (i === retries) throw new Error(`Fetch failed with status: ${res.status}`);
+        } catch (err) {
+          if (i === retries) throw err;
+          console.warn(`⚠️ Retrying ${lang} AI (${i + 1}/${retries})...`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    };
+
     try {
       console.log(`🤖 Triggering ${lang} AI Summary (Stateless: ${lang === 'Hindi'})...`);
-      const response = await fetch(`${API_BASE_URL}/api/prescriptions/${id}/ai-summary`, {
+      const result = await fetchWithRetry(`${API_BASE_URL}/api/prescriptions/${id}/ai-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,23 +82,20 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           advice: currentRx.advice,
           followUp: currentRx.valid_till,
           lang: lang,
-          persist: lang === 'English' // Only save English to DB
+          persist: lang === 'English' 
         })
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      if (result?.success && result.summary) {
         console.log(`✅ ${lang} AI Summary Generated:`, result);
-        if (result.summary) {
-          if (lang === 'English') {
-            setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
-          } else {
-            setHindiCache(result.summary);
-          }
+        if (lang === 'English') {
+          setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
+        } else {
+          setHindiCache(result.summary);
         }
       }
     } catch (err) {
-      console.error(`❌ ${lang} AI Trigger Error:`, err);
+      console.error(`❌ ${lang} AI Trigger Error after retries:`, err);
     } finally {
       if (lang === 'Hindi') setIsGeneratingHindi(false);
     }

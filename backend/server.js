@@ -231,6 +231,18 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: 'Internal Server Error', details: err.message });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// ─── Start Server with Port Resilience ───
+const startServer = (port) => {
+    const server = app.listen(port, () => {
+        console.log(`🚀 [AI 4/4] MediNest API is LIVE on port ${port}`);
+    }).on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`⚠️  Port ${port} is busy. Trying ${port + 1}...`);
+            startServer(port + 1);
+        } else {
+            console.error('❌ Server Error:', err);
+        }
+    });
+};
+
+startServer(PORT);
