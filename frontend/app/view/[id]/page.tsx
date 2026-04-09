@@ -225,7 +225,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                     <span>✦</span> Secure AI Agent Record
                   </div>
 
-                  {isGeneratingHindi ? (
+                  {/* Show loader ONLY if we are ACTIVELY switched to Hindi and it's not ready yet */}
+                  {(selectedLang === 'Hindi' && isGeneratingHindi && !hindiCache) ? (
                     <div style={{ padding: '20px 0' }}>
                       <div className={styles.aiLoadingPulse} style={{ width: '30px', height: '30px', marginBottom: '15px' }}></div>
                       <p style={{ opacity: 0.8 }}>तैयार किया जा रहा है... (Creating Hindi version)</p>

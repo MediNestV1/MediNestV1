@@ -77,10 +77,16 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
 
         Instructions:
         - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
-        - MEDICINE NAMES: Keep all medicine names in their original English spelling (e.g., 'Paracetamol', 'Amoxicillin') for accuracy.
-        - PROSE RULE: Use ONLY Devanagari fonts for all explanations, greetings, and advice. DO NOT use English letters for Hindi words (No Hinglish).
+        - MEDICINE NAMES: Keep all medicine names in their original English spelling (e.g., 'Paracetamol', 'Pan-D') for medical accuracy.
+        - PROSE RULE: Use ONLY Devanagari fonts for all explanations, greetings, and advice. DO NOT include English letters or transliteration (Hinglish).
+        
+        Style Examples:
+        - Bad: "Vidhi, aapki medicines ye hain..."
+        - Good: "विधि, आपकी दवाइयां निम्नलिखित हैं..."
+        - Bad: "Aap jaldi theek ho jayenge"
+        - Good: "आप जल्दी स्वस्थ हो जाएंगे।"
+
         - Be warm, empathetic, and reassuring (Dr. Persona).
-        - Explain in VERY simple terms.
         - Respond ONLY with VALID JSON.
 
         JSON Structure (Keys must be in English):
