@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
-import PortalNavbar from '@/components/PortalNavbar';
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { clinic, user, loading } = useClinic();
@@ -30,12 +29,5 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   if (!clinic || clinic.status !== 'active') return null;
 
-  return (
-    <div className="portal-layout-container">
-      <PortalNavbar />
-      <div className="portal-content-wrapper">
-        {children}
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 }

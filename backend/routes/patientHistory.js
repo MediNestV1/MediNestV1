@@ -61,31 +61,21 @@ Mobile: ${patient.contact || 'Not Specified'}
 // GET patient history
 router.get('/:patientId', async (req, res) => {
   const { patientId } = req.params;
-  const { clinicId } = req.query;
 
-  if (!clinicId) {
-    return res.status(400).json({ error: 'Missing clinicId parameter' });
-  }
-
-  // Verify patient exists and belongs to this clinic
+  // Verify patient exists (optional RBAC check)
   const { data: patient, error: patErr } = await supabase
     .from('patients')
     .select('*')
     .eq('id', patientId)
-    .eq('clinic_id', clinicId)
     .single();
 
-  if (patErr || !patient) {
-    console.warn(`⚠️ [Access Denied] Clinic ${clinicId} tried to access Patient ${patientId}`);
-    return res.status(403).json({ error: 'Access denied or patient not found' });
-  }
+  if (patErr || !patient) return res.status(404).json({ error: 'Patient not found' });
 
-  // Fetch visits & prescriptions belonging to this clinic only
+  // Fetch visits & prescriptions from the actual 'prescriptions' table used by the frontend
   const { data: rawPrescriptions, error: visErr } = await supabase
     .from('prescriptions')
     .select('*')
     .eq('patient_id', patientId)
-    .eq('clinic_id', clinicId)
     .order('date', { ascending: false });
 
   if (visErr) return res.status(500).json({ error: visErr.message });
@@ -96,7 +86,7 @@ router.get('/:patientId', async (req, res) => {
     prescription: p
   }));
 
-  // Try to get existing snapshot linked to this patient (ownership verified via patient fetch above)
+  // Try to get existing snapshot
   const { data: existing, error: histErr } = await supabase
     .from('patient_histories')
     .select('summary_text')
@@ -116,5 +106,4 @@ router.get('/:patientId', async (req, res) => {
   res.json({ patient, visits, summary });
 });
 
-
-module.exports = { router, generatePatientSummary };
+module.exports = router;

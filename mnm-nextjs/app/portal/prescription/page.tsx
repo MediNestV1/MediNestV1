@@ -85,27 +85,17 @@ export default function PrescriptionPage() {
     if (!ptName) { alert('Please enter patient name.'); return; }
     if (!selectedDoctorObj) { alert('Please select a consulting doctor.'); return; }
 
-    // Sanitize and validate phone number (Must be exactly 10 digits for database constraint)
-    const cleanedPhone = ptPhone.replace(/\D/g, '').slice(-10);
-    if (cleanedPhone.length !== 10) {
-      alert('Invalid Phone Number: Please enter a 10-digit mobile number.');
-      return;
-    }
-
     setIsSaving(true);
     const supabase = createClient();
 
     try {
       let patientId: string;
-      // Use cleanedPhone for lookup and save, isolated by clinic
       const { data: existing, error: pError } = await supabase
         .from('patients')
         .select('id')
         .eq('name', ptName)
-        .eq('contact', cleanedPhone)
-        .eq('clinic_id', clinic?.id)
+        .eq('contact', ptPhone)
         .limit(1);
-
 
       if (pError) throw pError;
 
@@ -115,7 +105,7 @@ export default function PrescriptionPage() {
       } else {
         const { data: neu, error: cError } = await supabase
           .from('patients')
-          .insert([{ name: ptName, contact: cleanedPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .insert([{ name: ptName, contact: ptPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
           .select()
           .single();
         if (cError) throw cError;
@@ -156,27 +146,7 @@ export default function PrescriptionPage() {
 
         // --- NEW: Trigger AI Summary ---
         console.log('🤖 Triggering AI Summary...');
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
-        
-        // Optimize: Send data directly so backend doesn't have to fetch from DB
-        const rxDataForAI = {
-          patient_id: patientId,
-          complaints: cc,
-          findings: findings,
-          medicines: meds,
-          advice: finalAdvice,
-          patients: { name: ptName }
-        };
-
-        fetch(`${apiUrl}/api/prescriptions/${pData.id}/ai-summary`, { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            clinicId: clinic?.id,
-            rxData: rxDataForAI 
-          })
-        })
-
+        fetch(`http://localhost:4001/api/prescriptions/${pData.id}/ai-summary`, { method: 'POST' })
           .then(async r => {
             if (!r.ok) {
               const txt = await r.text();
@@ -211,8 +181,8 @@ export default function PrescriptionPage() {
       return;
     }
 
-    const cleanedPhone = ptPhone.replace(/\D/g, '').slice(-10);
-    const cleanPhone = '91' + cleanedPhone;
+    const rawPhone = ptPhone.replace(/\D/g, '');
+    let cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
 
     // Construct the public link
     const baseUrl = window.location.origin;
