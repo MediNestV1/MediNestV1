@@ -69,58 +69,65 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         // 2. Prepare Prompt (EMPATHETIC & DETAILED)
         let prompt;
         if (lang === 'Hindi') {
-            prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
-            Patient Name: ${patientName}
-            Complaints: ${rx.complaints}
-            Findings: ${rx.findings}
-            Medicines & Dosages: ${JSON.stringify(medicines)}
-            Doctor's Advice: ${rx.advice}
-            Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
-
-            Instructions (STRICT HINDI PROSE):
-            - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
-            - MEDICINE NAMES: Keep medicine names (e.g., 'Paracetamol') in their original English spelling.
-            - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts.
-            - DETAIL RULE: Be warm and provide detailed, multi-sentence explanations for each section.
-            - NEGATIVE CONSTRAINT: DO NOT use Latin (English) letters for Hindi words. No Hinglish allowed.
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
             
+            INPUT DATA:
+            Patient Name: ${patientName}
+            Symptoms: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+
+            STRICT RULES:
+            - Write in simple, natural Hindi (not robotic or repetitive).
+            - Keep all medicine names strictly in English.
+            - Avoid repeating any sentence or idea.
+            - Be concise but informative.
+            - Tone: Caring, human, and trustworthy (not overly emotional or dramatic).
+            - Do NOT hallucinate diseases or risks.
+            - Do NOT use Latin letters for Hindi words (Pure Devanagari).
+            - Do NOT repeat any dates or lines.
+
             JSON Structure (STRICT):
             {
-              "greeting": "Personalized greeting in Devanagari",
-              "condition": "Detailed explanation of condition in Devanagari (2-3 sentences)",
-              "medicines": [{"name": "Med Name in English", "purpose": "Clear purpose in Devanagari"}],
-              "expectations": "Detailed recovery timeline in Devanagari",
-              "care": "Rich Diet/Rest/Precautions advice in Devanagari (3-4 sentences)",
-              "warnings": ["Warning signs to watch for in Devanagari"],
-              "next_steps": "Detailed follow-up instructions in Devanagari"
+              "greeting": "👋 नमस्ते ${patientName}",
+              "condition": "2–3 lines summary of condition in simple Hindi. Mention symptoms clearly without exaggeration.",
+              "medicines": [{"name": "MedicineName (English)", "purpose": "क्यों दी गई है + कैसे लेना है (In Hindi - be concise)"}],
+              "expectations": "Recovery timeline & reassurance in simple Hindi (1-2 lines)",
+              "care": "Practical advice based on symptoms. No generic filler.",
+              "warnings": "Only real warning signs if condition worsens (Keep it short and useful).",
+              "next_steps": "Follow-up info in 1–2 lines (No repetition)."
             }
 
             - Respond ONLY with VALID JSON.
             `;
         } else {
-            prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+            
+            INPUT DATA:
             Patient Name: ${patientName}
-            Complaints: ${rx.complaints}
+            Symptoms: ${rx.complaints}
             Findings: ${rx.findings}
-            Medicines & Dosages: ${JSON.stringify(medicines)}
-            Doctor's Advice: ${rx.advice}
-            Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
+            Medicines: ${JSON.stringify(medicines)}
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
 
             Instructions (ENGLISH):
-            - LANGUAGE: Respond strictly in English.
-            - Explain the medical condition in simple, reassuring terms.
-            - Provide clear diet, rest, and precaution instructions.
+            - Explain the medical condition in simple, reassuring, and professional terms.
+            - Provide clear diet, rest, and precaution instructions based on symptoms.
+            - Tone: Caring, human, and trustworthy.
             - Respond ONLY with VALID JSON.
 
             JSON Structure:
             {
-              "greeting": "Personalized greeting",
+              "greeting": "👋 Hello ${patientName}",
               "condition": "Explanation + reassurance",
-              "medicines": [{"name": "Med Name", "purpose": "Brief purpose"}],
-              "expectations": "Recovery timeline",
-              "care": "Diet/Rest/Precautions",
-              "warnings": ["Sign to watch out for"],
-              "next_steps": "Follow-up details"
+              "medicines": [{"name": "Med Name", "purpose": "Clear purpose and how to take it"}],
+              "expectations": "Recovery timeline & reassurance",
+              "care": "Diet/Rest/Precautions (No filler)",
+              "warnings": ["Real sign to watch out for if condition worsens"],
+              "next_steps": "Follow-up details (Keep it concise)"
             }`;
         }
 
