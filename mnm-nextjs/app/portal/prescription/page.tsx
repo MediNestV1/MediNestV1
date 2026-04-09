@@ -49,16 +49,43 @@ export default function PrescriptionPage() {
   const [mInst, setMInst] = useState('After Meal');
   const [mNote, setMNote] = useState('');
 
-  const commonMeds = [
-    'Paracetamol 250mg', 'Paracetamol 500mg', 'Amoxicillin 250mg', 'Cefixime 100mg',
-    'Azithromycin 250mg', 'Cetirizine 5mg', 'Montelulast 4mg', 'ORS Sachet', 'Zinc Syrup'
-  ];
+  // 🏥 Medicine Database Suggestion Logic
+  const [dbSuggestions, setDbSuggestions] = useState<any[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const supabase = createClient();
 
-  const commonCC = ['Fever', 'Cough', 'Cold', 'Loose Motion', 'Vomiting', 'Body Ache', 'Weakness'];
-  const commonAdvice = ['Drink plenty of fluids', 'Rest for 2-3 days', 'Light diet', 'Monitor temperature', 'Follow-up if fever persists'];
+  useEffect(() => {
+    if (!mName || mName.length < 2) {
+      setDbSuggestions([]);
+      return;
+    }
 
-  // Current Doctor Data
-  const selectedDoctorObj = doctors.find(d => d.name === doctor);
+    const fetchSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        // Call the search_medicines RPC function
+        const { data, error } = await supabase.rpc('search_medicines', { search_term: mName });
+        
+        if (!error && data) {
+          setDbSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching suggestions:', err);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [mName]);
+
+  const handleSelectMedicine = (med: any) => {
+    setMName(med.name);
+    if (med.category) setMType(med.category);
+    if (med.strength) setMDose(med.strength);
+    setDbSuggestions([]); // Hide suggestions after selection
+  };
 
   const addMed = () => {
     if (!mName) return;
@@ -75,11 +102,20 @@ export default function PrescriptionPage() {
     setMName('');
     setMDose('');
     setMNote('');
+    setDbSuggestions([]);
   };
+
+
+  const commonCC = ['Fever', 'Cough', 'Cold', 'Loose Motion', 'Vomiting', 'Body Ache', 'Weakness'];
+  const commonAdvice = ['Drink plenty of fluids', 'Rest for 2-3 days', 'Light diet', 'Monitor temperature', 'Follow-up if fever persists'];
+
+  // Current Doctor Data
+  const selectedDoctorObj = doctors.find(d => d.name === doctor);
 
   const removeMed = (id: string) => {
     setMeds(meds.filter(m => m.id !== id));
   };
+
 
   const handleSave = async () => {
     if (!ptName) { alert('Please enter patient name.'); return; }
@@ -287,12 +323,41 @@ export default function PrescriptionPage() {
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
-                  <div className={styles.rowMm}>
+                  <div className={styles.rowMm} style={{ position: 'relative' }}>
                     <select className={styles.mType} value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
-                    <input list="med-suggestions" type="text" className={styles.mName} value={mName} onChange={e => setMName(e.target.value)} placeholder="Medicine Name" />
-                    <datalist id="med-suggestions">{commonMeds.map(m => <option key={m} value={m} />)}</datalist>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input 
+                        type="text" 
+                        className={styles.mName} 
+                        value={mName} 
+                        onChange={e => setMName(e.target.value)} 
+                        placeholder="Medicine Name or Symptom..." 
+                        autoComplete="off"
+                      />
+                      {dbSuggestions.length > 0 && (
+                        <div className={styles.suggestionsDropdown}>
+                          {dbSuggestions.map((med) => (
+                            <div 
+                              key={med.id} 
+                              className={styles.suggestionItem} 
+                              onClick={() => handleSelectMedicine(med)}
+                            >
+                              <div className={styles.sugMain}>
+                                <strong>{med.name}</strong>
+                                <span className={styles.sugCat}>{med.category}</span>
+                              </div>
+                              <div className={styles.sugSub}>
+                                {med.strength} • <small>{med.tags.join(', ')}</small>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isLoadingSuggestions && <div className={styles.sugLoading}>Searching...</div>}
+                    </div>
                     <input type="text" className={styles.mDose} value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose" />
                   </div>
+
                   <div className={styles.row3} style={{ marginTop: 12 }}>
                     <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
                     <select value={mDur} onChange={e => setMDur(e.target.value)}><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option></select>

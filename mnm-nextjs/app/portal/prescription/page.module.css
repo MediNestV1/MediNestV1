@@ -306,3 +306,70 @@
   }
 }
 .notesBlock { margin-bottom: 24px; line-height: 1.6; }
+
+/* ─── Medicine Suggestions Dropdown ─── */
+.suggestionsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 5px;
+}
+
+.suggestionItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover {
+  background: #f0fdfa;
+}
+
+.sugMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.sugMain strong {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.sugCat {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+  background: #e6fcf5;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.sugSub {
+  font-size: 12px;
+  color: var(--ink-l);
+}
+
+.sugLoading {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 11px;
+  color: var(--teal);
+  font-weight: 600;
+}
