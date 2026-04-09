@@ -143,11 +143,15 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     if (rx && !loading) {
-      // 1. Ensure English is ready (Persisted)
-      if (!rx.ai_summary) {
+      // 1. SELF-HEALING: Check if the English summary is actually Hindi
+      const isEnglishSlotHindi = rx.ai_summary?.greeting && /[\u0900-\u097F]/.test(rx.ai_summary.greeting);
+      
+      if (!rx.ai_summary || isEnglishSlotHindi) {
+        console.log("🛠️ Self-Healing: Triggering fresh English summary...");
         generateAiSummary(rx, patient, 'English');
       }
-      // 2. Pre-generate Hindi for zero-latency switching
+      
+      // 2. Pre-generate Hindi independently
       if (!hindiCache) {
         generateAiSummary(rx, patient, 'Hindi');
       }
@@ -243,7 +247,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                   <div className={styles.aiGrid}>
                     <div className={`${styles.aiStepCard} ${styles.medCard}`}>
                       <div className={styles.cardIcon}>💊</div>
-                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आपकी दवाइयां' : 'Your Medicines'}</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आपकी औषधियाँ' : 'YOUR MEDICINES'}</div>
                       <div className={styles.cardContent}>
                         <ul className={styles.aiList}>
                           {activeSummary.medicines?.map((m: any, i: number) => (
@@ -257,19 +261,19 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                     
                     <div className={`${styles.aiStepCard} ${styles.timelineCard}`}>
                       <div className={styles.cardIcon}>⏳</div>
-                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'उम्मीद' : 'What to Expect'}</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'स्वस्थ होने की उम्मीद' : 'WHAT TO EXPECT'}</div>
                       <p className={styles.cardContent}>{activeSummary.expectations}</p>
                     </div>
 
                     <div className={`${styles.aiStepCard} ${styles.aiFullWidth} ${styles.careCard}`}>
                       <div className={styles.cardIcon}>🥗</div>
-                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आहार और देखभाल' : 'Care & Diet Instructions'}</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'आहार और देखभाल के निर्देश' : 'CARE & DIET INSTRUCTIONS'}</div>
                       <p className={styles.cardContent}>{activeSummary.care}</p>
                     </div>
 
                     <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
                       <div className={styles.cardIcon}>🚨</div>
-                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'Warning Signs'}</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'WARNING SIGNS'}</div>
                       <ul className={styles.warningList}>
                         {activeSummary.warnings?.map((w: string, i: number) => (
                           <li key={i}><span>!</span> {w}</li>
@@ -279,7 +283,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
                     <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
                       <div className={styles.cardIcon}>📅</div>
-                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'अगला कदम' : 'Next Steps'}</div>
+                      <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'अगला कदम' : 'NEXT STEPS'}</div>
                       <p className={styles.cardContent}>{activeSummary.next_steps}</p>
                     </div>
                   </div>
