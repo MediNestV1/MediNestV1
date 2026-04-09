@@ -124,24 +124,32 @@ export default function PrescriptionPage() {
     setIsSaving(true);
     const supabase = createClient();
 
+    // STRICT SANITIZATION: Clean phone number to exactly 10 digits for DB constraint
+    const cleanPhone = ptPhone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      alert('Please enter a valid 10-digit phone number.');
+      setIsSaving(false);
+      return;
+    }
+
     try {
       let patientId: string;
       const { data: existing, error: pError } = await supabase
         .from('patients')
         .select('id')
         .eq('name', ptName)
-        .eq('contact', ptPhone)
+        .eq('contact', cleanPhone)
         .limit(1);
 
       if (pError) throw pError;
 
       if (existing && existing.length > 0) {
         patientId = existing[0].id;
-        await supabase.from('patients').update({ age: ptAge, gender: ptSex, clinic_id: clinic?.id }).eq('id', patientId);
+        await supabase.from('patients').update({ age: ptAge, gender: ptSex, clinic_id: clinic?.id, contact: cleanPhone }).eq('id', patientId);
       } else {
         const { data: neu, error: cError } = await supabase
           .from('patients')
-          .insert([{ name: ptName, contact: ptPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .insert([{ name: ptName, contact: cleanPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
           .select()
           .single();
         if (cError) throw cError;
