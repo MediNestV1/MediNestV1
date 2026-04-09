@@ -67,37 +67,56 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         }
 
         // 2. Prepare Prompt (EMPATHETIC & DETAILED)
-        const prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
-        Patient Name: ${patientName}
-        Complaints: ${rx.complaints}
-        Findings: ${rx.findings}
-        Medicines & Dosages: ${JSON.stringify(medicines)}
-        Doctor's Advice: ${rx.advice}
-        Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
+        let prompt;
+        if (lang === 'Hindi') {
+            prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
+            Patient Name: ${patientName}
+            Complaints: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines & Dosages: ${JSON.stringify(medicines)}
+            Doctor's Advice: ${rx.advice}
+            Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        Instructions:
-        - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
-        - MEDICINE NAMES: Keep medicine names (e.g., 'Paracetamol') in original English spelling.
-        - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts. 
-        - NEGATIVE CONSTRAINT: DO NOT use Latin (English) letters for Hindi words. If you write 'Aapke', you must change it to 'आपके'. No Hinglish allowed.
-        
-        Style Verification:
-        - Bad: "Vidhi ji, aapka swagat hai"
-        - Good: "विधि जी, आपका स्वागत है"
+            Instructions (STRICT HINDI PROSE):
+            - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
+            - MEDICINE NAMES: Keep medicine names (e.g., 'Paracetamol') in their original English spelling.
+            - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts. 
+            - NEGATIVE CONSTRAINT: DO NOT use Latin (English) letters for Hindi words. No Hinglish allowed.
+            
+            Format Example:
+            {
+              "greeting": "नमस्ते ${patientName} जी, मैं डॉक्टर [Name] हूँ।",
+              "medicines": [{"name": "Med Name in English", "purpose": "साफ़ हिंदी में उद्देश्य"}]
+            }
 
-        - Tone: Warm, world-class caring doctor.
-        - Respond ONLY with VALID JSON.
+            - Respond ONLY with VALID JSON.
+            `;
+        } else {
+            prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
+            Patient Name: ${patientName}
+            Complaints: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines & Dosages: ${JSON.stringify(medicines)}
+            Doctor's Advice: ${rx.advice}
+            Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        JSON Structure:
-        {
-          "greeting": "Greeting in $100\%$ Devanagari",
-          "condition": "Explanation in $100\%$ Devanagari",
-          "medicines": [{"name": "Med Name in English", "purpose": "Purpose in $100\%$ Devanagari"}],
-          "expectations": "Recovery timeline in $100\%$ Devanagari",
-          "care": "Diet/Rest in $100\%$ Devanagari",
-          "warnings": ["Warning sign in $100\%$ Devanagari"],
-          "next_steps": "Follow-up in $100\%$ Devanagari"
-        }`;
+            Instructions (ENGLISH):
+            - LANGUAGE: Respond strictly in English.
+            - Explain the medical condition in simple, reassuring terms.
+            - Provide clear diet, rest, and precaution instructions.
+            - Respond ONLY with VALID JSON.
+
+            JSON Structure:
+            {
+              "greeting": "Personalized greeting",
+              "condition": "Explanation + reassurance",
+              "medicines": [{"name": "Med Name", "purpose": "Brief purpose"}],
+              "expectations": "Recovery timeline",
+              "care": "Diet/Rest/Precautions",
+              "warnings": ["Sign to watch out for"],
+              "next_steps": "Follow-up details"
+            }`;
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);

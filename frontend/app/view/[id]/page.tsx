@@ -142,20 +142,28 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   }, [id]);
 
   useEffect(() => {
-    if (rx && !loading) {
-      // 1. SELF-HEALING: Check if the English summary is actually Hindi
+    async function triggerSequentially() {
+      if (!rx || loading) return;
+
+      // 1. English Priority & Self-Healing
+      // Check if current slot is empty or contains Hindi script (Devanagari range)
       const isEnglishSlotHindi = rx.ai_summary?.greeting && /[\u0900-\u097F]/.test(rx.ai_summary.greeting);
       
       if (!rx.ai_summary || isEnglishSlotHindi) {
-        console.log("🛠️ Self-Healing: Triggering fresh English summary...");
-        generateAiSummary(rx, patient, 'English');
+        console.log("⏱️ English priority fetch starting...");
+        await generateAiSummary(rx, patient, 'English');
       }
-      
-      // 2. Pre-generate Hindi independently
+
+      // 2. Silent Hindi Background (with 1.5s staggered start)
       if (!hindiCache) {
-        generateAiSummary(rx, patient, 'Hindi');
+        setTimeout(() => {
+          console.log("⏱️ Staggered Hindi background fetch starting...");
+          generateAiSummary(rx, patient, 'Hindi');
+        }, 1500);
       }
     }
+
+    triggerSequentially();
   }, [rx?.id, !!rx?.ai_summary, loading, !!hindiCache]);
 
   const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
