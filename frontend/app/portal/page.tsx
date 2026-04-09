@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
+import TopBar from '@/components/TopBar';
 import styles from './page.module.css';
 
 const portalCards = [
@@ -34,20 +34,16 @@ const portalCards = [
 ];
 
 export default function PortalPage() {
-  const { clinic } = useClinic();
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/auth');
-  };
+  const { clinic, doctors } = useClinic();
+  
+  const primaryDoctorName = doctors && doctors.length > 0 ? doctors[0].name : 'Doctor';
 
   return (
     <div className={styles.page}>
+      <TopBar title={`Welcome, ${primaryDoctorName}`} backHref="/" backLabel="Home" showLogout={true} />
+
       <div className={styles.container}>
         <header className={styles.header}>
-          <button onClick={handleLogout} className={styles.signOutBtn}>Sign Out ⏏️</button>
           <div className={styles.logoCircle}>
             <Image src="/assets/medinest_logo.png" alt="MediNest" width={100} height={100} style={{ objectFit: 'contain' }} />
           </div>
