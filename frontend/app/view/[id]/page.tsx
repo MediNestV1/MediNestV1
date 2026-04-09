@@ -86,21 +86,32 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
     fetchData();
 
-    // --- NEW: Polling for AI Summary ---
-    const intervalId = setInterval(async () => {
-      // We check if we have rx but NO summary yet
-      if (id && !rx?.ai_summary) {
-        const supabase = createClient();
-        const { data } = await supabase.from('prescriptions').select('ai_summary').eq('id', id).single();
-        if (data?.ai_summary) {
-          setRx(prev => prev ? ({ ...prev, ai_summary: data.ai_summary }) : null);
-          clearInterval(intervalId);
+    // --- INSTANT UPDATES: Supabase Realtime ---
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`rx-update-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'prescriptions',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('🔄 Realtime update received:', payload);
+          if (payload.new && payload.new.ai_summary) {
+            setRx(prev => prev ? ({ ...prev, ai_summary: payload.new.ai_summary }) : null);
+          }
         }
-      }
-    }, 5000);
+      )
+      .subscribe();
 
-    return () => clearInterval(intervalId);
-  }, [id, !!rx?.ai_summary]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
 
   if (loading) {
     return (
