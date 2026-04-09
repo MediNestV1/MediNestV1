@@ -77,27 +77,26 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
 
         Instructions:
         - LANGUAGE: Respond strictly in pure, formal Hindi prose (Devanagari script).
-        - MEDICINE NAMES: Keep all medicine names in their original English spelling (e.g., 'Paracetamol', 'Pan-D') for medical accuracy.
-        - PROSE RULE: Use ONLY Devanagari fonts for all explanations, greetings, and advice. DO NOT include English letters or transliteration (Hinglish).
+        - MEDICINE NAMES: Keep medicine names (e.g., 'Paracetamol') in original English spelling.
+        - CONTENT RULE: All explanations, greetings, and advice MUST be in $100\%$ Devanagari fonts. 
+        - NEGATIVE CONSTRAINT: DO NOT use Latin (English) letters for Hindi words. If you write 'Aapke', you must change it to 'आपके'. No Hinglish allowed.
         
-        Style Examples:
-        - Bad: "Vidhi, aapki medicines ye hain..."
-        - Good: "विधि, आपकी दवाइयां निम्नलिखित हैं..."
-        - Bad: "Aap jaldi theek ho jayenge"
-        - Good: "आप जल्दी स्वस्थ हो जाएंगे।"
+        Style Verification:
+        - Bad: "Vidhi ji, aapka swagat hai"
+        - Good: "विधि जी, आपका स्वागत है"
 
-        - Be warm, empathetic, and reassuring (Dr. Persona).
+        - Tone: Warm, world-class caring doctor.
         - Respond ONLY with VALID JSON.
 
-        JSON Structure (Keys must be in English):
+        JSON Structure:
         {
-          "greeting": "Personalized greeting in Pure Hindi Devanagari",
-          "condition": "Explanation + reassurance in Pure Hindi Devanagari",
-          "medicines": [{"name": "Med Name in English", "purpose": "Purpose in Pure Hindi Devanagari"}],
-          "expectations": "Recovery timeline in Pure Hindi Devanagari",
-          "care": "Diet/Rest in Pure Hindi Devanagari",
-          "warnings": ["Warning signs in Pure Hindi Devanagari"],
-          "next_steps": "Follow-up details in Pure Hindi Devanagari"
+          "greeting": "Greeting in $100\%$ Devanagari",
+          "condition": "Explanation in $100\%$ Devanagari",
+          "medicines": [{"name": "Med Name in English", "purpose": "Purpose in $100\%$ Devanagari"}],
+          "expectations": "Recovery timeline in $100\%$ Devanagari",
+          "care": "Diet/Rest in $100\%$ Devanagari",
+          "warnings": ["Warning sign in $100\%$ Devanagari"],
+          "next_steps": "Follow-up in $100\%$ Devanagari"
         }`;
 
         const controller = new AbortController();
@@ -112,7 +111,9 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             },
             body: JSON.stringify({
                 model: "meta/llama-3.1-8b-instruct",
-                messages: [{ role: "user", content: prompt }]
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2, // Lower temperature for stricter rule adherence
+                top_p: 0.7
             }),
             signal: controller.signal
         });
