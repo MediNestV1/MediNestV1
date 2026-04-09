@@ -178,6 +178,7 @@ body {
 .grad-gold { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 .grad-purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
 .grad-red { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.grad-pink { background: linear-gradient(135deg, #db2777, #f472b6); }
 
 /* ── Grid ── */
 .grid-dash {
