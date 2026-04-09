@@ -83,21 +83,24 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             - Write in simple, natural Hindi (not robotic or repetitive).
             - Keep all medicine names strictly in English.
             - Avoid repeating any sentence or idea.
-            - Be concise but informative.
-            - Tone: Caring, human, and trustworthy (not overly emotional or dramatic).
+            - Tone: Caring, human, and trustworthy.
             - Do NOT hallucinate diseases or risks.
-            - Do NOT use Latin letters for Hindi words (Pure Devanagari).
-            - Do NOT repeat any dates or lines.
+            - Do NOT use Latin letters for Hindi words.
 
-            JSON Structure (STRICT):
+            JSON Structure (STRICT HINDI INSTRUCTIONS):
             {
               "greeting": "👋 नमस्ते ${patientName}",
-              "condition": "2–3 lines summary of condition in simple Hindi. Mention symptoms clearly without exaggeration.",
-              "medicines": [{"name": "MedicineName (English)", "purpose": "क्यों दी गई है + कैसे लेना है (In Hindi - be concise)"}],
-              "expectations": "Recovery timeline & reassurance in simple Hindi (1-2 lines)",
-              "care": "Practical advice based on symptoms. No generic filler.",
-              "warnings": "Only real warning signs if condition worsens (Keep it short and useful).",
-              "next_steps": "Follow-up info in 1–2 lines (No repetition)."
+              "condition": "2-3 लाइन में सरल हिंदी में स्थिति का सार। Symptoms साफ लिखो। कोई exaggeration या repetition नहीं।",
+              "medicines": [
+                {
+                  "name": "MedicineName (English only)",
+                  "purpose": "हिंदी में: क्यों दी गई है + कैसे लेना है (max 1 लाइन, repeat नहीं करना)"
+                }
+              ],
+              "expectations": "ठीक होने में कितना समय लगेगा + reassurance (max 2 लाइन, realistic)",
+              "care": "सिर्फ काम की सलाह। generic लाइन नहीं। max 3 points एक छोटे paragraph में।",
+              "warnings": "सिर्फ ज़रूरी warning signs। अगर कुछ खास नहीं है तो \"\" लौटाओ।",
+              "next_steps": "Follow-up या अगला कदम (1-2 लाइन, बिना repeat किए)"
             }
 
             - Respond ONLY with VALID JSON.

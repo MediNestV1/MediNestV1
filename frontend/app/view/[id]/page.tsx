@@ -282,11 +282,17 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                     <div className={`${styles.aiStepCard} ${styles.warningCard}`}>
                       <div className={styles.cardIcon}>🚨</div>
                       <div className={styles.cardTitle}>{selectedLang === 'Hindi' ? 'खतरे के संकेत' : 'WARNING SIGNS'}</div>
-                      <ul className={styles.warningList}>
-                        {activeSummary.warnings?.map((w: string, i: number) => (
-                          <li key={i}><span>!</span> {w}</li>
-                        ))}
-                      </ul>
+                      <div className={styles.cardContent}>
+                        {Array.isArray(activeSummary.warnings) ? (
+                          <ul className={styles.warningList}>
+                            {activeSummary.warnings.map((w: string, i: number) => (
+                              <li key={i}><span>!</span> {w}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{activeSummary.warnings || (selectedLang === 'Hindi' ? 'कोई विशेष खतरे के संकेत नहीं हैं' : 'No specific warning signs')}</p>
+                        )}
+                      </div>
                     </div>
 
                     <div className={`${styles.aiStepCard} ${styles.nextStepCard}`}>
