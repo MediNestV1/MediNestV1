@@ -2,7 +2,7 @@
    MediNest Global Design Tokens
    ============================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;600;700&family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* Brand Colors */
@@ -12,25 +12,49 @@
   --teal-l: #e6f4f2;
   --teal-m: #c2e8e3;
 
+  /* Premium Sanctuary Palette (Synced with snippet) */
+  --sanctuary-primary: #170337;
+  --sanctuary-primary-container: #2d1b4d;
+  --sanctuary-bg: #fafaf5;
+  --sanctuary-lavender: #eaddf9;
+  --sanctuary-white: #ffffff;
+  --sanctuary-ink: #1a1c19;
+  --sanctuary-ink-l: #49454e;
+  --sanctuary-gray-low: #f4f4ef;
+  
+  /* UI Effects */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-blur: blur(24px);
+  --ambient-glow: 0 25px 50px -12px rgba(23, 3, 55, 0.08);
+
   /* Semantic */
   --gold: #f59e0b;
-  --gold-l: #fdf3e3;
   --success: #16a34a;
-  --danger: #dc2626;
-  --warning: #92400e;
-  --blue: #2563eb;
+  --danger: #ba1a1a;
 
   /* Typography */
-  --ink: #1e293b;
-  --ink-m: #3b4a5e;
-  --ink-l: #64748b;
+  --font-headline: 'Manrope', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
 
   /* UI */
   --border: #e2e8f0;
-  --bg: #f8fafc;
-  --white: #ffffff;
-  --card-shad: 0 2px 16px rgba(10,124,110,.09);
-  --radius: 12px;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+  --card-shad: var(--ambient-glow);
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
 }
 
 *, *::before, *::after {
