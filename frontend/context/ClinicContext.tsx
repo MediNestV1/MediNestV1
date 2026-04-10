@@ -56,11 +56,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       // First check local session (fast)
       const { data: { session } } = await supabase.auth.getSession();
       let currentUser = session?.user || null;
+      console.log('🔍 ClinicContext: getSession user:', currentUser?.email || 'null');
 
       // If no local session, verify with server (thorough)
       if (!currentUser) {
         const { data: { user: verifiedUser } } = await supabase.auth.getUser();
         currentUser = verifiedUser;
+        console.log('🔍 ClinicContext: getUser (verified) user:', currentUser?.email || 'null');
       }
       
       setUser(currentUser);
