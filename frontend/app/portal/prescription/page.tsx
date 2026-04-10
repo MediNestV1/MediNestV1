@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './page.module.css';

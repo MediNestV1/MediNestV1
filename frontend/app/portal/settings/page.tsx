@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 interface Service {
