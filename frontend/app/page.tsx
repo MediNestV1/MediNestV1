@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function LandingPage() {

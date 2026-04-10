@@ -1,15 +1,6 @@
-import { createBrowserClient, createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// CLIENT-SIDE Supabase (use in browser components)
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-// SERVER-SIDE Supabase (use in Middleware, Route Handlers, and Server Components)
 export async function createServerSupabase() {
   const cookieStore = await cookies();
 
@@ -25,18 +16,14 @@ export async function createServerSupabase() {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Ignore if called from Server Component
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {
-            // The `remove` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Ignore if called from Server Component
           }
         },
       },
@@ -44,7 +31,6 @@ export async function createServerSupabase() {
   );
 }
 
-// MIDDLEWARE Supabase (Special handling for Edge Runtime)
 export function createMiddlewareSupabase(request: any, response: any) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,11 +42,16 @@ export function createMiddlewareSupabase(request: any, response: any) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          response.cookies.set({ name, value, ...options });
+          response = response || {}; // fallback if response is not yet passed properly
+          if (response.cookies) {
+             response.cookies.set({ name, value, ...options });
+          }
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options });
-          response.cookies.set({ name, value: '', ...options });
+          if (response.cookies) {
+             response.cookies.set({ name, value: '', ...options });
+          }
         },
       },
     }
