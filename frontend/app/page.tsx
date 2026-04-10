@@ -1,8 +1,63 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase';
 import styles from './page.module.css';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('🔄 Landing: Session found, checking clinic status...');
+          const { data: clinic } = await supabase
+            .from('clinics')
+            .select('status')
+            .eq('owner_user_id', session.user.id)
+            .single();
+
+          if (!clinic) {
+            router.push('/onboarding');
+          } else if (clinic.status === 'active') {
+            router.push('/portal');
+          } else if (clinic.status === 'pending') {
+            router.push('/pending');
+          } else {
+            setCheckingAuth(false);
+          }
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch (err) {
+        console.error('Landing Auth Check Error:', err);
+        setCheckingAuth(false);
+      }
+    };
+    checkUser();
+  }, [router, supabase]);
+
+  if (checkingAuth) {
+    return (
+      <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'white' }}>
+        <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid #f3f3f3', borderTop: '3px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       {/* ── NAV ── */}
