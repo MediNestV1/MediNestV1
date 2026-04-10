@@ -19,19 +19,6 @@ function AuthPageContent() {
   const supabase = createClient();
   const { user, clinic, loading: checkingAuth } = useClinic();
 
-  // ── AUTO-REDIRECT IF ALREADY LOGGED IN ──
-  useEffect(() => {
-    if (!checkingAuth && user) {
-      console.log('🔄 Auth: User identified, redirecting based on clinic status...');
-      if (!clinic) {
-        router.push('/onboarding');
-      } else if (clinic.status === 'active') {
-        router.push('/portal');
-      } else if (clinic.status === 'pending') {
-        router.push('/pending');
-      }
-    }
-  }, [user, clinic, checkingAuth, router]);
 
   // ── GOOGLE LOGIN ──
   const handleGoogleLogin = async () => {

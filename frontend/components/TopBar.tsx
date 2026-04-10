@@ -17,8 +17,10 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
   const supabase = createClient();
 
   const handleLogout = async () => {
+    // 1. Client-side sign out (clears local state)
     await supabase.auth.signOut();
-    router.push('/auth');
+    // 2. Server-side sign out (clears cookies and redirects)
+    window.location.href = '/auth/logout';
   };
 
   return (

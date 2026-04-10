@@ -28,18 +28,6 @@ export default function LandingPage() {
     }
   };
 
-  useEffect(() => {
-    if (!loading && user) {
-      console.log('🔄 Landing: User identified, redirecting based on clinic status...');
-      if (!clinic) {
-        router.push('/onboarding');
-      } else if (clinic.status === 'active') {
-        router.push('/portal');
-      } else if (clinic.status === 'pending') {
-        router.push('/pending');
-      }
-    }
-  }, [user, clinic, loading, router]);
 
   if (loading) {
     return (
