@@ -1,13 +1,11 @@
-// file: mnm-nextjs/app/portal/doctor/patient-history/page.tsx
 'use client';
+
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { createClient } from '@/lib/supabase/client';
-import { API_BASE_URL } from '@/lib/api';
-import TopBar from '@/components/TopBar';
+import DashboardLayout from '@/components/DashboardLayout';
 import styles from './page.module.css';
+import Link from 'next/link';
 
 interface Visit {
   visit_date: string;
@@ -18,7 +16,9 @@ interface Visit {
 interface Patient {
   id: string;
   name: string;
-  contact?: string; // using contact instead of mobile based on prescription schema
+  contact?: string;
+  age?: number;
+  gender?: string;
   created_at: string;
 }
 
@@ -31,13 +31,12 @@ function PatientHistoryContent() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [summary, setSummary] = useState<string>('');
   
-  // Search state
   const [searchTerm, setSearchTerm] = useState('');
   const [patientList, setPatientList] = useState<Patient[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const supabase = createClient();
 
-  // Load patients if no ID is provided
+  // 1. Fetch patients for grid (Search Mode)
   useEffect(() => {
     if (patientId) return;
     
@@ -46,9 +45,9 @@ function PatientHistoryContent() {
       const { data, error } = await supabase
         .from('patients')
         .select('*')
-        .ilike('name', `%${searchTerm}%`)
+        .or(`name.ilike.%${searchTerm}%,contact.ilike.%${searchTerm}%`)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
         
       if (!error && data) {
         setPatientList(data);
@@ -56,169 +55,168 @@ function PatientHistoryContent() {
       setIsSearching(false);
     };
     
-    const delayDebounceFn = setTimeout(() => {
-      fetchPatients();
-    }, 300);
-    
+    const delayDebounceFn = setTimeout(fetchPatients, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [patientId, searchTerm]);
+  }, [patientId, searchTerm, supabase]);
 
-  // Load specific patient history if ID is provided
+  // 2. Fetch specific history (Detail Mode)
   useEffect(() => {
     if (!patientId) return;
     
-    fetch(`${API_BASE_URL}/api/patient-history/${patientId}`)
-      .then(async r => {
-        if (!r.ok) {
-           const errText = await r.text();
-           console.error("Backend Error Response:", errText);
-           throw new Error(`Failed to fetch patient history: ${r.status}`);
-        }
-        return r.json();
-      })
-      .then(data => {
-        setPatient(data.patient);
-        setVisits(data.visits);
-        setSummary(data.summary);
-      })
-      .catch(err => {
-        console.error('Patient history fetch error:', err);
-        setPatient({ id: patientId, name: "Error Loading Data", created_at: "" });
-        setSummary("Failed to load patient summary. Please ensure your backend is running.");
-      });
-  }, [patientId]);
+    const fetchHistory = async () => {
+      // Fetch patient details
+      const { data: pData } = await supabase.from('patients').select('*').eq('id', patientId).single();
+      if (pData) setPatient(pData);
 
-  const exportPDF = async () => {
-    const element = document.getElementById('pdf-content');
-    if (!element) return;
-    const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`patient_${patient?.name || 'history'}.pdf`);
-  };
+      // Fetch visits (prescriptions)
+      const { data: vData } = await supabase.from('prescriptions').select('*').eq('patient_id', patientId).order('created_at', { ascending: false });
+      
+      if (vData) {
+        setVisits(vData.map(v => ({
+          visit_date: v.created_at,
+          notes: v.advice,
+          prescription: v
+        })));
+        
+        // Use advice as a summary placeholder if summary generating logic is complex
+        setSummary(vData[0]?.advice || 'No summary available.');
+      }
+    };
+    
+    fetchHistory();
+  }, [patientId, supabase]);
 
-  // UI for selecting a patient
+  const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  // --- Search View ---
   if (!patientId) {
     return (
-      <div className={styles.page}>
-        <TopBar title="Patient History Search" backHref="/portal/doctor" />
-        <main className={styles.container}>
-          <h1 className={styles.title}>Select Patient</h1>
-          <input 
-            type="text" 
-            placeholder="Search patient by name..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ccc', marginBottom: '20px' }}
-          />
+      <DashboardLayout>
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <div className={styles.headerTitle}>
+              <h1>Patient Portfolio</h1>
+              <p>Access comprehensive historical data and treatment paths for your registered patients.</p>
+            </div>
+            <div className={styles.headerActions}>
+               <button className={styles.refineBtn}>
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                 Refine List
+               </button>
+               <button className={styles.registerBtn} onClick={() => router.push('/portal/prescription')}>
+                 Register New
+               </button>
+            </div>
+          </div>
+
+          <div className={styles.searchSection}>
+            <div className={styles.searchWrapper}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={styles.searchIcon}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input 
+                type="text" 
+                className={styles.searchInput}
+                placeholder="Search patients, medical history, or ID..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
           
-          {isSearching ? <p>Searching...</p> : (
-            <ul className={styles.visitList}>
-              {patientList.map(p => (
-                <li key={p.id} className={styles.visitItem} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => router.push(`/portal/doctor/patient-history?patientId=${p.id}`)}>
-                  <div>
-                    <strong>{p.name}</strong>
-                    <span>{p.contact && `📞 ${p.contact}`}</span>
+          <div className={styles.patientGrid}>
+            {isSearching ? (
+              <div className={styles.loading}>
+                 <p>Searching records...</p>
+              </div>
+            ) : patientList.length > 0 ? (
+              patientList.map(p => (
+                <div key={p.id} className={styles.patientCard}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.avatar}>{getInitials(p.name)}</div>
+                    <span className={`${styles.badge} ${styles.badgeStable}`}>STABLE</span>
                   </div>
-                  <button className={styles.pdfBtn} style={{ margin: 0 }}>View History</button>
-                </li>
-              ))}
-              {patientList.length === 0 && <p>No patients found. Create one by writing a prescription first!</p>}
-            </ul>
-          )}
-        </main>
-      </div>
+                  <h3 className={styles.patientName}>{p.name}</h3>
+                  <p className={styles.patientContact}>
+                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                     {p.contact || 'No Contact'}
+                  </p>
+                  <div className={styles.tagCloud}>
+                    <span className={styles.tag}>{p.gender === 'Female' ? 'Maternity' : 'General'}</span>
+                    <span className={styles.tag}>{p.age ? `${p.age} Years` : 'Age N/A'}</span>
+                    <span className={styles.tag}>Routine Visit</span>
+                  </div>
+                  <button className={styles.viewBtn} onClick={() => router.push(`/portal/doctor/patient-history?patientId=${p.id}`)}>
+                    View History
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className={styles.emptyState}>
+                <p>No patients found. Get started by registering a new patient.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </DashboardLayout>
     );
   }
 
-  if (!patient) return <p className={styles.loading}>Loading patient history…</p>;
-
+  // --- Detail View ---
   return (
-    <div className={styles.page}>
-      <TopBar title="Patient History" backHref="/portal/doctor/patient-history" />
-      <main className={styles.container}>
-        <h1 className={styles.title}>Patient History – {patient.name}</h1>
-        <section id="pdf-content" className={styles.snapshot}>
-          <pre>{summary}</pre>
-        </section>
-        <button className={styles.pdfBtn} onClick={exportPDF}>📥 Export as PDF</button>
-        <hr />
-        <h2 className={styles.sub}>Visit Details</h2>
-        <ul className={styles.visitList}>
-          {visits.map((v, i) => {
-            let medsList = [];
-            if (v.prescription?.medicines) {
-              try {
-                medsList = typeof v.prescription.medicines === 'string' 
-                  ? JSON.parse(v.prescription.medicines) 
-                  : v.prescription.medicines;
-              } catch (e) {
-                console.error("Failed to parse medicines", e);
-              }
-            }
+    <DashboardLayout>
+      <div className={styles.container}>
+        <div className={styles.detailHeader}>
+           <Link href="/portal/doctor/patient-history" style={{ color: 'var(--sanctuary-ink-l)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, fontWeight: 600 }}>
+             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+             Back to Portfolio
+           </Link>
+           <div className={styles.header}>
+              <div className={styles.headerTitle}>
+                <h1>History – {patient?.name}</h1>
+                <p>{patient?.age}Y • {patient?.gender} • {patient?.contact}</p>
+              </div>
+              <button className={styles.registerBtn} onClick={() => router.push(`/portal/prescription?patientId=${patientId}`)}>
+                Add Visit
+              </button>
+           </div>
+        </div>
 
-            return (
-              <li key={i} className={styles.visitItem} style={{ border: '1px solid #eaeaea', borderRadius: '8px', padding: '16px', marginBottom: '16px', backgroundColor: '#fafafa' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <strong style={{ fontSize: '1.2rem', color: '#0d6e56' }}>{new Date(v.visit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric'})}</strong>
-                  {v.prescription?.doctor_name && <span style={{ backgroundColor: '#e6f4f1', color: '#0d6e56', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>By {v.prescription.doctor_name}</span>}
-                </div>
-                
-                {v.notes && (
-                  <div style={{ backgroundColor: '#fff', padding: '10px', borderLeft: '4px solid #0d6e56', borderRadius: '4px', marginBottom: '12px', fontSize: '0.95rem' }}>
-                    <p style={{ margin: 0, color: '#444' }}>{v.notes}</p>
-                  </div>
-                )}
-                
-                {medsList.length > 0 && (
-                  <div style={{ marginTop: '16px' }}>
-                    <h4 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '1rem' }}>💊 Prescribed Medicines</h4>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
-                      <thead style={{ backgroundColor: '#f1f1f1' }}>
-                        <tr>
-                          <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Medicine</th>
-                          <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Dose/Freq</th>
-                          <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Duration</th>
-                          <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {medsList.map((m: any, idx: number) => (
-                          <tr key={idx}>
-                            <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}><strong>{m.type}. {m.name}</strong></td>
-                            <td style={{ padding: '8px', borderBottom: '1px solid #eee', color: '#555' }}>{m.dose} {m.freq}</td>
-                            <td style={{ padding: '8px', borderBottom: '1px solid #eee', color: '#555' }}>{m.dur || m.duration}</td>
-                            <td style={{ padding: '8px', borderBottom: '1px solid #eee', color: '#555' }}>{m.inst} {m.note ? `(${m.note})` : ''}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                
-                {v.prescription?.advice && (
-                   <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#fdfbf7', border: '1px solid #f3e9d2', borderRadius: '6px' }}>
-                     <h4 style={{ margin: '0 0 6px 0', color: '#8a6d3b', fontSize: '1rem' }}>📌 Doctor's Advice & Follow-up</h4>
-                     <p style={{ margin: 0, whiteSpace: 'pre-wrap', color: '#555', fontSize: '0.95rem' }}>{v.prescription.advice}</p>
-                   </div>
-                )}
-              </li>
-            );
-          })}
-          {visits.length === 0 && <p>No previous visits found for this patient.</p>}
-        </ul>
-      </main>
-    </div>
+        <section className={styles.summarySection}>
+           <h3>
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+             Clinical Summary
+           </h3>
+           <div className={styles.summaryContent}>{summary}</div>
+        </section>
+
+        <h2 className={styles.visitTitle}>Previous Visits</h2>
+        <div className={styles.visitTimeline}>
+          {visits.map((v, i) => (
+            <div key={i} className={styles.visitItem} style={{ marginBottom: 24 }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                 <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--sanctuary-primary)' }}>
+                   {new Date(v.visit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric'})}
+                 </p>
+                 <span className={`${styles.badge} ${styles.badgeFollowUp}`}>COMPLETED</span>
+               </div>
+               <div style={{ padding: 16, background: '#f8fafc', borderRadius: 12, marginBottom: 16 }}>
+                 <p style={{ fontWeight: 600, fontSize: 14, color: '#64748b', marginBottom: 8 }}>DIAGNOSIS & ADVICE</p>
+                 <p style={{ margin: 0, lineScale: 1.5 }}>{v.notes}</p>
+               </div>
+            </div>
+          ))}
+          {visits.length === 0 && (
+            <div className={styles.emptyState}>No previous visits recorded.</div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }
 
 export default function PatientHistory() {
   return (
-    <Suspense fallback={<p className={styles.loading}>Loading Data...</p>}>
+    <Suspense fallback={<div className={styles.loading}>Loading Data...</div>}>
       <PatientHistoryContent />
     </Suspense>
   );

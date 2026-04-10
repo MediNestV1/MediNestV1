@@ -1,0 +1,23 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--sanctuary-bg);
+}
+
+.contentArea {
+  flex-grow: 1;
+  margin-left: 256px; /* Width of sidebar */
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas {
+  padding: 32px 48px 48px;
+  max-width: 1400px;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .contentArea { margin-left: 0; }
+  .canvas { padding: 80px 24px 24px; }
+}
