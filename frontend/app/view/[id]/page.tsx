@@ -196,9 +196,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     }
 
     triggerSequentially();
-  }, [rx?.id, !!rx?.ai_summary, loading, !!hindiCache]);
+  }, [rx?.id, !!rx?.ai_summary, loading]);
 
-  const activeSummary = selectedLang === 'English' ? rx?.ai_summary : hindiCache;
   const followUpDate = rx?.valid_till;
   const meds = rx?.medicines ? (typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines) : [];
 
