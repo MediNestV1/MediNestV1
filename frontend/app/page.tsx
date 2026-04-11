@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
+import GoogleOneTap from '@/components/GoogleOneTap';
 import styles from './page.module.css';
 
 export default function LandingPage() {
@@ -21,6 +22,7 @@ export default function LandingPage() {
 
   return (
     <div className={styles.page}>
+      <GoogleOneTap />
       {/* ── NAV ── */}
       <nav className={styles.nav}>
         <Link href="/" className={styles.navLogo}>
