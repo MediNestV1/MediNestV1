@@ -45,6 +45,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   
   const hospitalName = clinic?.name || 'MediNest Partner Clinic';
   const hospitalLocation = clinic?.address || 'Location not set';
@@ -53,10 +54,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // --- MULTI-LANG STATE ---
-  const [selectedLang, setSelectedLang] = useState<'English' | 'Hindi'>('English');
-  const [hindiCache, setHindiCache] = useState<any>(null);
-  const [isGeneratingHindi, setIsGeneratingHindi] = useState(false);
+  // --- AI SNAPSHOT STATE ---
+  const activeSummary = rx?.ai_summary;
 
   // --- TABS & HISTORY ---
   const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('Patient Profile');
@@ -77,8 +76,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     }
   }
 
-  async function generateAiSummary(currentRx: Prescription, pt: Patient | null, lang: 'English' | 'Hindi' = 'English') {
-    if (lang === 'Hindi') setIsGeneratingHindi(true);
+  async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
+    // English Only
     
     // Hardened Retry Wrapper
     const fetchWithRetry = async (url: string, opts: any, retries = 2): Promise<any> => {
@@ -89,14 +88,14 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           if (i === retries) throw new Error(`Fetch failed with status: ${res.status}`);
         } catch (err) {
           if (i === retries) throw err;
-          console.warn(`⚠️ Retrying ${lang} AI (${i + 1}/${retries})...`);
+          console.warn(`⚠️ Retrying English AI (${i + 1}/${retries})...`);
           await new Promise(r => setTimeout(r, 1000));
         }
       }
     };
 
     try {
-      console.log(`🤖 Triggering ${lang} AI Summary (Stateless: ${lang === 'Hindi'})...`);
+      console.log(`🤖 Triggering AI Clinical Snapshot...`);
       const result = await fetchWithRetry(`${API_BASE_URL}/api/prescriptions/${id}/ai-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,23 +106,17 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           medicines: typeof currentRx.medicines === 'string' ? JSON.parse(currentRx.medicines) : currentRx.medicines,
           advice: currentRx.advice,
           followUp: currentRx.valid_till,
-          lang: lang,
-          persist: lang === 'English' 
+          lang: 'English',
+          persist: true 
         })
       });
 
       if (result?.success && result.summary) {
-        console.log(`✅ ${lang} AI Summary Generated:`, result);
-        if (lang === 'English') {
-          setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
-        } else {
-          setHindiCache(result.summary);
-        }
+        console.log(`✅ AI Summary Generated:`, result);
+        setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
       }
     } catch (err) {
-      console.error(`❌ ${lang} AI Trigger Error after retries:`, err);
-    } finally {
-      if (lang === 'Hindi') setIsGeneratingHindi(false);
+      console.error(`❌ AI Trigger Error after retries:`, err);
     }
   }
 
@@ -131,6 +124,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     const supabase = createClient();
     try {
       console.log('🔄 Fetching/Refreshing RX data...');
+      
+      // Fetch session for conditional UI
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      setUser(authUser);
+
       const { data: rxData, error: rxError } = await supabase
         .from('prescriptions')
         .select('*')
@@ -190,17 +188,10 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
       // Check if current slot is empty or contains Hindi script (Devanagari range)
       const isEnglishSlotHindi = rx.ai_summary?.greeting && /[\u0900-\u097F]/.test(rx.ai_summary.greeting);
       
-      if (!rx.ai_summary || isEnglishSlotHindi) {
-        console.log("⏱️ English priority fetch starting...");
-        await generateAiSummary(rx, patient, 'English');
-      }
-
-      // 2. Silent Hindi Background (with 1.5s staggered start)
-      if (!hindiCache) {
-        setTimeout(() => {
-          console.log("⏱️ Staggered Hindi background fetch starting...");
-          generateAiSummary(rx, patient, 'Hindi');
-        }, 1500);
+      // AI Priority & Self-Healing
+      if (!rx.ai_summary) {
+        console.log("⏱️ AI Snapshot fetch starting...");
+        await generateAiSummary(rx, patient);
       }
     }
 
@@ -227,15 +218,46 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
            <div className={styles.brand}>MediNest</div>
         </div>
         <div className={styles.navCenter}>
-          <Link href="/portal" className={styles.navLink}>Dashboard</Link>
-          <Link href="/portal/doctor/patients" className={`${styles.navLink} ${styles.activeNavLink}`}>All Patients</Link>
+          <div className={styles.breadcrumb}>
+            <span>Patient Hub</span>
+            <span className={styles.breadcrumbSep}>/</span>
+            <span className={styles.breadcrumbActive}>{activeTab}</span>
+          </div>
+
+          <div className={styles.contextNav}>
+            {activeTab === 'Patient Profile' && (
+              <>
+                <a href="#biometrics" className={styles.contextNavLink}>Biometrics</a>
+                <a href="#meds" className={styles.contextNavLink}>Maintenance Meds</a>
+                <a href="#history" className={styles.contextNavLink}>Key History</a>
+              </>
+            )}
+            {activeTab === 'Current Script' && (
+              <>
+                <a href="#" className={styles.contextNavLink} onClick={(e) => { e.preventDefault(); window.print(); }}>Print Record</a>
+                <a href="#" className={styles.contextNavLink}>Digital Copy</a>
+              </>
+            )}
+            {activeTab === 'Patient History' && (
+              <>
+                <span className={styles.contextNavLink}>Timeline View</span>
+              </>
+            )}
+          </div>
         </div>
         <div className={styles.navRight}>
-           <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-           <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-           <button className={styles.userProfileBtn}>
-              <img src="https://api.uifaces.co/our-content/donated/vY_H35O_.jpg" alt="Doctor" />
-           </button>
+           {user && (
+             <>
+               <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+               <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+               <button className={styles.userProfileBtn}>
+                  <img src="https://api.uifaces.co/our-content/donated/vY_H35O_.jpg" alt="Doctor" />
+               </button>
+             </>
+           )}
+           {!user && (
+             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-soft)', background: '#f1f5f9', padding: '6px 14px', borderRadius: 100 }}>Patient Access</span>
+           )}
         </div>
       </nav>
 
@@ -269,12 +291,14 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                 <h4 className={styles.drName}>{rx?.doctor_name || 'Consulting Physician'}</h4>
                 <div className={styles.drId}>ID: {id.slice(0, 6).toUpperCase()}</div>
               </div>
-             <button 
-               className={styles.newRecordBtn}
-               onClick={() => router.push('/portal/prescription')}
-             >
-                New Record
-             </button>
+             {user && (
+               <button 
+                 className={styles.newRecordBtn}
+                 onClick={() => router.push('/portal/prescription')}
+               >
+                  New Record
+               </button>
+             )}
           </div>
         </aside>
 
@@ -294,9 +318,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             ) : (
               <>
                 <header className={styles.pageHeader}>
-                   <div className={styles.pageTitleGroup}>
-                      <span className={styles.subTitle}>ELECTRONIC HEALTH RECORD</span>
-                      <h1 className={styles.mainTitle}>{activeTab}</h1>
+                   <div className={styles.clinicDetails}>
+                      <div className={styles.clinicNameFinal}>{hospitalName}</div>
+                      <div className={styles.clinicSubFinal}>{clinic?.tagline || 'Advanced Clinical Hub'}</div>
                    </div>
                    <div className={styles.headerActions}>
                       <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>Export PDF</button>
@@ -407,16 +431,10 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                        <aside className={styles.intelCard}>
                           <div className={styles.intelHeader}>
                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                             Recent Visit Intelligence
+                             Clinical Snapshot (AI)
                           </div>
-                          <div className={styles.intelContent}>
-                             {history?.summary?.recentVisitsSummary || "Processing patient history for clinical insights..."}
-                          </div>
-                          <div className={styles.intelMeta}>
-                             <span>Last Observed: {history?.visits?.[0]?.visit_date ? new Date(history.visits[0].visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '14 Oct, 2023'}</span>
-                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <span style={{ width: 6, height: 6, background: '#8b5cf6', borderRadius: '50%' }} /> AI Summary
-                             </span>
+                          <div className={styles.intelBody}>
+                            <p>{history?.summary?.recentVisitsSummary || 'No clinical snapshot available for this patient yet.'}</p>
                           </div>
                        </aside>
 
@@ -538,11 +556,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
                       <footer className={styles.footerFinal}>
                         <div className={styles.contactInfoFinal}>
-                          <p>{clinic?.address || 'Clinic Address'}</p>
-                          <p>Phone: {clinic?.phone || 'Contact Number'}</p>
+                          <p>{clinic?.address || 'Clinical Facility Address'}</p>
+                          <p>Ph: {clinic?.phone || 'Contact Number'}</p>
                         </div>
                         <div className={styles.legalFinal}>
-                          MediNest Clinical Intelligence • Not for Medico-Legal use
+                           {hospitalName} • Digital Clinical Record
                         </div>
                       </footer>
                     </div>
@@ -551,27 +569,12 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
                 {activeTab === 'AI Summary' && (
                   <>
-                    {(activeSummary || isGeneratingHindi) ? (
+                    {activeSummary ? (
                       <div className={styles.aiContainer}>
                         <div className={styles.aiHero}>
                           <div className={styles.aiHeroText}>
                             <h1 className={styles.aiGreeting}>{activeSummary?.greeting || 'Hello!'}</h1>
-                            <p className={styles.aiTagline}>Your AI-powered recovery assistant is here to help you understand your treatment plan and get back to health quickly.</p>
-                            
-                            <div className={styles.langToggle}>
-                              <button 
-                                className={`${styles.langBtn} ${selectedLang === 'English' ? styles.langBtnActive : ''}`}
-                                onClick={() => setSelectedLang('English')}
-                              >
-                                English
-                              </button>
-                              <button 
-                                className={`${styles.langBtn} ${selectedLang === 'Hindi' ? styles.langBtnActive : ''}`}
-                                onClick={() => setSelectedLang('Hindi')}
-                              >
-                                हिंदी
-                              </button>
-                            </div>
+                            <p className={styles.aiTagline}>Your AI-powered recovery assistant has analyzed your latest records to provide a streamlined clinical guide.</p>
                           </div>
                         </div>
 

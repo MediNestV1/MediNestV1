@@ -36,6 +36,11 @@ export default function PrescriptionPage() {
   const [doctor, setDoctor] = useState(searchParams.get('doctorName') || '');
   const [followUp, setFollowUp] = useState(''); // Stores Date string
 
+  // 🔍 Patient Search & Snapshot
+  const [ptSuggestions, setPtSuggestions] = useState<any[]>([]);
+  const [isLoadingPts, setIsLoadingPts] = useState(false);
+  const [ptSnapshot, setPtSnapshot] = useState<any>(null);
+
   const [cc, setCc] = useState('');
   const [findings, setFindings] = useState('');
 
@@ -56,7 +61,63 @@ export default function PrescriptionPage() {
   const [dbSuggestions, setDbSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const skipSearchRef = useRef(false);
+  const skipPtSearchRef = useRef(false);
   const supabase = createClient();
+
+  // 🚀 Real-time Patient Lookup
+  useEffect(() => {
+    if (!ptPhone || ptPhone.length < 3) {
+      setPtSuggestions([]);
+      return;
+    }
+
+    if (skipPtSearchRef.current) {
+        skipPtSearchRef.current = false;
+        return;
+    }
+
+    const fetchPatients = async () => {
+      setIsLoadingPts(true);
+      try {
+        const { data, error } = await supabase
+          .from('patients')
+          .select('*')
+          .ilike('contact', `%${ptPhone}%`)
+          .limit(5);
+        
+        if (!error && data) {
+          setPtSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Error searching patients:', err);
+      } finally {
+        setIsLoadingPts(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchPatients, 300);
+    return () => clearTimeout(debounce);
+  }, [ptPhone]);
+
+  const handleSelectPatient = async (p: any) => {
+    skipPtSearchRef.current = true;
+    setPtName(p.name);
+    setPtPhone(p.contact);
+    setPtAge(p.age || '');
+    setPtSex(p.gender || 'Male');
+    setPtSuggestions([]);
+
+    // Fetch AI Snapshot for selected patient
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/patient-history/${p.id}`);
+        const data = await res.json();
+        if (data && data.summary) {
+            setPtSnapshot(data.summary);
+        }
+    } catch (err) {
+        console.error('Error fetching patient snapshot:', err);
+    }
+  };
 
   useEffect(() => {
     if (!mName || mName.length < 2) {
@@ -298,17 +359,58 @@ export default function PrescriptionPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="field"><label>Patient Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Name" /></div>
+
+                  <div className="field" style={{ position: 'relative' }}>
+                    <label>Patient Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={ptPhone} 
+                      onChange={e => { skipPtSearchRef.current = false; setPtPhone(e.target.value); }} 
+                      placeholder="Start typing contact number..." 
+                      autoComplete="off"
+                      className={styles.mainSearchInput}
+                    />
+                    {ptSuggestions.length > 0 && (
+                      <div className={styles.suggestionsDropdown} style={{ top: '100%', width: '100%' }}>
+                        {ptSuggestions.map((p) => (
+                          <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
+                            <div className={styles.sugMain}>
+                              <strong>{p.name}</strong>
+                              <span className={styles.sugCat}>{p.contact}</span>
+                            </div>
+                            <div className={styles.sugSub}>
+                              {p.age} yrs • {p.gender}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isLoadingPts && <div className={styles.sugLoading}>Searching patients...</div>}
+                  </div>
+
+                  {ptSnapshot && (
+                      <div className={styles.aiSnapshotBox}>
+                          <div className={styles.snapshotHeader}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                Clinical Profile Snapshot
+                          </div>
+                          <div className={styles.snapshotData}>
+                              <strong>Recent Conditions:</strong> {ptSnapshot.keyConditions?.join(', ')}<br/>
+                              <strong>Maintenance Meds:</strong> {ptSnapshot.currentMedications?.join(', ')}
+                          </div>
+                      </div>
+                  )}
+
+                  <div className="field"><label>Patient Full Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Enter Name" /></div>
                   
                   <div style={{ display: 'flex', gap: '16px' }}>
-                    <div className="field" style={{ flex: 1.5 }}><label>Phone</label><input type="tel" value={ptPhone} onChange={e => setPtPhone(e.target.value)} placeholder="10-digit number" /></div>
                     <div className="field" style={{ flex: 1 }}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Age (Yrs)</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Age" /></div>
                   </div>
                   
                   <div style={{ display: 'flex', gap: '16px' }}>
-                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Years" /></div>
                     <div className="field" style={{ flex: 1 }}><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div className="field" style={{ flex: 1 }}><label>Weight</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Kg" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
                   </div>
                 </div>
                 <div className={styles.panelBlock}>
@@ -497,7 +599,7 @@ export default function PrescriptionPage() {
               <div className={styles.rxFooterAesthetic}>
                 <div className={styles.geoRight}></div>
                 <div className={styles.bottomBar}>
-                  <div className={styles.footerLegal}>Digital Document · Child Healthcare Expert · MediNest EHR</div>
+                  <div className={styles.footerLegal}>Digital Clinical Document • {clinic?.name || 'Authorized Medical Facility'} • Certified EHR</div>
                 </div>
               </div>
             </div>

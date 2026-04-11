@@ -55,7 +55,49 @@ body {
 
 .navCenter {
   display: flex;
+  align-items: center;
   gap: 32px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.breadcrumbActive {
+  color: var(--text-main);
+}
+
+.breadcrumbSep {
+  color: var(--border-soft);
+  font-weight: 400;
+}
+
+.contextNav {
+  display: flex;
+  gap: 20px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-soft);
+}
+
+.contextNavLink {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: 0.2s;
+}
+
+.contextNavLink:hover {
+  opacity: 1;
 }
 
 .navLink {

@@ -372,4 +372,44 @@
   font-size: 11px;
   color: var(--teal);
   font-weight: 600;
-}
+}
+
+.mainSearchInput {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--teal) !important;
+  background: #f0fdfa !important;
+  border: 2px solid #99f6e4 !important;
+  padding: 16px 20px !important;
+}
+
+.aiSnapshotBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid var(--teal);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.snapshotHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.snapshotData {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #1e293b;
+}
+
+.snapshotData strong {
+  color: #0d9488;
+}
