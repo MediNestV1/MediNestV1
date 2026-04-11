@@ -68,6 +68,13 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
     { label: 'View Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor/patients' },
   ];
 
+  const frontDeskActions = [
+    { label: 'Patient Lobby', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>, href: '/portal/receptionist' },
+    { label: 'Billing & Invoices', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>, href: '/portal/billing' },
+    { label: 'Day Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>, href: '/portal/summary' },
+  ];
+
+
   const handleNavClick = () => {
     if (onClose) onClose();
   };
@@ -161,6 +168,23 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
               ))}
             </div>
           </div>
+
+          {/* --- Front Desk Section --- */}
+          <div className={styles.clinicalDesk} style={{ marginTop: 0, borderTop: 'none', paddingTop: 0 }}>
+            <div className={styles.deskHeader}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              <span>Front Desk</span>
+            </div>
+            <div className={styles.deskActions}>
+              {frontDeskActions.map((action) => (
+                <a key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
+                  {action.icon}
+                  <span>{action.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+
         </nav>
 
         <div className={styles.sidebarFooter}>
