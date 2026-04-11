@@ -89,7 +89,7 @@ export default function ReceptionistPage() {
              <div className={docStyles.sectionHeader}>
                 <h4>Patient Lobby</h4>
                 <div style={{ display: 'flex', gap: 12 }}>
-                   <button style={{ padding: '8px 20px', borderRadius: 30, border: 'none', background: 'var(--sanctuary-primary)', fontSize: 12, fontWeight: 800, color: '#fff', cursor: 'pointer' }}>Manage All</button>
+                   <Link href="/portal/doctor/patients" style={{ padding: '8px 20px', borderRadius: 30, border: 'none', background: 'var(--sanctuary-primary)', fontSize: 12, fontWeight: 800, color: '#fff', cursor: 'pointer', textDecoration: 'none' }}>Manage All</Link>
                 </div>
              </div>
 
