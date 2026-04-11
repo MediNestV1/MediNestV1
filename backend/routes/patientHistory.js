@@ -43,99 +43,139 @@ async function generatePatientSummary(patient, prescriptions) {
         model: 'meta/llama-3.1-8b-instruct', 
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1
-      })
+      }),
+      // Set a strict timeout for AI generation
+      signal: AbortSignal.timeout(15000)
     });
 
     const data = await response.json();
     let result = data.choices?.[0]?.message?.content?.trim() || '';
     
-    // Robust Extraction: Handle markdown code blocks if AI ignores instructions
+    // Robust Extraction
     if (result.includes('```json')) {
       result = result.split('```json')[1].split('```')[0].trim();
     } else if (result.includes('```')) {
       result = result.split('```')[1].split('```')[0].trim();
     }
     
-    // Fallback regex if markers are missing
     const jsonMatch = result.match(/\{[\s\S]*\}/);
-    return jsonMatch ? jsonMatch[0] : result; // Return as is if no brackets, parse will handle error
+    return jsonMatch ? jsonMatch[0] : result;
   } catch (err) {
-    if (err.name === 'AbortError') {
-      console.error('❌ [AI TIMEOUT] Patient History generation timed out.');
-    } else {
-      console.error(`❌ [AI ERROR] Patient History:`, err.message);
-    }
-    return JSON.stringify({ error: "AI Service unavailable" });
+    console.error(`❌ [AI ERROR] Patient History Background Refresh Failed:`, err.message);
+    return null;
   }
+}
+
+// Helper: Calculate immediate heuristic summary (WARP SPEED)
+function calculateHeuristicSummary(visits) {
+  if (!visits || visits.length === 0) {
+    return {
+      keyConditions: ["New Patient"],
+      currentMedications: ["None recorded"],
+      recentVisitsSummary: "This is the patient's first clinical interaction at this facility."
+    };
+  }
+
+  // Extract unique key conditions (last 3 chief complaints)
+  const conditions = Array.from(new Set(
+    visits.map(v => v.complaints)
+      .filter(c => c && c.toLowerCase() !== 'routine checkup')
+      .slice(0, 3)
+  ));
+
+  // Extract latest unique medications
+  const meds = Array.from(new Set(
+    visits.flatMap(v => v.medicines)
+      .map(m => typeof m === 'object' ? m.name : m)
+      .filter(m => m)
+      .slice(0, 5)
+  ));
+
+  const lastVisitDate = new Date(visits[0].visit_date).toLocaleDateString();
+
+  return {
+    keyConditions: conditions.length > 0 ? conditions : ["General Wellness"],
+    currentMedications: meds.length > 0 ? meds : ["No active prescriptions"],
+    recentVisitsSummary: `Clinical history includes ${visits.length} recorded interactions. Latest visit was on ${lastVisitDate}.`
+  };
 }
 
 // GET patient history
 router.get('/:patientId', async (req, res) => {
   const { patientId } = req.params;
 
-  const { data: patient, error: patErr } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', patientId)
-    .single();
-
-  if (patErr) return res.status(404).json({ error: 'Patient not found' });
-
-  const { data: rawPrescriptions } = await supabase
-    .from('prescriptions')
-    .select('*')
-    .eq('patient_id', patientId)
-    .order('date', { ascending: false });
-
-  const visits = (rawPrescriptions || []).map(p => ({
-    visit_date: p.date || p.created_at,
-    doctor: p.doctor_name,
-    complaints: p.complaints,
-    findings: p.findings,
-    medicines: typeof p.medicines === 'string' ? JSON.parse(p.medicines) : p.medicines,
-    advice: p.advice,
-    prescription_id: p.id
-  }));
-
-  // Fetch existing snapshot to check for staleness
-  const { data: existing } = await supabase
-    .from('patient_histories')
-    .select('summary_text, updated_at')
-    .eq('patient_id', patientId)
-    .single();
-
-  // Smart Refresh Logic: Compare latest visit date with summary update date
-  const latestVisitDate = visits.length > 0 ? new Date(visits[0].visit_date) : new Date(0);
-  const summaryUpdateDate = existing?.updated_at ? new Date(existing.updated_at) : new Date(0);
-
-  let summaryJson = existing?.summary_text;
-  
-  // Re-generate if missing OR if new visits added since last summary
-  if (!summaryJson || latestVisitDate > summaryUpdateDate) {
-    console.log(`🤖 [AI REAL-TIME] ${!summaryJson ? 'Generating initial' : 'Refreshing'} snapshot for ${patient.name}...`);
-    const generated = await generatePatientSummary(patient, rawPrescriptions || []);
-    summaryJson = generated;
-    
-    await supabase.from('patient_histories').upsert({
-      patient_id: patientId,
-      summary_text: generated,
-      updated_at: new Date()
-    }, { onConflict: 'patient_id' });
-  }
-
-  let summaryObj;
   try {
-    summaryObj = JSON.parse(summaryJson);
-  } catch (err) {
-    console.error('❌ [PARSE ERROR] AI summary is not valid JSON:', summaryJson.slice(0, 100));
-    summaryObj = {
-      keyConditions: ["History assessment in progress"],
-      currentMedications: ["Reviewing records..."],
-      recentVisitsSummary: "Clinical snapshot is currently being processed."
-    };
-  }
+    const { data: patient, error: patErr } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('id', patientId)
+      .single();
 
-  res.json({ patient, visits, summary: summaryObj });
+    if (patErr) return res.status(404).json({ error: 'Patient not found' });
+
+    const { data: rawPrescriptions } = await supabase
+      .from('prescriptions')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('date', { ascending: false });
+
+    const visits = (rawPrescriptions || []).map(p => ({
+      visit_date: p.date || p.created_at,
+      doctor: p.doctor_name,
+      complaints: p.complaints,
+      findings: p.findings,
+      medicines: typeof p.medicines === 'string' ? JSON.parse(p.medicines) : p.medicines,
+      advice: p.advice,
+      prescription_id: p.id
+    }));
+
+    // 1. Fetch existing cached snapshot
+    const { data: existing } = await supabase
+      .from('patient_histories')
+      .select('summary_text, updated_at')
+      .eq('patient_id', patientId)
+      .single();
+
+    const latestVisitDate = visits.length > 0 ? new Date(visits[0].visit_date) : new Date(0);
+    const summaryUpdateDate = existing?.updated_at ? new Date(existing.updated_at) : new Date(0);
+
+    let finalSummary;
+    let needsRefresh = !existing || latestVisitDate > summaryUpdateDate;
+
+    // 2. Decide what to return IMMEDIATELY
+    if (existing?.summary_text) {
+      try {
+        finalSummary = JSON.parse(existing.summary_text);
+      } catch (e) {
+        finalSummary = calculateHeuristicSummary(visits);
+      }
+    } else {
+      // First time patient: Return heuristic summary immediately
+      finalSummary = calculateHeuristicSummary(visits);
+    }
+
+    // 3. Trigger Background Refresh (Non-Blocking)
+    if (needsRefresh) {
+      console.log(`⚡ [WARP SPEED] Triggering background AI refresh for ${patient.name}...`);
+      // Start background task but do NOT await it
+      generatePatientSummary(patient, rawPrescriptions || []).then(async (generatedJson) => {
+        if (generatedJson) {
+           await supabase.from('patient_histories').upsert({
+             patient_id: patientId,
+             summary_text: generatedJson,
+             updated_at: new Date()
+           }, { onConflict: 'patient_id' });
+           console.log(`✅ [AI CACHE] Refreshed snapshot for ${patient.name}.`);
+        }
+      });
+    }
+
+    res.json({ patient, visits, summary: finalSummary });
+
+  } catch (err) {
+    console.error('❌ [SERVER ERROR] Patient History:', err);
+    res.status(500).json({ error: 'Internal clinical systems error' });
+  }
 });
 
 module.exports = router;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import TopBar from '@/components/TopBar';
+import DashboardLayout from '@/components/DashboardLayout';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
 import { API_BASE_URL } from '@/lib/api';
@@ -99,6 +99,13 @@ export default function PrescriptionPage() {
     const debounce = setTimeout(fetchPatients, 300);
     return () => clearTimeout(debounce);
   }, [ptPhone]);
+
+  // 🏥 Set Default Doctor if missing
+  useEffect(() => {
+    if (!doctor && doctors.length > 0) {
+      setDoctor(doctors[0].name);
+    }
+  }, [doctors, doctor]);
 
   const handleSelectPatient = async (p: any) => {
     skipPtSearchRef.current = true;
@@ -334,279 +341,389 @@ export default function PrescriptionPage() {
     setter((prev: string) => prev ? (prev.includes(val) ? prev : prev + ', ' + val) : val);
   };
 
-  return (
-    <div className={styles.page}>
-      <TopBar title="Digital Prescription" backHref="/portal/doctor" />
+  const isEmpty = meds.length === 0 && !ptName && !cc && !findings;
 
-      <main className={styles.main}>
-        <div className={styles.grid}>
-          {/* Form Side */}
-          <div className={styles.formPanel}>
-            <div className={styles.tabs}>
-              <button className={`${styles.tab} ${activeTab === 'info' ? styles.tabActive : ''}`} onClick={() => setActiveTab('info')}>1. Patient & Vitals</button>
-              <button className={`${styles.tab} ${activeTab === 'rx' ? styles.tabActive : ''}`} onClick={() => setActiveTab('rx')}>2. Medicines & Advice</button>
-            </div>
+  return (
+    <DashboardLayout>
+      <div className={styles.page}>
+        <div className={styles.container}>
+          
+          <div className={styles.tabs}>
+            <button 
+              className={`${styles.tab} ${activeTab === 'info' ? styles.tabActive : ''}`} 
+              onClick={() => setActiveTab('info')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              1. Patient & Clinical Notes
+            </button>
+            <button 
+              className={`${styles.tab} ${activeTab === 'rx' ? styles.tabActive : ''}`} 
+              onClick={() => setActiveTab('rx')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"></path></svg>
+              2. Prescribe Medicines
+            </button>
+          </div>
+
+          <div className={styles.grid}>
+            {/* 🏥 LEFT: ACTION PANEL */}
+            <div className={styles.formPanel}>
 
             {activeTab === 'info' && (
-              <div className={styles.tabContent}>
-                <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Doctor & Patient Details</h3>
-                  <div className="field">
-                    <label>Consulting Doctor</label>
-                    <select value={doctor} onChange={e => setDoctor(e.target.value)}>
-                      <option value="">Select Doctor...</option>
-                      {doctors.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="field" style={{ position: 'relative' }}>
-                    <label>Patient Phone Number</label>
-                    <input 
-                      type="tel" 
-                      value={ptPhone} 
-                      onChange={e => { skipPtSearchRef.current = false; setPtPhone(e.target.value); }} 
-                      placeholder="Start typing contact number..." 
-                      autoComplete="off"
-                      className={styles.mainSearchInput}
-                    />
-                    {ptSuggestions.length > 0 && (
-                      <div className={styles.suggestionsDropdown} style={{ top: '100%', width: '100%' }}>
-                        {ptSuggestions.map((p) => (
-                          <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
-                            <div className={styles.sugMain}>
-                              <strong>{p.name}</strong>
-                              <span className={styles.sugCat}>{p.contact}</span>
-                            </div>
-                            <div className={styles.sugSub}>
-                              {p.age} yrs • {p.gender}
-                            </div>
-                          </div>
+                <div className={styles.tabContent}>
+                  <div className={styles.panelBlock}>
+                    <h3 className={styles.blockTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                      Doctor & Patient Details
+                    </h3>
+                    
+                    <div className={styles.field}>
+                      <label>Consulting Doctor</label>
+                      <select value={doctor} onChange={e => setDoctor(e.target.value)}>
+                        <option value="">Select Doctor...</option>
+                        {doctors.map(d => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
                         ))}
-                      </div>
-                    )}
-                    {isLoadingPts && <div className={styles.sugLoading}>Searching patients...</div>}
-                  </div>
-
-                  {ptSnapshot && (
-                      <div className={styles.aiSnapshotBox}>
-                          <div className={styles.snapshotHeader}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                                Clinical Profile Snapshot
-                          </div>
-                          <div className={styles.snapshotData}>
-                              <strong>Recent Conditions:</strong> {ptSnapshot.keyConditions?.join(', ')}<br/>
-                              <strong>Maintenance Meds:</strong> {ptSnapshot.currentMedications?.join(', ')}
-                          </div>
-                      </div>
-                  )}
-
-                  <div className="field"><label>Patient Full Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Enter Name" /></div>
-                  
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <div className="field" style={{ flex: 1 }}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
-                    <div className="field" style={{ flex: 1 }}><label>Age (Yrs)</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Age" /></div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <div className="field" style={{ flex: 1 }}><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div className="field" style={{ flex: 1 }}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
-                  </div>
-                </div>
-                <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Clinical Notes</h3>
-                  <div className="field">
-                    <label>Chief Complaints</label>
-                    <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
-                    <textarea rows={3} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
-                  </div>
-                  <div className="field"><label>Diagnosis</label><textarea rows={3} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Findings..." /></div>
-                </div>
-                <button className="btn-primary" onClick={() => setActiveTab('rx')} style={{ width: '100%', justifyContent: 'center' }}>Next: Medicines →</button>
-              </div>
-            )}
-
-            {activeTab === 'rx' && (
-              <div className={styles.tabContent}>
-                <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
-                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                    <div className="field" style={{ width: '120px', marginBottom: 0 }}>
-                      <select value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
+                      </select>
                     </div>
-                    <div className="field" style={{ flex: 1, position: 'relative', marginBottom: 0 }}>
+
+                    <div className={styles.field} style={{ position: 'relative' }}>
+                      <label>Search Patient (Phone/ID)</label>
                       <input 
-                        type="text" 
-                        value={mName} 
-                        onChange={e => { skipSearchRef.current = false; setMName(e.target.value); }} 
-                        placeholder="Medicine Name or Symptom..." 
+                        type="tel" 
+                        className={styles.mainSearchInput}
+                        value={ptPhone} 
+                        onChange={e => { skipPtSearchRef.current = false; setPtPhone(e.target.value); }} 
+                        placeholder="Start typing phone..." 
                         autoComplete="off"
+                        autoFocus
                       />
-                      {dbSuggestions.length > 0 && (
+                      {ptSuggestions.length > 0 && (
                         <div className={styles.suggestionsDropdown}>
-                          {dbSuggestions.map((med) => (
-                            <div 
-                              key={med.id} 
-                              className={styles.suggestionItem} 
-                              onClick={() => handleSelectMedicine(med)}
-                            >
+                          {ptSuggestions.map((p) => (
+                            <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
                               <div className={styles.sugMain}>
-                                <strong>{med.name}</strong>
-                                <span className={styles.sugCat}>{med.category}</span>
+                                <span className={styles.sugName}>{p.name}</span>
+                                <span className={styles.sugCat}>{p.contact}</span>
                               </div>
-                              <div className={styles.sugSub}>
-                                {med.strength} • <small>{med.tags.join(', ')}</small>
-                              </div>
+                              <div className={styles.sugSub}>{p.age} yrs • {p.gender}</div>
                             </div>
                           ))}
                         </div>
                       )}
-                      {isLoadingSuggestions && <div className={styles.sugLoading}>Searching...</div>}
+                      {isLoadingPts && <div className={styles.sugLoading}>Searching...</div>}
                     </div>
-                    <div className="field" style={{ width: '150px', marginBottom: 0 }}>
-                      <input type="text" value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Dose (e.g. 650mg)" />
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="" disabled>Frequency</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                    {ptSnapshot && (
+                      <div className={styles.aiSnapshotBox}>
+                        <div className={styles.snapshotHeader}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                          Clinical Intelligence Snapshot
+                        </div>
+                        <div className={styles.snapshotData}>
+                          <strong>Key Diagnoses / Conditions</strong>
+                          {ptSnapshot.keyConditions?.join(' • ') || 'Initial visit analysis...'}
+                          
+                          <strong>Active Medications</strong>
+                          {ptSnapshot.currentMedications?.map((m: any) => typeof m === 'object' ? m.name : m).join(' • ') || 'No maintenance drugs recorded.'}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={styles.field}><label>Patient Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Full Name" /></div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className={styles.field}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+                      <div className={styles.field}><label>Age (Yrs)</label><input type="text" value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="Age" /></div>
                     </div>
                     
-                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                      {showCustomDur ? (
-                        <input type="text" placeholder="Custom Days..." value={mDur} onChange={e => setMDur(e.target.value)} autoFocus onBlur={() => { if(!mDur) setShowCustomDur(false); }} />
-                      ) : (
-                        <select value={mDur} onChange={e => {
-                          if (e.target.value === 'Custom') {
-                            setShowCustomDur(true);
-                            setMDur('');
-                          } else {
-                            setMDur(e.target.value);
-                          }
-                        }}>
-                          <option value="" disabled>Duration</option><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option><option value="Custom">Custom</option>
-                        </select>
-                      )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className={styles.field}><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                      <div className={styles.field}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
                     </div>
+                  </div>
 
-                    <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                      <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="" disabled>Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                  <div className={styles.panelBlock}>
+                    <h3 className={styles.blockTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      Consultation Details
+                    </h3>
+                    <div className={styles.field}>
+                      <label>Chief Complaints</label>
+                      <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
+                      <textarea rows={3} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
                     </div>
+                    <div className={styles.field}><label>Diagnosis / Observations</label><textarea rows={3} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Clinical findings..." /></div>
                   </div>
                   
-                  <div className="field" style={{ marginBottom: '16px' }}>
-                    <input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="Special Instructions (e.g. Take with warm water)" />
-                  </div>
-                  <button className="btn-secondary" style={{ width: '100%', marginBottom: '24px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }} onClick={addMed}>+ Add to Rx</button>
-                  {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
+                  <button className={styles.btnEx} onClick={() => setActiveTab('rx')} style={{ width: '100%', height: '54px', marginBottom: '20px' }}>
+                    Next Step: Prescribe Medicines →
+                  </button>
                 </div>
-                <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
-                  <div className="field"><textarea rows={2} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice..." /></div>
-                  <div className="field"><label>Specific Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
-                </div>
-                <div className={styles.exportRow}>
-                  <button className={styles.btnEx} onClick={handleSave} title="Save to Database" disabled={isSaving} style={{ opacity: isSaving ? 0.5 : 1 }}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M17,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V7L17,3M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M15,9H5V5H15V9Z" /></svg></button>
-                  <button className={styles.btnEx} onClick={downloadPDF} title="Download PDF"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M14,2L20,8V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2H14M18,20V9H13V4H6V20H18M10,18V12H12V18H10M13,18V12H15V18H13M16,18V12H18V18H16Z" /></svg></button>
-                  <button className={styles.btnEx} onClick={downloadImage} title="Save Image"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M5,5H19V19H5V5Z" /></svg></button>
-                  <button className={styles.btnEx} onClick={shareWhatsApp} title="WhatsApp Share" style={{ background: '#25d366' }}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M12.04,2C6.58,2,2.13,6.45,2.13,11.91c0,1.75,0.45,3.45,1.32,4.95L2,22l5.25-1.38c1.45,0.79,3.08,1.21,4.74,1.21c5.44,0,9.89-4.45,9.89-9.91C21.89,6.45,17.5,2,12.04,2z M16.59,16.27c-0.27,0.76-1.58,1.39-2.16,1.47c-0.58,0.08-1.13,0.01-1.78-0.2c-0.43-0.14-1.01-0.34-1.74-0.66c-3.1-1.36-5.11-4.52-5.26-4.73c-0.15-0.21-1.25-1.63-1.25-3.11c0-1.48,0.73-2.21,1-2.52c0.27-0.3,0.6-0.38,0.79-0.38c0.19,0,0.38,0,0.54,0.01c0.17,0.01,0.39-0.06,0.61,0.46c0.23,0.54,0.79,1.91,0.85,2.04c0.06,0.13,0.11,0.28,0.02,0.46c-0.08,0.18-0.13,0.29-0.26,0.44c-0.13,0.15-0.27,0.34-0.39,0.46c-0.13,0.13-0.28,0.28-0.12,0.54c0.16,0.27,0.7,1.15,1.49,1.85c1.02,0.91,1.88,1.2,2.16,1.32c0.28,0.11,0.44,0.1,0.61-0.09c0.17-0.19,0.73-0.85,0.93-1.14c0.2-0.29,0.39-0.24,0.66-0.15c0.27,0.09,1.7,0.8,2,0.94c0.3,0.14,0.5,0.22,0.57,0.34C17.09,14.88,16.86,15.51,16.59,16.27z" /></svg></button>
-                  <button className={styles.btnEx} onClick={() => window.print()} title="Print"><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" /></svg></button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* Preview Side - Enhanced Professional Template */}
-          <div className={styles.previewPanel}>
-            <div className={styles.rxCard} ref={rxPaperRef} id="rx-preview">
-              {/* 1. Header with Qualifications */}
-              <div className={styles.rxHeader}>
-                <div className={styles.headerColumn}>
-                  <div className={styles.drName}>{doctor ? `Dr. ${doctor}` : 'Dr. Consultant Name'}</div>
-                  <div className={styles.drQual}>{selectedDoctorObj?.qualification || 'M.B.B.S., M.D.'}</div>
-                  <div className={styles.drSmall}>{selectedDoctorObj?.specialty || 'General Consultant'}</div>
-                </div>
-                <div className={styles.headerLogo}>
-                  <div className={styles.logoCircle}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg></div>
-                </div>
-                <div className={styles.headerColumn} style={{ textAlign: 'right' }}>
-                  <div className={styles.hospName}>{clinic?.name || 'HOSPITAL NAME'}</div>
-                  <div className={styles.hospSlogan}>{clinic?.tagline || 'Advanced Healthcare Solutions'}</div>
-                  <div className={styles.drSmall} style={{ marginTop: 8, fontSize: '14px', fontWeight: '800' }}>
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="22" style={{ verticalAlign: 'middle', marginRight: 6, color: '#0d6e56' }}><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
-                    {clinic?.phone || '000-111-2222'}
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Condensed Patient Info Bar */}
-              <div className={styles.rxInfoBar}>
-                <div className={styles.infoGroup}><b>NAME:</b> {ptName || '________________'}</div>
-                <div className={styles.infoGroup}><b>AGE/SEX:</b> {ptAge || '___'} / {ptSex[0]}</div>
-                <div className={styles.infoGroup}><b>WT:</b> {ptWeight ? `${ptWeight}Kg` : '____'}</div>
-                <div className={styles.infoGroup}><b>DATE:</b> {new Date(date).toLocaleDateString('en-IN')}</div>
-              </div>
-
-              {/* 3. Main Body */}
-              <div className={styles.rxMainBody}>
-                <div className={styles.rxWatermark}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg></div>
-
-                <div className={styles.bodySplit}>
-                  <div className={styles.bodyLeftColumn}>
-                    <div className={styles.vitalsSection}>
-                      {cc && <div className={styles.notesBlock}><b>C/C (Chief Complaints):</b><br />{cc}</div>}
-                      {findings && <div className={styles.notesBlock}><b>O/E & Findings:</b><br />{findings}</div>}
+            {activeTab === 'rx' && (
+                <div className={styles.tabContent}>
+                  <div className={styles.panelBlock}>
+                    <h3 className={styles.blockTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"></path></svg>
+                      Prescribe Medicine
+                    </h3>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                      <div className={styles.field} style={{ width: '120px', marginBottom: 0 }}>
+                        <select value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>
+                      </div>
+                      <div className={styles.field} style={{ flex: 1, position: 'relative', marginBottom: 0 }}>
+                        <input 
+                          type="text" 
+                          value={mName} 
+                          onChange={e => { skipSearchRef.current = false; setMName(e.target.value); }} 
+                          placeholder="Medicine Name or Symptom..." 
+                          autoComplete="off"
+                        />
+                        {dbSuggestions.length > 0 && (
+                          <div className={styles.suggestionsDropdown}>
+                            {dbSuggestions.map((med) => (
+                              <div key={med.id} className={styles.suggestionItem} onClick={() => {
+                                skipSearchRef.current = true;
+                                setMName(med.name);
+                                setMType(med.type || 'Tab');
+                                setMDose(med.default_dose || '');
+                                setMFreq(med.default_freq || '');
+                                setMDur(med.default_dur || '');
+                                setMInst(med.default_inst || '');
+                                setDbSuggestions([]);
+                              }}>
+                                <div className={styles.sugMain}>
+                                  <span className={styles.sugName}>{med.name}</span>
+                                  <span className={styles.sugCat}>{med.category}</span>
+                                </div>
+                                <div className={styles.sugSub}>{med.strength || med.composition}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className={styles.bodyRightColumn}>
-                    <div className={styles.rxBigLogo}>Rx</div>
-                    <div className={styles.medsContent}>
-                      {meds.map((m) => (
-                        <div key={m.id} className={styles.previewMedItem}>
-                          <div className={styles.pmHeadline}><b>{m.type}. {m.name}</b> {m.dose}</div>
-                          <div className={styles.pmDetails}>{m.freq} ━━ {m.duration} ━━ {m.instructions}</div>
-                          {m.note && <div className={styles.pmNote}>* {m.note}</div>}
-                        </div>
-                      ))}
-                      {meds.length === 0 && <div className={styles.emptyRx}>Prescribe medicines...</div>}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div className={styles.field}><label>Dosage</label><input type="text" value={mDose} onChange={e => setMDose(e.target.value)} placeholder="Ex: 500mg" /></div>
+                      <div className={styles.field}><label>Frequency</label>
+                         <select value={mFreq} onChange={e => setMFreq(e.target.value)}>
+                            <option value="">Select...</option>
+                            <option>1-0-1</option>
+                            <option>1-1-1</option>
+                            <option>1-0-0</option>
+                            <option>0-0-1</option>
+                            <option>SOS</option>
+                            <option>QID</option>
+                         </select>
+                      </div>
+                      <div className={styles.field}>
+                        <label>Duration</label>
+                        {!showCustomDur ? (
+                          <select value={mDur} onChange={e => e.target.value === 'Custom' ? setShowCustomDur(true) : setMDur(e.target.value)}>
+                            <option value="">Duration...</option>
+                            {['1 Day', '3 Days', '5 Days', '7 Days', '15 Days', '1 Month'].map(d => <option key={d} value={d}>{d}</option>)}
+                            <option value="Custom">Custom...</option>
+                          </select>
+                        ) : (
+                          <input type="text" value={mDur} onChange={e => setMDur(e.target.value)} placeholder="Ex: 10 Days" onBlur={() => !mDur && setShowCustomDur(false)} autoFocus />
+                        )}
+                      </div>
                     </div>
-                    {advice && <div className={styles.previewAdvice}><b>Advice:</b><br />{advice}</div>}
+                    
+                    <div className={styles.field}><label>Special Instructions</label><input type="text" value={mInst} onChange={e => setMInst(e.target.value)} placeholder="Ex: Before meals" /></div>
+                    <div className={styles.field}><label>Internal Note</label><input type="text" value={mNote} onChange={e => setMNote(e.target.value)} placeholder="Internal remarks" /></div>
+                    
+                    <button className={styles.btnEx} onClick={() => {
+                      if (!mName) return;
+                      setMeds([...meds, { id: Math.random().toString(), name: mName, type: mType, dose: mDose, freq: mFreq, duration: mDur, instructions: mInst, note: mNote }]);
+                      setMName(''); setMDose(''); setMFreq(''); setMDur(''); setMInst(''); setMNote('');
+                    }} style={{ background: 'var(--primary-accent)' }}>
+                      Add to Prescription +
+                    </button>
+                  </div>
+
+                  <div className={styles.panelBlock}>
+                    <h3 className={styles.blockTitle}>Advice & Follow-up</h3>
+                    <div className={styles.field}><label>General Advice</label><textarea rows={3} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Lifestyle recommendations..." /></div>
+                    <div className={styles.field}><label>Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
+                  </div>
+                  
+                  <div className={styles.exportRow}>
+                    <button className={styles.btnEx} onClick={handleSave} disabled={isSaving}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                      {isSaving ? 'Processing...' : 'Finish & Save Rx'}
+                    </button>
+                    <button className={`${styles.btnEx} ${styles.btnExSecondary}`} onClick={downloadPDF} title="Download PDF Preview">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </button>
+                    {savedRxId && (
+                       <button className={`${styles.btnEx} ${styles.btnExSecondary}`} onClick={shareWhatsApp} title="Share to Patient">
+                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                       </button>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* 4. Revamped Follow-up & Address Section */}
-              <div className={styles.rxFooterSection}>
-                {followUp && (
-                  <div className={styles.revisitBox}>
-                    <div className={styles.revisitLabel}>REVISIT / FOLLOW-UP</div>
-                    <div className={styles.revisitDate}>
-                      {new Date(followUp).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                    </div>
+            {/* 📄 RIGHT: DIGITAL PREVIEW */}
+            <div className={styles.previewPanel}>
+              <div id="rx-to-pdf" ref={rxPaperRef} className={`${styles.rxCard} ${isEmpty ? styles.emptyTheme : styles.finalTheme}`}>
+                
+                {isEmpty && (
+                  <div className={styles.watermarkContainer}>
+                    <svg width="400" height="400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                   </div>
                 )}
 
-                <div className={styles.addressLine}>
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="28" style={{ color: '#0d6e56' }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
-                  <div className={styles.addressText}>
-                    {clinic?.address || 'Clinic Address, City Location'}
+                <header className={styles.rxHeader}>
+                  {!isEmpty ? (
+                    <>
+                      <div className={styles.hospBlock}>
+                        <h1 className={styles.hospName} style={{ color: 'var(--primary-deep)' }}>{clinic?.name || 'MediNest Sanctuary'}</h1>
+                        <p className={styles.hospSlogan}>{clinic?.tagline || 'HEALTH IS WEALTH'}</p>
+                        <div className={styles.hospPhone} style={{ color: 'var(--primary-deep)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                          {clinic?.phone || '+91 7380520394'}
+                        </div>
+                      </div>
+                      <div className={styles.centerLogo}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      </div>
+                      <div className={styles.drBlock}>
+                        <h2 className={styles.drName}>Dr. {doctor || 'Consultant'}</h2>
+                        <p className={styles.drQual}>{selectedDoctorObj?.qualification || 'Consulting Physician • M.B.B.S, M.D.'}</p>
+                        <p className={styles.drSmall}>Reg No: {selectedDoctorObj?.reg_no || '1C0FF459'}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles.drBlock} style={{ textAlign: 'left', alignItems: 'flex-start' }}>
+                        <h2 className={styles.drName} style={{ color: 'var(--empty-primary)' }}>Dr. {doctor || 'Consultant Name'}</h2>
+                        <p className={styles.drQual}>M.B.B.S., M.D.</p>
+                        <p className={styles.drSmall}>General Consultant</p>
+                      </div>
+                      <div className={styles.centerLogo} style={{ background: 'transparent', border: '3px solid var(--empty-primary)', color: 'var(--empty-primary)' }}>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      </div>
+                      <div className={styles.hospBlock} style={{ textAlign: 'right' }}>
+                        <h1 className={styles.hospName} style={{ color: 'var(--empty-primary)' }}>{clinic?.name || 'Sitapur Shishu Kendra'}</h1>
+                        <p className={styles.hospSlogan}>Health is Wealth</p>
+                        <div className={styles.hospPhone} style={{ color: 'var(--empty-primary)', justifyContent: 'flex-end' }}>
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.27-2.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                           {clinic?.phone || '+91 7380520394'}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </header>
+
+                <div className={`${styles.rxInfoBar} ${isEmpty ? styles.emptyInfoBar : ''}`}>
+                  <div className={styles.infoGroup}>
+                    <span className={styles.infoLabel}>NAME:</span>
+                    <span className={styles.infoValue} style={{ color: isEmpty ? 'var(--empty-primary)' : '' }}>{ptName || '___________'}</span>
+                  </div>
+                  <div className={styles.infoGroup}>
+                    <span className={styles.infoLabel}>AGE/SEX:</span>
+                    <span className={styles.infoValue} style={{ color: isEmpty ? 'var(--empty-primary)' : '' }}>{ptAge || '___'} / {ptSex[0] || 'M'}</span>
+                  </div>
+                  <div className={styles.infoGroup}>
+                    <span className={styles.infoLabel}>WT:</span>
+                    <span className={styles.infoValue} style={{ color: isEmpty ? 'var(--empty-primary)' : '' }}>{ptWeight ? `${ptWeight} Kg` : '____'}</span>
+                  </div>
+                  <div className={styles.infoGroup}>
+                    <span className={styles.infoLabel}>DATE:</span>
+                    <span className={styles.infoValue} style={{ color: isEmpty ? 'var(--empty-primary)' : '' }}>{date ? new Date(date).toLocaleDateString('en-GB') : '11/4/2026'}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* 5. Clean Baseline Footer */}
-              <div className={styles.rxFooterAesthetic}>
-                <div className={styles.geoRight}></div>
-                <div className={styles.bottomBar}>
-                  <div className={styles.footerLegal}>Digital Clinical Document • {clinic?.name || 'Authorized Medical Facility'} • Certified EHR</div>
+                <div className={styles.rxMainBody}>
+                  <aside className={styles.bodyLeftColumn} style={{ borderRight: isEmpty ? '2px solid var(--empty-primary)' : '1px solid var(--border-soft)' }}>
+                    <div className={styles.sectionHeader} style={{ color: isEmpty ? 'var(--empty-primary)' : '', borderColor: isEmpty ? 'var(--empty-primary)' : '' }}>C/C (CHIEF COMPLAINTS)</div>
+                    <div className={styles.notesText} style={{ minHeight: '80px', opacity: cc ? 1 : 0.4 }}>
+                      {cc || (isEmpty ? '' : 'Fever, Cough, etc...')}
+                    </div>
+                    
+                    <div className={styles.sectionHeader} style={{ color: isEmpty ? 'var(--empty-primary)' : '', borderColor: isEmpty ? 'var(--empty-primary)' : '' }}>O/E & FINDINGS</div>
+                    <div className={styles.notesText} style={{ minHeight: '80px', opacity: findings ? 1 : 0.4 }}>
+                      {findings || (isEmpty ? '' : 'Stable vitals, Chest clear...')}
+                    </div>
+                  </aside>
+                  
+                  <main className={styles.bodyRightColumn}>
+                    <div className={styles.rxBigLogo} style={{ color: isEmpty ? 'var(--empty-primary)' : '' }}>Rx</div>
+                    
+                    <div className={styles.medsList}>
+                      {meds.map((m, idx) => (
+                        <div key={m.id} className={styles.previewMedItem}>
+                          <div className={styles.pmMainRow}>
+                            <div className={styles.pmName}>{idx + 1}. {m.type} {m.name}</div>
+                            <div className={styles.pmDose}>{m.dose}</div>
+                          </div>
+                          <div className={styles.pmDetailsRow}>
+                            {m.freq} — {m.duration} — {m.instructions}
+                          </div>
+                          {m.note && <div className={styles.pmNote}>* {m.note}</div>}
+                        </div>
+                      ))}
+                      {meds.length === 0 && (
+                        <p style={{ color: isEmpty ? 'var(--empty-primary)' : '#cbd5e1', fontStyle: 'italic', opacity: 0.5 }}>
+                          Prescribe medications...
+                        </p>
+                      )}
+                    </div>
+
+                    <div className={styles.adviceBlock}>
+                        <div className={styles.sectionHeader} style={{ color: isEmpty ? 'var(--empty-primary)' : '', borderColor: isEmpty ? 'var(--empty-primary)' : '' }}>Adv. (Advice/Instructions)</div>
+                        <div className={styles.notesText}>{advice || (isEmpty ? '' : 'General rest.')}</div>
+                        {followUp && (
+                          <div className={styles.revisitDate}>
+                            [REVISIT DATE: {new Date(followUp).toLocaleDateString('en-GB')}]
+                          </div>
+                        )}
+                        {isEmpty && <div style={{ marginTop: '20px', fontWeight: 800, color: 'var(--empty-primary)', fontSize: '13px' }}>[REVISIT DATE: 16/4/2026]</div>}
+                    </div>
+                  </main>
+                </div>
+
+                <footer className={styles.rxFooterLine}>
+                  {!isEmpty ? (
+                    <div className={styles.addressLine}>
+                      <div className={styles.addressText}>
+                        {clinic?.address || '29/1C Kings and queens residency infront of Knowledge park 3, Greater Noida, GREATER NOIDA'}<br/>
+                        Ph: {clinic?.phone || '+91 7380520394'}
+                      </div>
+                      <div className={styles.footerRightCol}>
+                        {clinic?.name?.toUpperCase() || 'MEDI NEST'} • DIGITAL CLINICAL RECORD
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.centeredAddress}>
+                      <div className={styles.pinIcon}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                      </div>
+                      {clinic?.address || '29/1C Kings and queens residency infront of Knowledge park 3, Greater Noida, GREATER NOIDA'}
+                    </div>
+                  )}
+                </footer>
+                
+                <div className={`${styles.rxFooterAesthetic} ${isEmpty ? styles.emptyFooterBar : ''}`}>
+                  <div className={styles.bottomBar}>
+                    {isEmpty ? (
+                      <span className={styles.footerLegal}>Digital Document - Child Healthcare Expert - MediNest EHR</span>
+                    ) : (
+                      <span className={styles.footerLegal}>Certified Clinical Document • {clinic?.name || 'MediNest Sanctuary'} • Verified Record</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
