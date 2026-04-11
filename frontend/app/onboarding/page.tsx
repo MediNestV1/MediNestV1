@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
@@ -145,7 +146,7 @@ export default function OnboardingPage() {
         
         {/* Top Header */}
         <header className={styles.topHeader}>
-          <div className={styles.logoTitle}>MediNest</div>
+          <Link href="/" className={styles.logoTitle}>MediNest</Link>
           <div className={styles.headerRight}>
             <div className={styles.stepIndicator}>
               STEP 0{Math.min(step, 3)} / 03
@@ -153,10 +154,10 @@ export default function OnboardingPage() {
                 <div className={styles.stepFill} style={{ width: `${progress}%` }}></div>
               </div>
             </div>
-            <div className={styles.iconCircle}>?</div>
-            <div className={styles.iconCircle}>
+            <Link href="/support" className={styles.iconCircle} title="Help & Support">?</Link>
+            <Link href="/auth?tab=login" className={styles.iconCircle} title="Clinic Login">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
+            </Link>
           </div>
         </header>
 
