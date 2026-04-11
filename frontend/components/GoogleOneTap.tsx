@@ -30,55 +30,44 @@ export default function GoogleOneTap() {
   };
 
   useEffect(() => {
-    // Initialize Google Identity Services when the script loads
+    // Initialize Google Identity Services
     const initializeGsi = () => {
-      if (!window.google) return;
+      if (!window.google || !window.google.accounts) return;
 
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      
-      if (!clientId) {
-        console.warn('⚠️ GoogleOneTap: NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing from .env');
-        return;
-      }
+      if (!clientId) return;
 
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: handleCredentialResponse,
-        auto_select: true, // Automatically select if only one account is logged in
-        cancel_on_tap_outside: false,
+        auto_select: false, // Turn off auto_select to avoid FedCM conflicts
+        cancel_on_tap_outside: true,
       });
 
+      // Only prompt if we are reasonably sure there is no active session yet
+      // (The parent component should ideally handle this check too)
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed()) {
-          console.log('ℹ️ GoogleOneTap: Prompt not displayed:', notification.getNotDisplayedReason());
+          console.log('ℹ️ OneTap display issue:', notification.getNotDisplayedReason());
         }
       });
     };
 
-    // If script is already loaded by the time component mounts
-    if (window.google) {
-      initializeGsi();
-    }
+    // Small delay to ensure script is fully ready and avoid race conditions
+    const timer = setTimeout(() => {
+      if (window.google) {
+        initializeGsi();
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
-    <>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
-        onLoad={() => {
-          // Trigger initialization once script is ready
-          if (window.google) {
-            const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-            window.google.accounts.id.initialize({
-              client_id: clientId,
-              callback: handleCredentialResponse,
-            });
-            window.google.accounts.id.prompt();
-          }
-        }}
-      />
-    </>
+    <Script
+      src="https://accounts.google.com/gsi/client"
+      strategy="afterInteractive"
+    />
   );
 }
 

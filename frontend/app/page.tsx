@@ -22,7 +22,7 @@ export default function LandingPage() {
 
   return (
     <div className={styles.page}>
-      <GoogleOneTap />
+      {!user && <GoogleOneTap />}
       {/* ── NAV ── */}
       <nav className={styles.nav}>
         <Link href="/" className={styles.navLogo}>
