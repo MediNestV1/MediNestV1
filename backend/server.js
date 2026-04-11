@@ -7,9 +7,9 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 4001;
 
-// Supabase Initialization
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Supabase Initialization - BRUTE FORCE FIX for missing .env
+const supabaseUrl = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
+const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
@@ -169,7 +169,7 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${process.env.NVIDIA_API_KEY}`,
+                "Authorization": `Bearer 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`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
@@ -186,6 +186,9 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         if (response.ok) {
             const aiResponse = await response.json();
             summaryStr = aiResponse.choices?.[0]?.message?.content;
+        } else {
+            const errorBody = await response.text();
+            console.error(`❌ [AI API ERROR] Status: ${response.status}, Body: ${errorBody}`);
         }
 
         let summaryJson;

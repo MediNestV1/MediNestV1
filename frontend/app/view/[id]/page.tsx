@@ -58,7 +58,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const activeSummary = rx?.ai_summary;
 
   // --- TABS & HISTORY ---
-  const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('Patient Profile');
+  const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('AI Summary');
   const [history, setHistory] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 

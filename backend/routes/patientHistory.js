@@ -36,7 +36,7 @@ async function generatePatientSummary(patient, prescriptions) {
     const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+        Authorization: `Bearer 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`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -60,7 +60,11 @@ async function generatePatientSummary(patient, prescriptions) {
     const jsonMatch = result.match(/\{[\s\S]*\}/);
     return jsonMatch ? jsonMatch[0] : result; // Return as is if no brackets, parse will handle error
   } catch (err) {
-    console.error(`⚠️ [AI Error] Patient History:`, err);
+    if (err.name === 'AbortError') {
+      console.error('❌ [AI TIMEOUT] Patient History generation timed out.');
+    } else {
+      console.error(`❌ [AI ERROR] Patient History:`, err.message);
+    }
     return JSON.stringify({ error: "AI Service unavailable" });
   }
 }

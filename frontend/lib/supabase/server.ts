@@ -1,30 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+const HARDCODED_URL = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
+const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
+
 export async function createServerSupabase() {
   const cookieStore = await cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ [SUPABASE ERROR]: Missing credentials in createServerSupabase');
-    return {
-      auth: {
-        getUser: async () => ({ data: { user: null }, error: new Error('Missing Supabase Credentials') })
-      },
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null, error: new Error('Missing Supabase Credentials') })
-          })
-        })
-      })
-    } as any;
-  }
 
   return createServerClient(
-    supabaseUrl,
-    supabaseKey,
+    HARDCODED_URL,
+    HARDCODED_KEY,
     {
       cookies: {
         get(name: string) {
@@ -50,29 +35,9 @@ export async function createServerSupabase() {
 }
 
 export function createMiddlewareSupabase(request: any, response: any) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ [SUPABASE ERROR]: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing.');
-    // Return a dummy object that mimics the expected structure but fails gracefully
-    return {
-      auth: {
-        getUser: async () => ({ data: { user: null }, error: new Error('Missing Supabase Credentials') })
-      },
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null, error: new Error('Missing Supabase Credentials') })
-          })
-        })
-      })
-    } as any;
-  }
-
   return createServerClient(
-    supabaseUrl,
-    supabaseKey,
+    HARDCODED_URL,
+    HARDCODED_KEY,
     {
       cookies: {
         get(name: string) {
@@ -80,7 +45,7 @@ export function createMiddlewareSupabase(request: any, response: any) {
         },
         set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options });
-          response = response || {}; // fallback if response is not yet passed properly
+          response = response || {}; 
           if (response.cookies) {
              response.cookies.set({ name, value, ...options });
           }

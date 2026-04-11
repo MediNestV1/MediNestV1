@@ -1,7 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { useClinic } from '@/context/ClinicContext';
 import styles from './DashboardSidebar.module.css';
 
 const navItems = [
@@ -24,6 +27,42 @@ const navItems = [
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
+  const { doctors } = useClinic();
+  const supabase = createClient();
+  
+  const activeDoctorName = doctors && doctors.length > 0 ? doctors[0].name : 'Doctor';
+
+  // --- Search Logic ---
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const debounce = setTimeout(async () => {
+      if (!searchTerm || searchTerm.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      const { data } = await supabase
+        .from('patients')
+        .select('*')
+        .or(`name.ilike.%${searchTerm}%,contact.ilike.%${searchTerm}%`)
+        .limit(5);
+      
+      if (data) setSearchResults(data);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(debounce);
+  }, [searchTerm, supabase]);
+
+  const quickActions = [
+    { label: 'Register New Patient', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>, href: `/portal/prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
+    { label: 'Digital Prescription', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>, href: `/portal/prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
+    { label: 'Discharge Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>, href: '/portal/summary' },
+    { label: 'View Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor/patients' },
+  ];
 
   return (
     <aside className={styles.sidebar}>
@@ -51,10 +90,58 @@ export default function DashboardSidebar() {
             </Link>
           );
         })}
+
+        {/* --- Doctor's Clinical Desk Section --- */}
+        <div className={styles.clinicalDesk}>
+          <div className={styles.deskHeader}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
+            <span>Clinical Desk</span>
+          </div>
+
+          <div className={styles.searchContainer}>
+            <div className={styles.searchInputWrapper}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={styles.searchIcon}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input 
+                type="text" 
+                placeholder="Find Patient..."
+                className={styles.searchField}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {searchTerm.length >= 2 && (
+              <div className={styles.searchResults}>
+                {isSearching ? (
+                  <div className={styles.searchMsg}>Searching...</div>
+                ) : searchResults.length > 0 ? (
+                  <>
+                    {searchResults.map(p => (
+                      <div key={p.id} className={styles.searchItem} onClick={() => window.location.href = `/portal/doctor/patients/${p.id}`}>
+                        <p className={styles.searchItemName}>{p.name}</p>
+                        <p className={styles.searchItemInfo}>{p.contact}</p>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className={styles.searchMsg}>No results found</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.deskActions}>
+            {quickActions.map((action) => (
+              <Link key={action.label} href={action.href} className={styles.deskAction}>
+                {action.icon}
+                <span>{action.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </nav>
 
       <div className={styles.sidebarFooter}>
-        <button className={styles.actionBtn}>New Healing</button>
         <Link href="/portal/help" className={styles.footerLink}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help
         </Link>
