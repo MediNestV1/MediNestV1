@@ -134,7 +134,12 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
                   ) : searchResults.length > 0 ? (
                     <>
                       {searchResults.map(p => (
-                        <div key={p.id} className={styles.searchItem} onClick={() => { window.location.href = `/portal/doctor/patients/${p.id}`; handleNavClick(); }}>
+                        <div 
+                          key={p.id} 
+                          className={styles.searchItem} 
+                          onMouseDown={(e) => { e.preventDefault(); }}
+                          onClick={() => { window.location.href = `/portal/doctor/patients/${p.id}`; handleNavClick(); }}
+                        >
                           <p className={styles.searchItemName}>{p.name}</p>
                           <p className={styles.searchItemInfo}>{p.contact}</p>
                         </div>

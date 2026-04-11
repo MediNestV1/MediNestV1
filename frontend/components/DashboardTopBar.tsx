@@ -81,6 +81,8 @@ export default function DashboardTopBar({ onMenuOpen }: { onMenuOpen?: () => voi
                   key={patient.id} 
                   href={`/portal/doctor/patients/${patient.id}`}
                   className={styles.resultItem}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setShowResults(false)}
                 >
                   <div className={styles.resAvatar}>
                     {patient.name.charAt(0)}

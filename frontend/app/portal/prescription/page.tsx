@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
+import { API_BASE_URL } from '@/lib/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './page.module.css';
