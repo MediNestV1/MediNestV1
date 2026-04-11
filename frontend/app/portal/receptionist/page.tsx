@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { createClient } from '@/lib/supabase/client';
@@ -10,7 +10,19 @@ import docStyles from '../doctor/page.module.css'; // Reusing bento/queue styles
 export default function ReceptionistPage() {
   const [todayCounts, setTodayCounts] = useState({ patients: 0, revenue: 0 });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -102,9 +114,31 @@ export default function ReceptionistPage() {
                         REGISTERED
                       </span>
                     </div>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--sanctuary-ink-l)', cursor: 'pointer' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                    </button>
+                    <div className={styles.menuContainer}>
+                      <button 
+                        className={styles.dotsBtn}
+                        onClick={() => setActiveMenu(activeMenu === p.id ? null : p.id)}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>
+                      </button>
+
+                      {activeMenu === p.id && (
+                        <div className={styles.dropdownMenu} ref={menuRef}>
+                          <Link href={`/portal/doctor/patients/${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            View Profile
+                          </Link>
+                          <Link href={`/portal/billing?patientId=${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                            Generate Bill
+                          </Link>
+                          <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { /* Implement removal logic */ setActiveMenu(null); }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Remove from Lobby
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {recentPatients.length === 0 && (
