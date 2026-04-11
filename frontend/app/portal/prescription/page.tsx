@@ -667,7 +667,6 @@ export default function PrescriptionPage() {
                     <button className={styles.btnClearAudit} onClick={() => setAiAnalysis(null)}>Clear Analysis</button>
                   </div>
                 )}
-                </div>
                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
                   <div className="field"><textarea rows={2} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice..." /></div>
