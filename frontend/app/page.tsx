@@ -202,8 +202,10 @@ export default function LandingPage() {
       {/* ── VIDEO DEMO ── */}
       <section id="demo" className={styles.videoSection}>
          <h2 className={styles.videoTitle}>See MediNest in action</h2>
-         <div className={styles.videoWrapper} style={{ padding: 0, overflow: 'hidden' }}>
-            <Image src="/assets/demo_recording.webp" alt="MediNest Prescription Demo" width={800} height={450} style={{ width: '100%', height: '100%', objectFit: 'cover' }} unoptimized />
+         <div className={styles.videoWrapper}>
+            <div className={styles.playBtn}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
          </div>
          <p style={{ marginTop: 32, fontSize: 18, opacity: 0.8 }}>Watch how to generate a prescription in under 30 seconds.</p>
       </section>
