@@ -4,22 +4,34 @@ const { validatePrescription } = require('../lib/clinicalVault');
 
 // Helper: AI Clinical Suggestion Logic
 async function suggestClinicalPath(cc, findings) {
-  const prompt = `You are a clinical-grade medical assistant. Provide a suggested treatment path for the following case.
+  const prompt = `You are a clinical-grade medical decision support system. 
+  Provide a suggested treatment path for the following case.
   
   Symptoms: ${cc}
   Diagnosis: ${findings}
   
-  CRITICAL:
-  1. Suggest standard medicines (MAX 5 initially) with doses, frequencies, and durations.
-  2. Provide patient-facing "Clinical Advice" in 2-3 concise sentences.
-  3. RETURN ONLY VALID JSON.
+  CRITICAL REASONING STEPS:
+  1. Determine the "clinicalIntent" (The primary goal, e.g., "Clear Infection", "Symptom Control").
+  2. Determine the "diseaseStage" (e.g., "Early/Mild", "Active/Acute", "Recovery").
+  3. Organize medicines into three tiers:
+     - "CORE": Essential drugs for the primary intent.
+     - "SUPPORTIVE": Secondary drugs for secondary symptoms.
+     - "OPTIONAL": Consider only if needed.
+  4. Assign each drug a "functionalGroup" string from this list [GI_UP, GI_DOWN, GI_SOFT, PAIN, INFLAMMATION, ACID_CONTROL, INFECTION, LOCAL_CARE, OTHER].
   
-  OUTPUT FORMAT:
+  RULES:
+  - DO NOT prescribe opposite mechanisms (e.g., laxative + anti-diarrheal).
+  - DO NOT over-prescribe. One drug per functional group.
+  - No "defensive" prescribing for symptoms not present.
+  
+  OUTPUT FORMAT (STRICT JSON ONLY):
   {
+    "clinicalIntent": "...",
+    "diseaseStage": "...",
     "suggestedMeds": [ 
-       { "name": "Med Name", "type": "Tab/Syp/...", "dose": "500mg", "freq": "1-0-1", "duration": "5 days", "instructions": "After food" } 
+       { "name": "...", "type": "...", "dose": "...", "freq": "...", "duration": "...", "instructions": "...", "tier": "CORE/SUPPORTIVE/OPTIONAL", "functionalGroup": "..." } 
     ],
-    "suggestedAdvice": "Your advice text here."
+    "suggestedAdvice": "Concise advice text."
   }`;
 
   try {
@@ -48,7 +60,7 @@ async function suggestClinicalPath(cc, findings) {
     
     const parsed = JSON.parse(result);
     
-    // 🔥 SECOND TIER: HARD RULES VALIDATION
+    // 🔥 SECOND TIER: PATTERN-AWARE VALIDATION
     if (parsed.suggestedMeds) {
       const { validMeds, flags } = validatePrescription(parsed.suggestedMeds);
       parsed.suggestedMeds = validMeds;
@@ -57,8 +69,8 @@ async function suggestClinicalPath(cc, findings) {
     
     return parsed;
   } catch (err) {
-    console.error('❌ [AI ERROR] Clinical Suggestion:', err.message);
-    return { error: "Suggestion service unavailable" };
+    console.error('❌ [AI ERROR] Clinical Decision Support:', err.message);
+    return { error: "Decision service unavailable" };
   }
 }
 

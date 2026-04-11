@@ -19,6 +19,8 @@ interface Medicine {
   duration: string;
   instructions: string;
   note: string;
+  tier?: 'CORE' | 'SUPPORTIVE' | 'OPTIONAL';
+  functionalGroup?: string;
 }
 
 export default function PrescriptionPage() {
@@ -67,6 +69,8 @@ export default function PrescriptionPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [pendingAiMeds, setPendingAiMeds] = useState<Medicine[]>([]);
   const [aiValidationFlags, setAiValidationFlags] = useState<string[]>([]);
+  const [aiIntent, setAiIntent] = useState('');
+  const [aiStage, setAiStage] = useState('');
   const [adviceApproved, setAdviceApproved] = useState(true);
 
   // 💾 Draft Persistence (Cache) Logic
@@ -144,8 +148,11 @@ export default function PrescriptionPage() {
         });
         const data = await res.json();
         if (data.success && data.suggestions) {
-            const { suggestedMeds, suggestedAdvice } = data.suggestions;
+            const { suggestedMeds, suggestedAdvice, clinicalIntent, diseaseStage } = data.suggestions;
             
+            if (clinicalIntent) setAiIntent(clinicalIntent);
+            if (diseaseStage) setAiStage(diseaseStage);
+
             if (suggestedMeds) {
               setPendingAiMeds(suggestedMeds.map((s: any) => ({
                   id: Math.random().toString(36).substr(2, 9),
@@ -155,7 +162,9 @@ export default function PrescriptionPage() {
                   freq: s.freq || '',
                   duration: s.duration || '',
                   instructions: s.instructions || '',
-                  note: '' // Remove "AI Suggested" liability tag
+                  tier: s.tier || 'SUPPORTIVE',
+                  functionalGroup: s.functionalGroup,
+                  note: ''
               })));
             }
 
@@ -651,41 +660,53 @@ export default function PrescriptionPage() {
                   <div className={styles.auditContainer} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a' }}>
                     <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0', marginBottom: 12 }}>
                       <span className={styles.auditIcon}>📋</span>
-                      <h3 style={{ color: '#0f172a', fontWeight: 800 }}>Suggested Treatment Drafts</h3>
-                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); }} className={styles.btnClearAudit}>Discard</button>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>Suggested Treatment Draft</h3>
+                        <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: 700 }}>
+                          INTENT: {aiIntent} • STAGE: {aiStage}
+                        </div>
+                      </div>
+                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); setAiIntent(''); setAiStage(''); }} className={styles.btnClearAudit}>Discard</button>
                     </div>
                     
                     {aiValidationFlags.length > 0 && (
                       <div className={styles.validationWarnings}>
                         {aiValidationFlags.map((flag, i) => (
                           <div key={i} className={styles.validationFlag}>
-                            <span style={{ marginRight: 8 }}>🛡️</span> {flag}
+                            <span style={{ marginRight: 8, fontSize: '14px' }}>🛡️</span> {flag}
                           </div>
                         ))}
                       </div>
                     )}
 
-                    <p style={{ fontSize: 13, color: '#475569', marginBottom: 16, borderLeft: '3px solid #6366f1', paddingLeft: 12 }}>
-                      The following draft has been validated against safety rules. Tick to adopt into your prescription:
-                    </p>
-                    <div className={styles.suggestedMedsGrid}>
-                      {pendingAiMeds.map((med) => {
-                        const isAdded = meds.some(m => m.name === med.name);
-                        return (
-                          <div 
-                            key={med.id} 
-                            className={`${styles.suggestItem} ${isAdded ? styles.added : ''}`}
-                            onClick={() => toggleAiMed(med)}
-                          >
-                            <input type="checkbox" checked={isAdded} readOnly style={{ cursor: 'pointer' }} />
-                            <div className={styles.suggestContent}>
-                               <strong>{med.type}. {med.name}</strong>
-                               <span>{med.dose} • {med.freq} • {med.duration}</span>
-                            </div>
+                    {['CORE', 'SUPPORTIVE', 'OPTIONAL'].map((tier) => {
+                      const tierMeds = pendingAiMeds.filter(m => m.tier === tier);
+                      if (tierMeds.length === 0) return null;
+                      return (
+                        <div key={tier} className={styles.tierSection}>
+                          <h4 className={styles.tierTitle}>{tier} Care</h4>
+                          <div className={styles.suggestedMedsGrid}>
+                            {tierMeds.map((med) => {
+                              const isAdded = meds.some(m => m.name === med.name);
+                              return (
+                                <div 
+                                  key={med.id} 
+                                  className={`${styles.suggestItem} ${isAdded ? styles.added : ''}`}
+                                  onClick={() => toggleAiMed(med)}
+                                >
+                                  <input type="checkbox" checked={isAdded} readOnly style={{ cursor: 'pointer' }} />
+                                  <div className={styles.suggestContent}>
+                                     <strong>{med.type}. {med.name}</strong>
+                                     <span>{med.dose} • {med.freq} • {med.duration}</span>
+                                     {med.functionalGroup && <small style={{ color: '#94a3b8', fontSize: 10 }}>{med.functionalGroup}</small>}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

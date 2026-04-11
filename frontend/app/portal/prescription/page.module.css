@@ -662,3 +662,22 @@
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+.tierSection {
+  margin-top: 16px;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 12px;
+}
+
+.tierTitle {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #64748b;
+  margin-bottom: 8px;
+  background: #f1f5f9;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 800;
+}
