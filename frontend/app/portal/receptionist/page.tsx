@@ -34,7 +34,7 @@ export default function ReceptionistPage() {
   const metrics = [
     { label: 'Daily Clinical Check-ins', value: todayCounts.patients.toString(), trend: '+5% from avg', trendColor: '#10b981', icon: 'person_add', bg: '#ebdcff' },
     { label: 'Lobby Revenue', value: `₹${todayCounts.revenue.toLocaleString()}`, trend: 'Assessment Live', trendColor: '#ffdeaa', icon: 'payments', bg: '#eaddf9' },
-    { label: 'Sanctuary Latency', value: '5m', trend: '2m under goal', trendColor: '#10b981', icon: 'timer', bg: '#ffdeaa' },
+    { label: 'System Response', value: '5m', trend: '2m under goal', trendColor: '#10b981', icon: 'timer', bg: '#ffdeaa' },
   ];
 
   const quickActions = [
@@ -60,7 +60,7 @@ export default function ReceptionistPage() {
                    <div style={{ color: 'var(--sanctuary-primary)' }}>
                       {m.label === 'Daily Clinical Check-ins' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>}
                       {m.label === 'Lobby Revenue' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>}
-                      {m.label === 'Sanctuary Latency' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
+                      {m.label === 'System Response' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
                    </div>
                 </div>
                 <div>

@@ -1,11 +1,56 @@
-'use client';
-
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useClinic } from '@/context/ClinicContext';
+import { createClient } from '@/lib/supabase/client';
 import styles from './DashboardTopBar.module.css';
 
 export default function DashboardTopBar() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const doctorNameParam = searchParams.get('doctorName');
   const { doctors } = useClinic();
-  const primaryDoctor = doctors && doctors.length > 0 ? doctors[0] : { name: 'Doctor', qualification: 'Medical Professional' };
+  
+  // Search State
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    const searchPatients = async () => {
+      if (query.length < 2) {
+        setResults([]);
+        setShowResults(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setShowResults(true);
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id, name, age, gender, contact')
+        .ilike('name', `%${query}%`)
+        .limit(5);
+
+      if (!error && data) {
+        setResults(data);
+      }
+      setIsSearching(false);
+    };
+
+    const timer = setTimeout(searchPatients, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+  
+  // Find doctor object by name from param, or fallback to first doctor
+  const currentDoctor = (doctorNameParam && doctors.find(d => d.name === doctorNameParam)) || 
+                       (doctors && doctors.length > 0 ? doctors[0] : null);
+
+  const displayName = currentDoctor ? `Dr. ${currentDoctor.name}` : 'Dr. Consultant';
+  const displayQual = currentDoctor?.qualification || 'Medical Professional';
 
   return (
     <header className={styles.topBar}>
@@ -14,16 +59,49 @@ export default function DashboardTopBar() {
         <input 
           className={styles.searchInput} 
           type="text" 
-          placeholder="Search patients, records, or dates..." 
+          placeholder="Search patients by name..." 
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => query.length >= 2 && setShowResults(true)}
+          onBlur={() => setTimeout(() => setShowResults(false), 200)}
         />
+
+        {showResults && (
+          <div className={styles.searchResults}>
+            {isSearching ? (
+              <div className={styles.noResults}>Searching for '{query}'...</div>
+            ) : results.length > 0 ? (
+              results.map(patient => (
+                <Link 
+                  key={patient.id} 
+                  href={`/portal/doctor/patients/${patient.id}`}
+                  className={styles.resultItem}
+                >
+                  <div className={styles.resAvatar}>
+                    {patient.name.charAt(0)}
+                  </div>
+                  <div className={styles.resInfo}>
+                    <p className={styles.resName}>{patient.name}</p>
+                    <p className={styles.resDetails}>
+                      {patient.age || 'N/A'} Yrs • {patient.gender || 'N/A'} • {patient.contact || 'No Contact'}
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </Link>
+              ))
+            ) : (
+              <div className={styles.noResults}>No patients found matching '{query}'</div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={styles.actions}>
         <div className={styles.iconGroup}>
-          <button className={styles.iconBtn}>
+          <button className={styles.iconBtn} title="Notifications">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           </button>
-          <button className={styles.iconBtn}>
+          <button className={styles.iconBtn} title="Prescriptions" onClick={() => router.push('/portal/prescription')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           </button>
         </div>
@@ -32,8 +110,8 @@ export default function DashboardTopBar() {
 
         <div className={styles.profile}>
           <div className={styles.profileInfo}>
-            <p className={styles.userName}>Dr. {primaryDoctor.name}</p>
-            <p className={styles.userRole}>{primaryDoctor.qualification || 'Medical Professional'}</p>
+            <p className={styles.userName}>{displayName}</p>
+            <p className={styles.userRole}>{displayQual}</p>
           </div>
           <div className={styles.avatarPlaceholder}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>

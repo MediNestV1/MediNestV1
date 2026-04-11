@@ -91,28 +91,55 @@ export default function LandingPage() {
       <section id="features" className={styles.section}>
         <div className={styles.sectionCenter}>
           <span className={styles.sectionLabel}>Why MediNest?</span>
-          <h2 className={styles.sectionTitle}>What makes MediNest different?</h2>
+          <h2 className={styles.sectionTitle}>Built for the modern clinic hub.</h2>
         </div>
         <div className={styles.featuresGrid}>
            <div className={styles.featureCard}>
-             <div className={styles.iconBox}>🩺</div>
-             <h3>AI-Explainer</h3>
-             <p>AI generated summaries in layperson terms so patients actually follow your advice.</p>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>
+             </div>
+             <h3>Patients actually follow your advice</h3>
+             <p>Turn complex prescriptions into simple Hindi/English explanations. Fewer repeat questions, better recovery.</p>
            </div>
+
            <div className={styles.featureCard}>
-             <div className={styles.iconBox}>🔄</div>
-             <h3>Auto Follow-ups</h3>
-             <p>Automatic reminders for next visits. Increase your patient retention by 40%.</p>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+             </div>
+             <h3>Never lose a patient again</h3>
+             <p>Automatic follow-ups via WhatsApp & calls. Bring patients back without calling them manually.</p>
            </div>
+
            <div className={styles.featureCard}>
-             <div className={styles.iconBox}>📱</div>
-             <h3>WhatsApp Ready</h3>
-             <p>Send Rx, bills and reminders directly on WhatsApp. No more lost paper prescriptions.</p>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+             </div>
+             <h3>Everything on WhatsApp</h3>
+             <p>Send prescriptions, reminders, and reports instantly. No apps, no downloads. Zero paper.</p>
            </div>
+
            <div className={styles.featureCard}>
-             <div className={styles.iconBox}>🇮🇳</div>
-             <h3>Built for India</h3>
-             <p>Designed for the fast-paced Indian clinic. Works offline and on mobile effortlessly.</p>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 10-4 4-2-2"/></svg>
+             </div>
+             <h3>Made for real Indian clinics</h3>
+             <p>Works offline. Runs on low-end phones. Handles rush without slowing you down.</p>
+           </div>
+
+           <div className={styles.featureCard}>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="15.5" r="2.5"/><path d="M13.5 17.5 16 20"/></svg>
+             </div>
+             <h3>Complete Patient History in 1 Click</h3>
+             <p>Access past visits, prescriptions, and notes instantly. No searching files. No lost records.</p>
+           </div>
+
+           <div className={styles.featureCard}>
+             <div className={styles.iconBox}>
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
+             </div>
+             <h3>Smart Billing & Reports</h3>
+             <p>Generate bills and track clinic performance easily. Know your daily earnings without manual calculation.</p>
            </div>
         </div>
       </section>

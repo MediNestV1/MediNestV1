@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
@@ -20,6 +21,7 @@ interface Medicine {
 }
 
 export default function PrescriptionPage() {
+  const searchParams = useSearchParams();
   const { clinic, doctors } = useClinic();
   const [activeTab, setActiveTab] = useState<'info' | 'rx'>('info');
   const [isSaving, setIsSaving] = useState(false);
@@ -31,7 +33,7 @@ export default function PrescriptionPage() {
   const [ptAge, setPtAge] = useState('');
   const [ptSex, setPtSex] = useState('Male');
   const [ptWeight, setPtWeight] = useState('');
-  const [doctor, setDoctor] = useState('');
+  const [doctor, setDoctor] = useState(searchParams.get('doctorName') || '');
   const [followUp, setFollowUp] = useState(''); // Stores Date string
 
   const [cc, setCc] = useState('');

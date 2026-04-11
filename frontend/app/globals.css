@@ -122,8 +122,6 @@ body {
 .topbar-logo-circle {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
-  overflow: hidden;
   background: transparent;
   display: flex;
   align-items: center;

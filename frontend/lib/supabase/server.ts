@@ -3,10 +3,28 @@ import { cookies } from 'next/headers';
 
 export async function createServerSupabase() {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ [SUPABASE ERROR]: Missing credentials in createServerSupabase');
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: new Error('Missing Supabase Credentials') })
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null, error: new Error('Missing Supabase Credentials') })
+          })
+        })
+      })
+    } as any;
+  }
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {
@@ -32,9 +50,29 @@ export async function createServerSupabase() {
 }
 
 export function createMiddlewareSupabase(request: any, response: any) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ [SUPABASE ERROR]: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing.');
+    // Return a dummy object that mimics the expected structure but fails gracefully
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: new Error('Missing Supabase Credentials') })
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null, error: new Error('Missing Supabase Credentials') })
+          })
+        })
+      })
+    } as any;
+  }
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {

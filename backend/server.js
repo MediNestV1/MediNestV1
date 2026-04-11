@@ -231,14 +231,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: 'Internal Server Error', details: err.message });
 });
 
-// ─── Start Server with Port Resilience ───
+// ─── Start Server ───
 const startServer = (port) => {
-    const server = app.listen(port, () => {
+    app.listen(port, () => {
         console.log(`🚀 [AI 4/4] MediNest API is LIVE on port ${port}`);
     }).on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-            console.log(`⚠️  Port ${port} is busy. Trying ${port + 1}...`);
-            startServer(port + 1);
+            console.error(`❌ Port ${port} is occupied. Please kill the process manually.`);
+            process.exit(1);
         } else {
             console.error('❌ Server Error:', err);
         }

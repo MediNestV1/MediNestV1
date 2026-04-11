@@ -32,6 +32,7 @@ interface ClinicContextType {
   loading: boolean;
   user: any;
   refresh: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const ClinicContext = createContext<ClinicContextType>({
@@ -40,6 +41,7 @@ const ClinicContext = createContext<ClinicContextType>({
   loading: true,
   user: null,
   refresh: async () => {},
+  signOut: async () => {},
 });
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
@@ -105,6 +107,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Redirect to landing page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   useEffect(() => {
     refresh();
 
@@ -122,7 +134,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh }}>
+    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh, signOut }}>
       {children}
     </ClinicContext.Provider>
   );
