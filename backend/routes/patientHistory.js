@@ -13,9 +13,9 @@ async function generatePatientSummary(patient, prescriptions) {
     });
   }
 
-  const prompt = `You are a medical AI assistant. Summarize the clinical history for ${patient.name} into a structured JSON snapshot.
+  const prompt = `Summarize the clinical history for ${patient.name} into a structured JSON snapshot.
   
-  CRITICAL: RETURN ONLY VALID JSON. Do not include any conversational text, emojis, or markdown code blocks outside of the JSON.
+  CRITICAL: RETURN ONLY RAW VALID JSON. Do not include any conversational text, emojis, or markdown code blocks.
   
   JSON SCHEMA:
   {
@@ -41,7 +41,10 @@ async function generatePatientSummary(patient, prescriptions) {
       },
       body: JSON.stringify({
         model: 'meta/llama-3.1-8b-instruct', 
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: 'You are a JSON API. You MUST return ONLY valid JSON and absolutely no other text, markdown, or greetings.' },
+          { role: 'user', content: prompt }
+        ],
         temperature: 0.1
       }),
       // Set a strict timeout for AI generation
@@ -148,6 +151,7 @@ router.get('/:patientId', async (req, res) => {
         finalSummary = JSON.parse(existing.summary_text);
       } catch (e) {
         finalSummary = calculateHeuristicSummary(visits);
+        needsRefresh = true; // Force refresh if cached JSON is corrupted
       }
     } else {
       // First time patient: Return heuristic summary immediately
