@@ -310,6 +310,23 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                 {activeTab === 'Patient Profile' && (
                   <div className={styles.profileGrid}>
                     <div className={styles.gridContent}>
+                       <header className={styles.patientHero}>
+                          <div className={styles.heroAvatar}>
+                             {patient?.name?.[0].toUpperCase()}
+                          </div>
+                          <div className={styles.heroInfo}>
+                             <div className={styles.heroBadge}>Verifed Patient</div>
+                             <h1 className={styles.heroName}>{patient?.name}</h1>
+                             <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 650, color: 'var(--text-soft)' }}>
+                                <span>{patient?.age} Yrs</span>
+                                <span>•</span>
+                                <span>{patient?.gender}</span>
+                                <span>•</span>
+                                <span>ID: {rx.patient_id.slice(0, 8).toUpperCase()}</span>
+                             </div>
+                          </div>
+                       </header>
+
                        <section className={styles.vitalCard}>
                           <div className={styles.vitalHeader}>
                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -431,25 +448,23 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                 {activeTab === 'Current Script' && (
                   <div className={styles.paperWrapper}>
                     <div className={styles.paper}>
-                      <header className={styles.header}>
-                        <div className={styles.clinicHeader}>
-                          <div className={styles.clinicInfo}>
-                            <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
-                            <p className={styles.tagline}>{clinic?.tagline || 'Advanced Healthcare Solutions'}</p>
-                            <div className={styles.clinicContact}>
-                              <svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                              <span>{clinic?.phone || '+91 000 000 0000'}</span>
-                            </div>
+                      <header className={styles.clinicHeader}>
+                        <div className={styles.clinicInfo}>
+                          <h1 className={styles.clinicName}>{clinic?.name || 'MediNest Clinic'}</h1>
+                          <p className={styles.tagline}>{clinic?.tagline || 'Advanced Healthcare Solutions'}</p>
+                          <div className={styles.clinicContact}>
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                            <span>{clinic?.phone || '+91 000 000 0000'}</span>
                           </div>
-                          <div className={styles.headerLogo}>
-                            <div className={styles.logoCircle}>
-                              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                            </div>
+                        </div>
+                        <div className={styles.headerLogo}>
+                          <div className={styles.logoCircle}>
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="32"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                           </div>
-                          <div className={styles.doctorInfo}>
-                            <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
-                            <p className={styles.drQual}>MBBS, MD</p>
-                          </div>
+                        </div>
+                        <div className={styles.doctorInfo}>
+                          <h2 className={styles.drName}>{rx.doctor_name || 'Dr. Consultant'}</h2>
+                          <p className={styles.drQual}>Reg No: {rx.doctor_id?.slice(0, 8).toUpperCase() || 'MED-0982-X'}</p>
                         </div>
                       </header>
 
@@ -468,7 +483,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                         </div>
                         <div className={styles.meta}>
                           <span className={styles.label}>DATE:</span>
-                          <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN')}</span>
+                          <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
                       </section>
 
@@ -497,7 +512,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                 meds.map((m: any, idx: number) => (
                                   <div key={idx} className={styles.medItemFinal}>
                                     <div className={styles.medHeaderFinal}>
-                                      <strong>{m.type}. {m.name}</strong> <span>{m.dose}</span>
+                                      <strong>{idx+1}. {m.type} {m.name}</strong> 
+                                      <span>{m.dose}</span>
                                     </div>
                                     <div className={styles.medScheduleFinal}>
                                       {m.freq} — {m.dur || m.duration} — {m.inst || m.instructions}
@@ -513,7 +529,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             {rx.advice && (
                               <div className={styles.adviceSection}>
                                 <h3 className={styles.sectionTitle}>Adv. (Advice/Instructions)</h3>
-                                <p className={styles.text}>{rx.advice.split('\n\n[')[0]}</p>
+                                <p className={styles.text}>{rx.advice}</p>
                               </div>
                             )}
                           </div>
@@ -526,7 +542,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                           <p>Phone: {clinic?.phone || 'Contact Number'}</p>
                         </div>
                         <div className={styles.legalFinal}>
-                          Digital Prescription • Not for Medico-Legal use
+                          MediNest Clinical Intelligence • Not for Medico-Legal use
                         </div>
                       </footer>
                     </div>
@@ -539,17 +555,32 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                       <div className={styles.aiContainer}>
                         <div className={styles.aiHero}>
                           <div className={styles.aiHeroText}>
-                            <h1 className={styles.aiGreeting}>{activeSummary?.greeting}</h1>
+                            <h1 className={styles.aiGreeting}>{activeSummary?.greeting || 'Hello!'}</h1>
                             <p className={styles.aiTagline}>Your AI-powered recovery assistant is here to help you understand your treatment plan and get back to health quickly.</p>
+                            
+                            <div className={styles.langToggle}>
+                              <button 
+                                className={`${styles.langBtn} ${selectedLang === 'English' ? styles.langBtnActive : ''}`}
+                                onClick={() => setSelectedLang('English')}
+                              >
+                                English
+                              </button>
+                              <button 
+                                className={`${styles.langBtn} ${selectedLang === 'Hindi' ? styles.langBtnActive : ''}`}
+                                onClick={() => setSelectedLang('Hindi')}
+                              >
+                                हिंदी
+                              </button>
+                            </div>
                           </div>
                         </div>
 
                         <div className={styles.aiCardMain}>
                           <div className={styles.insightHeader}>
-                            <div className={styles.insightIcon}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
+                            <div className={styles.insightIcon}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
                             <h3>Prescription Insight</h3>
                           </div>
-                          <p className={styles.aiCondition}>"{activeSummary?.condition}"</p>
+                          <p className={styles.aiCondition}>{activeSummary?.condition || 'Analyzing your condition...'}</p>
                         </div>
 
                         <div className={styles.aiGrid}>
@@ -562,7 +593,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                               <div className={styles.medsContent}>
                                 {activeSummary?.medicines?.map((m: any, i: number) => (
                                   <div key={i} className={styles.medItemAI}>
-                                    <div className={styles.medIconAI}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"/></svg></div>
+                                    <div className={styles.medIconAI}><svg viewBox="0 0 24 24" fill="currentColor" width="18"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"/></svg></div>
                                     <div className={styles.medInfoAI}>
                                       <div className={styles.medNameRow}>
                                         <span className={styles.medNameAI}>{m.name}</span>
@@ -619,9 +650,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                       </div>
                     ) : (
                       <div className={styles.aiLoadingHero}>
-                        <div className={styles.aiLoadingPulse}></div>
+                        <div className={styles.aiLoadingPulse}>
+                           <svg viewBox="0 0 24 24" fill="white" width="32"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                        </div>
                         <div className={styles.aiBadge}>AI Assistant is preparing your guide...</div>
-                        <p>Analyzing prescription data and crafting your personalized care summary.</p>
+                        <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--text-soft)', fontWeight: 500 }}>Analyzing prescription data and crafting your personalized care summary in real-time.</p>
                       </div>
                     )}
                   </>
@@ -637,7 +670,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                     {loadingHistory ? (
                       <div className={styles.historyLoading}>
                         <div className={styles.loader}></div>
-                        <p>Loading patient history...</p>
+                        <p style={{ marginTop: 16, fontWeight: 600, color: 'var(--text-soft)' }}>Retrieving clinical records...</p>
                       </div>
                     ) : history?.visits?.length > 0 ? (
                       <div className={styles.timeline}>
@@ -649,24 +682,31 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             <div className={styles.timelinePoint} />
                             <div className={styles.timelineContent}>
                               <div className={styles.visitHeader}>
-                                <h3>{visit.doctor}</h3>
+                                <h3>{visit.doctor || 'Senior Consultant'}</h3>
                                 <span className={styles.visitType}>Consultation</span>
                               </div>
                               <div className={styles.visitBody}>
                                 <div className={styles.visitCol}>
-                                  <h4>Complaints</h4>
-                                  <p>{visit.complaints}</p>
+                                  <h4>Chief Complaints</h4>
+                                  <p>{visit.complaints || 'Routine check-up'}</p>
                                 </div>
                                 <div className={styles.visitCol}>
-                                  <h4>Medicines</h4>
+                                  <h4>Medicines Prescribed</h4>
                                   <div className={styles.miniMeds}>
-                                    {visit.medicines.map((m: any, mi: number) => (
-                                      <span key={mi} className={styles.miniMedTag}>{m.name}</span>
-                                    ))}
+                                    {visit.medicines && visit.medicines.length > 0 ? (
+                                      visit.medicines.map((m: any, mi: number) => (
+                                        <span key={mi} className={styles.miniMedTag}>{typeof m === 'string' ? m : m.name}</span>
+                                      ))
+                                    ) : (
+                                      <span style={{ fontSize: 12, fontStyle: italic, color: 'var(--text-soft)' }}>No medication prescribed</span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
-                              <Link href={`/view/${visit.prescription_id}`} className={styles.viewVisitBtn}>View Full Prescription</Link>
+                              <Link href={`/view/${visit.prescription_id}`} className={styles.viewVisitBtn}>
+                                View Full Prescription
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginLeft: 4 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                              </Link>
                             </div>
                           </div>
                         ))}
