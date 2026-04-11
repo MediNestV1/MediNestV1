@@ -216,3 +216,124 @@
   color: var(--sanctuary-ink-l);
   font-size: 13px;
 }
+
+.iconGroup {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+
+.notifContainer {
+  position: relative;
+}
+
+.notifBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+}
+
+.notifDropdown {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: -80px;
+  width: 320px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 45px rgba(23, 3, 55, 0.16);
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  overflow: hidden;
+  z-index: 100;
+  animation: slideDown 0.3s ease-out;
+}
+
+.notifHeader {
+  padding: 20px;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notifHeader h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.notifHeader span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notifList {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notifItem {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.03);
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.notifItem:last-child {
+  border-bottom: none;
+}
+
+.notifItem:hover {
+  background-color: var(--sanctuary-gray-low);
+}
+
+.notifIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notifText h5 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sanctuary-primary);
+}
+
+.notifText p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  line-height: 1.4;
+}
+
+.notifTime {
+  margin-top: 6px !important;
+  font-size: 10px !important;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .notifDropdown {
+    position: fixed;
+    top: 70px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+

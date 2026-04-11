@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useClinic } from '@/context/ClinicContext';
@@ -16,6 +16,26 @@ export default function DashboardTopBar({ onMenuOpen }: { onMenuOpen?: () => voi
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Notification State
+  const [showNotifs, setShowNotifs] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifs(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const dummyNotifs = [
+    { id: 1, title: 'New Patient Registration', desc: 'Udit Agrahari has been registered in the front office.', time: '2 mins ago', icon: 'person_add', bg: '#ebdcff' },
+    { id: 2, title: 'Prescription Generated', desc: 'Dr. Jain completed a prescription for Sakshi.', time: '15 mins ago', icon: 'description', bg: '#eaddf9' },
+    { id: 3, title: 'Weekly Report Ready', desc: 'Your clinic performance summary for last week is available.', time: '1 hour ago', icon: 'assessment', bg: '#ffdeaa' },
+  ];
 
   useEffect(() => {
     const searchPatients = async () => {
@@ -104,10 +124,42 @@ export default function DashboardTopBar({ onMenuOpen }: { onMenuOpen?: () => voi
       </div>
 
       <div className={styles.actions}>
-        <div className={styles.iconGroup}>
-          <button className={styles.iconBtn} title="Notifications">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </button>
+        <div className={styles.iconGroup} ref={notifRef}>
+          <div className={styles.notifContainer}>
+            <button 
+              className={styles.iconBtn} 
+              title="Notifications" 
+              onClick={() => setShowNotifs(!showNotifs)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <div className={styles.notifBadge} />
+            </button>
+
+            {showNotifs && (
+              <div className={styles.notifDropdown}>
+                <div className={styles.notifHeader}>
+                  <h4>Notifications</h4>
+                  <span>Recent Activity</span>
+                </div>
+                <div className={styles.notifList}>
+                  {dummyNotifs.map(n => (
+                    <div key={n.id} className={styles.notifItem}>
+                      <div className={styles.notifIcon} style={{ background: n.bg }}>
+                        {n.icon === 'person_add' && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>}
+                        {n.icon === 'description' && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>}
+                        {n.icon === 'assessment' && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>}
+                      </div>
+                      <div className={styles.notifText}>
+                        <h5>{n.title}</h5>
+                        <p>{n.desc}</p>
+                        <p className={styles.notifTime}>{n.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <button className={styles.iconBtn} title="Prescriptions" onClick={() => router.push('/portal/prescription')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           </button>
