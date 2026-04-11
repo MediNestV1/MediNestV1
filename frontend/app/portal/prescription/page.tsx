@@ -66,6 +66,7 @@ export default function PrescriptionPage() {
   const supabase = createClient();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [pendingAiMeds, setPendingAiMeds] = useState<Medicine[]>([]);
+  const [aiValidationFlags, setAiValidationFlags] = useState<string[]>([]);
   const [adviceApproved, setAdviceApproved] = useState(true);
 
   // 💾 Draft Persistence (Cache) Logic
@@ -154,8 +155,15 @@ export default function PrescriptionPage() {
                   freq: s.freq || '',
                   duration: s.duration || '',
                   instructions: s.instructions || '',
-                  note: 'AI Suggested'
+                  note: '' // Remove "AI Suggested" liability tag
               })));
+            }
+
+            if (data.suggestions.validationFlags && data.suggestions.validationFlags.length > 0) {
+              // Store flags for UI display
+              setAiValidationFlags(data.suggestions.validationFlags);
+            } else {
+              setAiValidationFlags([]);
             }
 
             if (suggestedAdvice) {
@@ -640,13 +648,26 @@ export default function PrescriptionPage() {
                 </div>
 
                 {pendingAiMeds.length > 0 && (
-                  <div className={styles.auditContainer} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b' }}>
-                    <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0' }}>
-                      <span className={styles.auditIcon}>✨</span>
-                      <h3 style={{ color: '#6366f1' }}>AI Suggestions for you</h3>
-                      <button onClick={() => setPendingAiMeds([])} className={styles.btnClearAudit}>Discard All</button>
+                  <div className={styles.auditContainer} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a' }}>
+                    <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0', marginBottom: 12 }}>
+                      <span className={styles.auditIcon}>📋</span>
+                      <h3 style={{ color: '#0f172a', fontWeight: 800 }}>Suggested Treatment Drafts</h3>
+                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); }} className={styles.btnClearAudit}>Discard</button>
                     </div>
-                    <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>Select (tick) the medicines you want to add to this prescription:</p>
+                    
+                    {aiValidationFlags.length > 0 && (
+                      <div className={styles.validationWarnings}>
+                        {aiValidationFlags.map((flag, i) => (
+                          <div key={i} className={styles.validationFlag}>
+                            <span style={{ marginRight: 8 }}>🛡️</span> {flag}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p style={{ fontSize: 13, color: '#475569', marginBottom: 16, borderLeft: '3px solid #6366f1', paddingLeft: 12 }}>
+                      The following draft has been validated against safety rules. Tick to adopt into your prescription:
+                    </p>
                     <div className={styles.suggestedMedsGrid}>
                       {pendingAiMeds.map((med) => {
                         const isAdded = meds.some(m => m.name === med.name);

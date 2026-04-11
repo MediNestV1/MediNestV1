@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../supabaseClient');
+const { validatePrescription } = require('../lib/clinicalVault');
 
 // Helper: AI Clinical Suggestion Logic
 async function suggestClinicalPath(cc, findings) {
@@ -10,7 +10,7 @@ async function suggestClinicalPath(cc, findings) {
   Diagnosis: ${findings}
   
   CRITICAL:
-  1. Suggest 3-5 standard medicines with doses, frequencies, and durations.
+  1. Suggest standard medicines (MAX 5 initially) with doses, frequencies, and durations.
   2. Provide patient-facing "Clinical Advice" in 2-3 concise sentences.
   3. RETURN ONLY VALID JSON.
   
@@ -46,7 +46,16 @@ async function suggestClinicalPath(cc, findings) {
       result = result.split('```')[1].split('```')[0].trim();
     }
     
-    return JSON.parse(result);
+    const parsed = JSON.parse(result);
+    
+    // 🔥 SECOND TIER: HARD RULES VALIDATION
+    if (parsed.suggestedMeds) {
+      const { validMeds, flags } = validatePrescription(parsed.suggestedMeds);
+      parsed.suggestedMeds = validMeds;
+      parsed.validationFlags = flags;
+    }
+    
+    return parsed;
   } catch (err) {
     console.error('❌ [AI ERROR] Clinical Suggestion:', err.message);
     return { error: "Suggestion service unavailable" };

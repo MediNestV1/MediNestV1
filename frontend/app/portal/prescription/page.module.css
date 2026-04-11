@@ -647,3 +647,18 @@
   font-size: 11px;
   color: #64748b;
 }
+
+.validationWarnings {
+  background: #fff1f2;
+  border-left: 4px solid #f43f5e;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.validationFlag {
+  font-size: 12px;
+  color: #9f1239;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
