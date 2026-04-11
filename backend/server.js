@@ -13,6 +13,7 @@ const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
+const recommendationsRouter = require('./routes/recommendations');
 
 // Middleware
 app.use(helmet()); // Professional security headers
@@ -23,6 +24,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/api/patient-history', patientHistoryRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {

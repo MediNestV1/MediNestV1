@@ -64,6 +64,96 @@ export default function PrescriptionPage() {
   const skipSearchRef = useRef(false);
   const skipPtSearchRef = useRef(false);
   const supabase = createClient();
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // 💾 Draft Persistence (Cache) Logic
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('medinest_rx_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        if (draft.ptName) setPtName(draft.ptName);
+        if (draft.ptPhone) setPtPhone(draft.ptPhone);
+        if (draft.ptAge) setPtAge(draft.ptAge);
+        if (draft.ptSex) setPtSex(draft.ptSex);
+        if (draft.ptWeight) setPtWeight(draft.ptWeight);
+        if (draft.doctor) setDoctor(draft.doctor);
+        if (draft.cc) setCc(draft.cc);
+        if (draft.findings) setFindings(draft.findings);
+        if (draft.meds) setMeds(draft.meds);
+        if (draft.advice) setAdvice(draft.advice);
+        if (draft.followUp) setFollowUp(draft.followUp);
+        console.log('✅ Draft restored from cache');
+      } catch (e) {
+        console.error('Failed to restore draft:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const draft = { ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp };
+    localStorage.setItem('medinest_rx_draft', JSON.stringify(draft));
+  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp]);
+
+  // 🩺 Auto-Select Doctor
+  useEffect(() => {
+    if (!doctor && doctors.length > 0) {
+      if (doctors.length === 1) {
+        setDoctor(doctors[0].name);
+      }
+    }
+  }, [doctors, doctor]);
+
+  const handleNewRecord = () => {
+    if (window.confirm('Clear current draft and start a new record?')) {
+      localStorage.removeItem('medinest_rx_draft');
+      setPtName('');
+      setPtPhone('');
+      setPtAge('');
+      setPtSex('Male');
+      setPtWeight('');
+      setCc('');
+      setFindings('');
+      setMeds([]);
+      setAdvice('');
+      setFollowUp('');
+      setPtSnapshot(null);
+      if (doctors.length !== 1) setDoctor('');
+    }
+  };
+
+  const handleAiSuggest = async () => {
+    if (!cc && !findings) {
+        alert('Please enter symptoms or diagnosis first.');
+        return;
+    }
+    setIsAiLoading(true);
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cc, findings })
+        });
+        const data = await res.json();
+        if (data.success && data.suggestions) {
+            const suggestions = data.suggestions.map((s: any) => ({
+                id: Math.random().toString(36).substr(2, 9),
+                name: s.name,
+                type: s.type || 'Tab',
+                dose: s.dose || '',
+                freq: s.freq || '',
+                duration: s.duration || '',
+                instructions: s.instructions || '',
+                note: ''
+            }));
+            setMeds([...meds, ...suggestions]);
+        }
+    } catch (err) {
+        console.error('AI Suggestion Error:', err);
+    } finally {
+        setIsAiLoading(false);
+    }
+  };
 
   // 🚀 Real-time Patient Lookup
   useEffect(() => {
@@ -350,7 +440,13 @@ export default function PrescriptionPage() {
             {activeTab === 'info' && (
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Doctor & Patient Details</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Doctor & Patient Details</h3>
+                    <button onClick={handleNewRecord} className={styles.btnLink} style={{ color: '#ef4444', fontSize: '13px', fontWeight: 600 }}>
+                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 4 }}><path d="M19 6L6 19M6 6l13 13"/></svg>
+                       New Record
+                    </button>
+                  </div>
                   <div className="field">
                     <label>Consulting Doctor</label>
                     <select value={doctor} onChange={e => setDoctor(e.target.value)}>
@@ -430,7 +526,16 @@ export default function PrescriptionPage() {
             {activeTab === 'rx' && (
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Prescribe Medicine</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Prescribe Medicine</h3>
+                    <button 
+                      onClick={handleAiSuggest} 
+                      className={styles.btnAiSuggest}
+                      disabled={isAiLoading}
+                    >
+                       {isAiLoading ? '✨ Recommending...' : '✨ AI Suggest'}
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                     <div className="field" style={{ width: '120px', marginBottom: 0 }}>
                       <select value={mType} onChange={e => setMType(e.target.value)}><option>Tab</option><option>Cap</option><option>Syp</option><option>Inj</option><option>Drop</option><option>Oint</option></select>

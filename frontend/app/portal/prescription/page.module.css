@@ -413,3 +413,45 @@
 .snapshotData strong {
   color: #0d9488;
 }
+.btnLink {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btnLink:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.btnAiSuggest {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnAiSuggest:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  filter: brightness(1.1);
+}
+
+.btnAiSuggest:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
