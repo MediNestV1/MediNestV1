@@ -65,7 +65,8 @@ export default function PrescriptionPage() {
   const skipPtSearchRef = useRef(false);
   const supabase = createClient();
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [pendingAiMeds, setPendingAiMeds] = useState<Medicine[]>([]);
+  const [adviceApproved, setAdviceApproved] = useState(true);
 
   // 💾 Draft Persistence (Cache) Logic
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function PrescriptionPage() {
         if (draft.meds) setMeds(draft.meds);
         if (draft.advice) setAdvice(draft.advice);
         if (draft.followUp) setFollowUp(draft.followUp);
-        if (draft.aiAnalysis) setAiAnalysis(draft.aiAnalysis);
+        if (draft.pendingAiMeds) setPendingAiMeds(draft.pendingAiMeds);
+        if (draft.adviceApproved !== undefined) setAdviceApproved(draft.adviceApproved);
         console.log('✅ Draft restored from cache');
       } catch (e) {
         console.error('Failed to restore draft:', e);
@@ -93,9 +95,12 @@ export default function PrescriptionPage() {
   }, []);
 
   useEffect(() => {
-    const draft = { ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, aiAnalysis };
+    const draft = { 
+      ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, 
+      meds, advice, followUp, pendingAiMeds, adviceApproved 
+    };
     localStorage.setItem('medinest_rx_draft', JSON.stringify(draft));
-  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, aiAnalysis]);
+  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, pendingAiMeds, adviceApproved]);
 
   // 🩺 Auto-Select Doctor
   useEffect(() => {
@@ -125,8 +130,8 @@ export default function PrescriptionPage() {
   };
 
   const handleAiSuggest = async () => {
-    if (!cc && !findings && meds.length === 0) {
-        alert('Please enter symptoms, diagnosis, or medicines first.');
+    if (!cc && !findings) {
+        alert('Please enter symptoms or diagnosis first.');
         return;
     }
     setIsAiLoading(true);
@@ -134,15 +139,14 @@ export default function PrescriptionPage() {
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cc, findings, meds })
+            body: JSON.stringify({ cc, findings })
         });
         const data = await res.json();
-        if (data.success && data.analysis) {
-            setAiAnalysis(data.analysis);
+        if (data.success && data.suggestions) {
+            const { suggestedMeds, suggestedAdvice } = data.suggestions;
             
-            // If AI suggested NEW medicines, append them to the existing list
-            if (data.analysis.suggestedMeds && data.analysis.suggestedMeds.length > 0) {
-              const suggestions = data.analysis.suggestedMeds.map((s: any) => ({
+            if (suggestedMeds) {
+              setPendingAiMeds(suggestedMeds.map((s: any) => ({
                   id: Math.random().toString(36).substr(2, 9),
                   name: s.name,
                   type: s.type || 'Tab',
@@ -150,15 +154,28 @@ export default function PrescriptionPage() {
                   freq: s.freq || '',
                   duration: s.duration || '',
                   instructions: s.instructions || '',
-                  note: 'Optional suggestion'
-              }));
-              setMeds([...meds, ...suggestions]);
+                  note: 'AI Suggested'
+              })));
+            }
+
+            if (suggestedAdvice) {
+              setAdvice(suggestedAdvice);
+              setAdviceApproved(false); // Require approval for AI advice
             }
         }
     } catch (err) {
         console.error('AI Suggestion Error:', err);
     } finally {
         setIsAiLoading(false);
+    }
+  };
+
+  const toggleAiMed = (med: Medicine) => {
+    const exists = meds.some(m => m.name === med.name);
+    if (exists) {
+      setMeds(meds.filter(m => m.name !== med.name));
+    } else {
+      setMeds([...meds, med]);
     }
   };
 
@@ -291,7 +308,14 @@ export default function PrescriptionPage() {
 
 
   const handleSave = async () => {
-    if (!ptName) { alert('Please enter patient name.'); return; }
+    // Safety check for unapproved AI suggestions
+    if (!adviceApproved) {
+      const confirm = window.confirm("The Clinical Advice box contains AI-generated content that hasn't been approved. Proceed and Save anyway?");
+      if (!confirm) return;
+    }
+
+    if (!ptName || !ptPhone) {
+      alert('Please enter patient name.'); return; }
     if (!selectedDoctorObj) { alert('Please select a consulting doctor.'); return; }
 
     setIsSaving(true);
@@ -615,61 +639,61 @@ export default function PrescriptionPage() {
                   {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
                 </div>
 
-                {aiAnalysis && (
-                  <div className={styles.auditContainer}>
-                    <div className={styles.auditHeader}>
-                      <span className={styles.auditIcon}>🛡️</span>
-                      <h3>Clinical Safety Report</h3>
-                      <div className={styles.auditScore}>
-                        Score: <strong>{aiAnalysis.section5?.score}/10</strong>
-                      </div>
+                {pendingAiMeds.length > 0 && (
+                  <div className={styles.auditContainer} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b' }}>
+                    <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0' }}>
+                      <span className={styles.auditIcon}>✨</span>
+                      <h3 style={{ color: '#6366f1' }}>AI Suggestions for you</h3>
+                      <button onClick={() => setPendingAiMeds([])} className={styles.btnClearAudit}>Discard All</button>
                     </div>
-                    
-                    <div className={styles.auditVerdict}>
-                       "{aiAnalysis.section5?.verdict}"
+                    <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>Select (tick) the medicines you want to add to this prescription:</p>
+                    <div className={styles.suggestedMedsGrid}>
+                      {pendingAiMeds.map((med) => {
+                        const isAdded = meds.some(m => m.name === med.name);
+                        return (
+                          <div 
+                            key={med.id} 
+                            className={`${styles.suggestItem} ${isAdded ? styles.added : ''}`}
+                            onClick={() => toggleAiMed(med)}
+                          >
+                            <input type="checkbox" checked={isAdded} readOnly style={{ cursor: 'pointer' }} />
+                            <div className={styles.suggestContent}>
+                               <strong>{med.type}. {med.name}</strong>
+                               <span>{med.dose} • {med.freq} • {med.duration}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div className={styles.auditSection}>
-                      <h4>Section 1: Prescription Analysis</h4>
-                      <ul className={styles.auditList}>
-                        {aiAnalysis.section1?.map((item: any, i: number) => (
-                          <li key={i}>
-                            <strong>{item.name}</strong> — <span className={styles.auditBadge}>{item.classification}</span>
-                            <p className={styles.auditReason}>{item.reason}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {aiAnalysis.section2?.length > 0 && (
-                      <div className={styles.auditSectionError}>
-                        <h4>Section 2: Errors / Risks</h4>
-                        <ul className={styles.errorList}>
-                          {aiAnalysis.section2.map((err: string, i: number) => (
-                            <li key={i}>{err}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className={styles.auditSection}>
-                      <h4>Section 3: Priority Treatment Focus</h4>
-                      <p className={styles.auditText}>{aiAnalysis.section3}</p>
-                    </div>
-
-                    {aiAnalysis.section4 && (
-                      <div className={styles.auditSection}>
-                        <h4>Section 4: Optional Improvements</h4>
-                        <p className={styles.auditText}>{aiAnalysis.section4}</p>
-                      </div>
-                    )}
-                    
-                    <button className={styles.btnClearAudit} onClick={() => setAiAnalysis(null)}>Clear Analysis</button>
                   </div>
                 )}
+
                 <div className={styles.panelBlock}>
-                  <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>
-                  <div className="field"><textarea rows={2} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice..." /></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Final Advice & Follow-up</h3>
+                    {!adviceApproved && (
+                      <button 
+                        onClick={() => setAdviceApproved(true)} 
+                        className={styles.btnApprove}
+                      >
+                        ✅ Approve AI Advice
+                      </button>
+                    )}
+                  </div>
+                  <div className="field">
+                    <textarea 
+                      rows={2} 
+                      value={advice} 
+                      onChange={e => {
+                        setAdvice(e.target.value);
+                        // If user manual edits it after AI fill, we consider it their version or at least seen
+                        if (!adviceApproved) setAdviceApproved(true);
+                      }} 
+                      placeholder="Advice..." 
+                      className={!adviceApproved ? styles.unapprovedAdvice : ''}
+                    />
+                    {!adviceApproved && <div className={styles.auditVerdict} style={{marginTop: 8, padding: '8px 12px'}}>⚠️ AI Generated Advice - Please verify before saving.</div>}
+                  </div>
                   <div className="field"><label>Specific Follow-up Date</label><input type="date" value={followUp} onChange={e => setFollowUp(e.target.value)} /></div>
                 </div>
                 <div className={styles.exportRow}>

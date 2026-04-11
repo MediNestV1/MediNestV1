@@ -582,3 +582,68 @@
   background: #334155;
   color: white;
 }
+
+.btnApprove {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnApprove:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.unapprovedAdvice {
+  background: #fffbeb;
+  border: 1px solid #fde68a !important;
+}
+
+.suggestedMedsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.suggestItem:hover {
+  border-color: #6366f1;
+  background: #f5f3ff;
+}
+
+.suggestItem.added {
+  background: #f0fdf4;
+  border-color: #4ade80;
+}
+
+.suggestContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestContent strong {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.suggestContent span {
+  font-size: 11px;
+  color: #64748b;
+}
