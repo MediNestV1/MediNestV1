@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
@@ -25,7 +24,12 @@ const navItems = [
   },
 ];
 
-export default function DashboardSidebar() {
+interface DashboardSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
   const pathname = usePathname();
   const { doctors } = useClinic();
   const supabase = createClient();
@@ -64,91 +68,105 @@ export default function DashboardSidebar() {
     { label: 'View Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor/patients' },
   ];
 
+  const handleNavClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.brand}>
-        <div className={styles.logoContainer}>
-          <img src="/assets/medinest_logo.png" alt="MediNest Logo" className={styles.brandLogo} />
-        </div>
-        <div className={styles.brandInfo}>
-          <h1>MediNest</h1>
-          <p>Doctors Desk</p>
-        </div>
-      </div>
+    <>
+      {/* Mobile overlay backdrop */}
+      {isOpen && <div className={styles.backdrop} onClick={onClose} />}
 
-      <nav className={styles.nav}>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link 
-              key={item.label} 
-              href={item.href} 
-              className={`${styles.navLink} ${isActive ? styles.activeLink : ''}`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-
-        {/* --- Doctor's Clinical Desk Section --- */}
-        <div className={styles.clinicalDesk}>
-          <div className={styles.deskHeader}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
-            <span>Clinical Desk</span>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.brand}>
+          <div className={styles.logoContainer}>
+            <img src="/assets/medinest_logo.png" alt="MediNest Logo" className={styles.brandLogo} />
           </div>
+          <div className={styles.brandInfo}>
+            <h1>MediNest</h1>
+            <p>Doctors Desk</p>
+          </div>
+          {/* Mobile close button */}
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
 
-          <div className={styles.searchContainer}>
-            <div className={styles.searchInputWrapper}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={styles.searchIcon}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input 
-                type="text" 
-                placeholder="Find Patient..."
-                className={styles.searchField}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <nav className={styles.nav}>
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <a 
+                key={item.label} 
+                href={item.href}
+                onClick={handleNavClick}
+                className={`${styles.navLink} ${isActive ? styles.activeLink : ''}`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+
+          {/* --- Doctor's Clinical Desk Section --- */}
+          <div className={styles.clinicalDesk}>
+            <div className={styles.deskHeader}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
+              <span>Clinical Desk</span>
             </div>
 
-            {searchTerm.length >= 2 && (
-              <div className={styles.searchResults}>
-                {isSearching ? (
-                  <div className={styles.searchMsg}>Searching...</div>
-                ) : searchResults.length > 0 ? (
-                  <>
-                    {searchResults.map(p => (
-                      <div key={p.id} className={styles.searchItem} onClick={() => window.location.href = `/portal/doctor/patients/${p.id}`}>
-                        <p className={styles.searchItemName}>{p.name}</p>
-                        <p className={styles.searchItemInfo}>{p.contact}</p>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <div className={styles.searchMsg}>No results found</div>
-                )}
+            <div className={styles.searchContainer}>
+              <div className={styles.searchInputWrapper}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={styles.searchIcon}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input 
+                  type="text" 
+                  placeholder="Find Patient..."
+                  className={styles.searchField}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            )}
-          </div>
 
-          <div className={styles.deskActions}>
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href} className={styles.deskAction}>
-                {action.icon}
-                <span>{action.label}</span>
-              </Link>
-            ))}
+              {searchTerm.length >= 2 && (
+                <div className={styles.searchResults}>
+                  {isSearching ? (
+                    <div className={styles.searchMsg}>Searching...</div>
+                  ) : searchResults.length > 0 ? (
+                    <>
+                      {searchResults.map(p => (
+                        <div key={p.id} className={styles.searchItem} onClick={() => { window.location.href = `/portal/doctor/patients/${p.id}`; handleNavClick(); }}>
+                          <p className={styles.searchItemName}>{p.name}</p>
+                          <p className={styles.searchItemInfo}>{p.contact}</p>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className={styles.searchMsg}>No results found</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.deskActions}>
+              {quickActions.map((action) => (
+                <a key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
+                  {action.icon}
+                  <span>{action.label}</span>
+                </a>
+              ))}
+            </div>
           </div>
+        </nav>
+
+        <div className={styles.sidebarFooter}>
+          <a href="/portal/help" className={styles.footerLink}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help
+          </a>
+          <a href="/auth/logout" className={`${styles.footerLink} ${styles.logoutLink}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Logout
+          </a>
         </div>
-      </nav>
-
-      <div className={styles.sidebarFooter}>
-        <Link href="/portal/help" className={styles.footerLink}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help
-        </Link>
-        <Link href="/auth/logout" className={`${styles.footerLink} ${styles.logoutLink}`}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Logout
-        </Link>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

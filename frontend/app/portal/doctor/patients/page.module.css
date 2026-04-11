@@ -15,6 +15,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .headerTitle h1 {
@@ -32,6 +34,7 @@
 .headerActions {
   display: flex;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .searchSection {
@@ -39,10 +42,12 @@
   display: flex;
   gap: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .searchWrapper {
   flex: 1;
+  min-width: 200px;
   position: relative;
   display: flex;
   align-items: center;
@@ -74,7 +79,7 @@
 
 .patientGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
 }
 
@@ -236,6 +241,7 @@
   align-items: center;
   gap: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  white-space: nowrap;
 }
 
 .registerBtn {
@@ -246,6 +252,7 @@
   border-radius: 12px;
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(26, 11, 54, 0.2);
+  white-space: nowrap;
 }
 
 .emptyState {
@@ -255,4 +262,33 @@
   background: white;
   border-radius: 20px;
   border: 2px dashed #e2e8f0;
+}
+
+/* =====================
+   MOBILE RESPONSIVE
+   ===================== */
+@media (max-width: 768px) {
+  .container { padding: 20px 16px; }
+  .header { margin-bottom: 20px; }
+  .headerTitle h1 { font-size: 24px; }
+  .headerTitle p { font-size: 13px; }
+  .headerActions { width: 100%; }
+  .headerActions button, .headerActions a { 
+    flex: 1; 
+    text-align: center;
+    justify-content: center;
+  }
+  .searchSection { flex-direction: column; gap: 10px; }
+  .searchWrapper { width: 100%; }
+  .refineBtn { width: 100%; justify-content: center; }
+  .patientGrid { grid-template-columns: 1fr; gap: 16px; }
+  .patientCard { padding: 20px; }
+  .patientName { font-size: 18px; }
+  .loading { padding: 60px 20px; }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 16px 12px; }
+  .avatar { width: 48px; height: 48px; font-size: 18px; }
+  .badge { font-size: 10px; padding: 4px 10px; }
 }

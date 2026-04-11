@@ -1,14 +1,15 @@
 .topBar {
-  padding: 24px 48px;
+  padding: 16px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(250, 245, 245, 0.8);
+  background-color: rgba(250, 245, 245, 0.9);
   backdrop-filter: blur(20px);
   position: sticky;
   top: 0;
   z-index: 40;
   border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  gap: 16px;
 }
 
 .searchWrapper {
@@ -108,9 +109,34 @@
   box-shadow: 0 4px 8px rgba(23, 3, 55, 0.05);
 }
 
-@media (max-width: 768px) {
+/* Hamburger button */
+.menuBtn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sanctuary-primary);
+  padding: 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.menuBtn:hover {
+  background: rgba(23, 3, 55, 0.06);
+}
+
+@media (max-width: 1024px) {
+  .menuBtn { display: flex; align-items: center; justify-content: center; }
   .searchWrapper { display: none; }
-  .topBar { padding: 16px 20px; }
+  .topBar { padding: 14px 16px; gap: 12px; }
+  .iconGroup { gap: 4px; }
+}
+
+@media (max-width: 640px) {
+  .profileInfo { display: none; }
+  .divider { display: none; }
+  .actions { gap: 12px; }
 }
 
 .searchResults {

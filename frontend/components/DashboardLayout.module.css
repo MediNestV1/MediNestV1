@@ -1,14 +1,18 @@
 .layout {
   display: flex;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
   background-color: var(--sanctuary-bg);
 }
 
 .contentArea {
   flex-grow: 1;
-  margin-left: 256px; /* Width of sidebar */
+  margin-left: 280px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .canvas {
@@ -19,5 +23,11 @@
 
 @media (max-width: 1024px) {
   .contentArea { margin-left: 0; }
-  .canvas { padding: 80px 24px 24px; }
+  .canvas { padding: 24px 20px 40px; }
+}
+
+@media (max-width: 640px) {
+  .canvas {
+    padding: 16px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+  }
 }

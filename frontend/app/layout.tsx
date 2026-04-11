@@ -1,7 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ClinicProvider } from '@/context/ClinicContext';
 import ServiceWorkerKiller from '@/components/ServiceWorkerKiller';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#170337',
+};
 
 export const metadata: Metadata = {
   title: 'MediNest — Clinic Management Platform',

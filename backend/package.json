@@ -13,6 +13,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "helmet": "^8.1.0",
+    "medinest-root": "file:..",
     "pg": "^8.20.0",
     "twilio": "^4.19.0"
   },
