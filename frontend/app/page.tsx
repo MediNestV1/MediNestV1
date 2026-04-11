@@ -202,10 +202,8 @@ export default function LandingPage() {
       {/* ── VIDEO DEMO ── */}
       <section id="demo" className={styles.videoSection}>
          <h2 className={styles.videoTitle}>See MediNest in action</h2>
-         <div className={styles.videoWrapper}>
-            <div className={styles.playBtn}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </div>
+         <div className={styles.videoWrapper} style={{ padding: 0, overflow: 'hidden' }}>
+            <Image src="/assets/demo_recording.webp" alt="MediNest Prescription Demo" width={800} height={450} style={{ width: '100%', height: '100%', objectFit: 'cover' }} unoptimized />
          </div>
          <p style={{ marginTop: 32, fontSize: 18, opacity: 0.8 }}>Watch how to generate a prescription in under 30 seconds.</p>
       </section>
@@ -295,7 +293,12 @@ export default function LandingPage() {
                <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.6, marginTop: 16 }}>Intelligent Solutions for Modern Healthcare practitioners across India.</p>
             </div>
             <div className={styles.footerCol}>
-               <ul><li>Privacy Policy</li><li>Terms of Service</li><li>Contact Support</li><li>Clinic Login</li></ul>
+               <ul>
+                 <li><Link href="/privacy">Privacy Policy</Link></li>
+                 <li><Link href="/terms">Terms of Service</Link></li>
+                 <li><Link href="/support">Contact Support</Link></li>
+                 <li><Link href="/auth?tab=login">Clinic Login</Link></li>
+               </ul>
             </div>
             <div className={styles.footerCol} style={{ gridColumn: 'span 2', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', opacity: 0.5, fontSize: 13 }}>
                © 2026 MediNest Intelligent Healthcare. All rights reserved.
