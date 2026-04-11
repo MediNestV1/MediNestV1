@@ -260,46 +260,63 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         </div>
       </nav>
 
-      <div className={styles.layoutWrapper}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarTop}>
-              <h2 className={styles.clinicName}>Clinical Hub</h2>
-              <p className={styles.clinicSub}>{hospitalName}</p>
-            
-            <div className={styles.sidebarNav}>
-              {sidebarItems.map(item => (
-                <button 
-                  key={item.name}
-                  className={`${styles.sidebarItem} ${activeTab === item.name ? styles.sidebarItemActive : ''}`}
-                  onClick={() => setActiveTab(item.name as any)}
-                >
-                  <span className={styles.sideIcon}>{item.icon}</span>
-                  <span className={styles.sideLabel}>{item.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+      {!user && mounted && (
+        <div className={styles.horizontalNav}>
+          {sidebarItems.map(item => (
+            <button 
+              key={item.name}
+              className={`${styles.horizontalNavItem} ${activeTab === item.name ? styles.horizontalNavItemActive : ''}`}
+              onClick={() => setActiveTab(item.name as any)}
+            >
+              <span className={styles.sideIcon}>{item.icon}</span>
+              <span className={styles.sideLabel}>{item.name}</span>
+             </button>
+           ))}
+         </div>
+       )}
 
-          <div className={styles.sidebarFooter}>
-              <div className={styles.drInfoCard}>
-                <div className={styles.drAvatar}>
-                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e0f2fe', color: '#0369a1', fontWeight: 800 }}>
-                     {(rx?.doctor_name || 'Dr').charAt(0)}
-                   </div>
-                </div>
-                <h4 className={styles.drName}>{rx?.doctor_name || 'Consulting Physician'}</h4>
-                <div className={styles.drId}>ID: {id.slice(0, 6).toUpperCase()}</div>
+      <div className={`${styles.layoutWrapper} ${!user ? styles.layoutWrapperPatient : ''}`}>
+        {user && (
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarTop}>
+                <h2 className={styles.clinicName}>Clinical Hub</h2>
+                <p className={styles.clinicSub}>{hospitalName}</p>
+              
+              <div className={styles.sidebarNav}>
+                {sidebarItems.map(item => (
+                  <button 
+                    key={item.name}
+                    className={`${styles.sidebarItem} ${activeTab === item.name ? styles.sidebarItemActive : ''}`}
+                    onClick={() => setActiveTab(item.name as any)}
+                  >
+                    <span className={styles.sideIcon}>{item.icon}</span>
+                    <span className={styles.sideLabel}>{item.name}</span>
+                  </button>
+                ))}
               </div>
-             {user && (
-               <button 
-                 className={styles.newRecordBtn}
-                 onClick={() => router.push('/portal/prescription')}
-               >
-                  New Record
-               </button>
-             )}
-          </div>
-        </aside>
+            </div>
+
+            <div className={styles.sidebarFooter}>
+                <div className={styles.drInfoCard}>
+                  <div className={styles.drAvatar}>
+                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e0f2fe', color: '#0369a1', fontWeight: 800 }}>
+                       {(rx?.doctor_name || 'Dr').charAt(0)}
+                     </div>
+                  </div>
+                  <h4 className={styles.drName}>{rx?.doctor_name || 'Consulting Physician'}</h4>
+                  <div className={styles.drId}>ID: {id.slice(0, 6).toUpperCase()}</div>
+                </div>
+                {user && (
+                  <button 
+                    className={styles.newRecordBtn}
+                    onClick={() => router.push('/portal/prescription')}
+                  >
+                     New Record
+                  </button>
+                )}
+            </div>
+          </aside>
+        )}
 
         <main className={styles.mainScroll}>
           <div className={styles.container}>
@@ -319,14 +336,16 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                 <header className={styles.pageHeader}>
                    <div className={styles.clinicDetails}>
                       <div className={styles.clinicNameFinal}>{hospitalName}</div>
-                      <div className={styles.clinicSubFinal}>{clinic?.tagline || 'Advanced Clinical Hub'}</div>
+                      <div className={styles.clinicSubFinal}>{user ? (clinic?.tagline || 'Advanced Clinical Hub') : 'Electronic Medical Record'}</div>
                    </div>
                    <div className={styles.headerActions}>
                       <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>Export PDF</button>
-                      <button className={`${styles.headerBtn} ${styles.solidBtn}`}>
-                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                         Edit Profile
-                      </button>
+                       {user && (
+                          <button className={`${styles.headerBtn} ${styles.solidBtn}`}>
+                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                             Edit Profile
+                          </button>
+                       )}
                    </div>
                 </header>
 

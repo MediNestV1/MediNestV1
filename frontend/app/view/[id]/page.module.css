@@ -1492,3 +1492,55 @@ body {
     border: none !important;
   }
 }
+
+/* --- HORIZONTAL NAVIGATION (PATIENT MODE) --- */
+.horizontalNav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  background: #fff;
+  padding: 16px 40px;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 72px; /* topNav height */
+  z-index: 1000;
+}
+
+.horizontalNavItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.horizontalNavItemActive {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.layoutWrapperPatient .mainScroll {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+
+@media (max-width: 1024px) {
+  .horizontalNav {
+    padding: 12px 16px;
+    gap: 8px;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+  .horizontalNavItem {
+    padding: 8px 14px;
+    flex-shrink: 0;
+  }
+}
