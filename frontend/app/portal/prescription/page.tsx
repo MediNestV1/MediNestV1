@@ -65,6 +65,7 @@ export default function PrescriptionPage() {
   const skipPtSearchRef = useRef(false);
   const supabase = createClient();
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
 
   // 💾 Draft Persistence (Cache) Logic
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function PrescriptionPage() {
         if (draft.meds) setMeds(draft.meds);
         if (draft.advice) setAdvice(draft.advice);
         if (draft.followUp) setFollowUp(draft.followUp);
+        if (draft.aiAnalysis) setAiAnalysis(draft.aiAnalysis);
         console.log('✅ Draft restored from cache');
       } catch (e) {
         console.error('Failed to restore draft:', e);
@@ -91,9 +93,9 @@ export default function PrescriptionPage() {
   }, []);
 
   useEffect(() => {
-    const draft = { ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp };
+    const draft = { ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, aiAnalysis };
     localStorage.setItem('medinest_rx_draft', JSON.stringify(draft));
-  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp]);
+  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, aiAnalysis]);
 
   // 🩺 Auto-Select Doctor
   useEffect(() => {
@@ -123,8 +125,8 @@ export default function PrescriptionPage() {
   };
 
   const handleAiSuggest = async () => {
-    if (!cc && !findings) {
-        alert('Please enter symptoms or diagnosis first.');
+    if (!cc && !findings && meds.length === 0) {
+        alert('Please enter symptoms, diagnosis, or medicines first.');
         return;
     }
     setIsAiLoading(true);
@@ -132,21 +134,26 @@ export default function PrescriptionPage() {
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cc, findings })
+            body: JSON.stringify({ cc, findings, meds })
         });
         const data = await res.json();
-        if (data.success && data.suggestions) {
-            const suggestions = data.suggestions.map((s: any) => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: s.name,
-                type: s.type || 'Tab',
-                dose: s.dose || '',
-                freq: s.freq || '',
-                duration: s.duration || '',
-                instructions: s.instructions || '',
-                note: ''
-            }));
-            setMeds([...meds, ...suggestions]);
+        if (data.success && data.analysis) {
+            setAiAnalysis(data.analysis);
+            
+            // If AI suggested NEW medicines, append them to the existing list
+            if (data.analysis.suggestedMeds && data.analysis.suggestedMeds.length > 0) {
+              const suggestions = data.analysis.suggestedMeds.map((s: any) => ({
+                  id: Math.random().toString(36).substr(2, 9),
+                  name: s.name,
+                  type: s.type || 'Tab',
+                  dose: s.dose || '',
+                  freq: s.freq || '',
+                  duration: s.duration || '',
+                  instructions: s.instructions || '',
+                  note: 'Optional suggestion'
+              }));
+              setMeds([...meds, ...suggestions]);
+            }
         }
     } catch (err) {
         console.error('AI Suggestion Error:', err);
@@ -606,6 +613,60 @@ export default function PrescriptionPage() {
                   </div>
                   <button className="btn-secondary" style={{ width: '100%', marginBottom: '24px', display: 'flex', justifyContent: 'center', fontWeight: 'bold' }} onClick={addMed}>+ Add to Rx</button>
                   {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
+                </div>
+
+                {aiAnalysis && (
+                  <div className={styles.auditContainer}>
+                    <div className={styles.auditHeader}>
+                      <span className={styles.auditIcon}>🛡️</span>
+                      <h3>Clinical Safety Report</h3>
+                      <div className={styles.auditScore}>
+                        Score: <strong>{aiAnalysis.section5?.score}/10</strong>
+                      </div>
+                    </div>
+                    
+                    <div className={styles.auditVerdict}>
+                       "{aiAnalysis.section5?.verdict}"
+                    </div>
+
+                    <div className={styles.auditSection}>
+                      <h4>Section 1: Prescription Analysis</h4>
+                      <ul className={styles.auditList}>
+                        {aiAnalysis.section1?.map((item: any, i: number) => (
+                          <li key={i}>
+                            <strong>{item.name}</strong> — <span className={styles.auditBadge}>{item.classification}</span>
+                            <p className={styles.auditReason}>{item.reason}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {aiAnalysis.section2?.length > 0 && (
+                      <div className={styles.auditSectionError}>
+                        <h4>Section 2: Errors / Risks</h4>
+                        <ul className={styles.errorList}>
+                          {aiAnalysis.section2.map((err: string, i: number) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className={styles.auditSection}>
+                      <h4>Section 3: Priority Treatment Focus</h4>
+                      <p className={styles.auditText}>{aiAnalysis.section3}</p>
+                    </div>
+
+                    {aiAnalysis.section4 && (
+                      <div className={styles.auditSection}>
+                        <h4>Section 4: Optional Improvements</h4>
+                        <p className={styles.auditText}>{aiAnalysis.section4}</p>
+                      </div>
+                    )}
+                    
+                    <button className={styles.btnClearAudit} onClick={() => setAiAnalysis(null)}>Clear Analysis</button>
+                  </div>
+                )}
                 </div>
                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Final Advice & Follow-up</h3>

@@ -2,20 +2,48 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../supabaseClient');
 
-// Helper: AI Recommendation Logic
-async function getAIRecommendations(cc, findings) {
-  const prompt = `You are an expert clinical assistant. Based on the following patient symptoms and diagnosis, recommend exactly 3 to 5 common medicines.
-  
-  Symptoms (Chief Complaints): ${cc}
-  Diagnosis (Findings): ${findings}
-  
-  CRITICAL: RETURN ONLY VALID JSON. Do not include any conversational text or markdown code blocks.
-  
-  JSON SCHEMA:
-  [
-    { "name": "Medicine Name", "type": "Tab/Syp/Cap", "dose": "500mg", "freq": "1-0-1", "duration": "5 days", "instructions": "After food" },
-    ...
-  ]`;
+// Helper: AI Clinical Audit Logic
+async function analyzeClinicalPrescription(cc, findings, meds) {
+  const prompt = `You are a clinical-grade medical assistant. Your task is to analyze prescriptions with strict safety and medical logic.
+
+RULES (NON-NEGOTIABLE):
+1. DO NOT hallucinate medicines, doses, or durations.
+2. ONLY analyze medicines explicitly provided in the input.
+3. DO NOT suggest new medicines unless clearly necessary — and mark them as "optional suggestion".
+4. NEVER override or modify prescribed doses unless they are unsafe — if unsafe, explicitly flag as "POTENTIAL ERROR".
+5. STRICTLY check for:
+   * Drug duplication
+   * Drug interactions
+   * Contradictory mechanisms (e.g., laxative + anti-diarrheal)
+   * Incorrect duration or dosing
+6. If any contradiction exists, clearly label: → "LOGICAL ERROR IN PRESCRIPTION"
+7. DO NOT assume diagnosis — infer cautiously from symptoms only.
+8. Mark each medicine as: "Essential", "Supportive", "Questionable", or "Unnecessary".
+9. Provide reasoning in 1–2 lines MAX per medicine.
+10. If evidence is weak (e.g., herbal/ayurvedic), explicitly say: → "Limited clinical evidence"
+
+INPUT DATA:
+- Symptoms (Chief Complaints): ${cc}
+- Diagnosis (Findings): ${findings}
+- Current Medicines: ${meds && meds.length > 0 ? JSON.stringify(meds.map(m => ({
+    name: m.name,
+    type: m.type,
+    dose: m.dose,
+    freq: m.freq,
+    duration: m.duration,
+    instructions: m.instructions
+  }))) : "NONE (Provide initial treatment priority instead)"}
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "section1": [ { "name": "Med Name", "classification": "Essential/Supportive/...", "reason": "Reason" } ],
+  "section2": [ "Error/Risk 1", ... ],
+  "section3": "Core treatment priority focus",
+  "section4": "Optional justified improvements (if any)",
+  "section5": { "score": 8, "verdict": "One-line brutal summary" },
+  "suggestedMeds": [ { "name": "...", "type": "...", "dose": "...", "freq": "...", "duration": "...", "instructions": "..." } ]
+}
+`;
 
   try {
     const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
@@ -32,7 +60,7 @@ async function getAIRecommendations(cc, findings) {
     });
 
     const data = await response.json();
-    let result = data.choices?.[0]?.message?.content?.trim() || '[]';
+    let result = data.choices?.[0]?.message?.content?.trim() || '{}';
     
     // Cleanup AI artifacts
     if (result.includes('```json')) {
@@ -43,20 +71,20 @@ async function getAIRecommendations(cc, findings) {
     
     return JSON.parse(result);
   } catch (err) {
-    console.error('❌ [AI ERROR] Recommendations:', err.message);
-    return [];
+    console.error('❌ [AI ERROR] Clinical Audit:', err.message);
+    return { error: "Analysis service unavailable" };
   }
 }
 
 router.post('/suggest', async (req, res) => {
-  const { cc, findings } = req.body;
-  if (!cc && !findings) {
-    return res.status(400).json({ success: false, error: 'Symptoms or diagnosis required for suggestions.' });
+  const { cc, findings, meds } = req.body;
+  if (!cc && !findings && (!meds || meds.length === 0)) {
+    return res.status(400).json({ success: false, error: 'Symptoms, diagnosis or medicines required for analysis.' });
   }
 
-  console.log(`🤖 [AI] Suggesting medicines for: ${cc} | ${findings}`);
-  const suggestions = await getAIRecommendations(cc, findings);
-  res.json({ success: true, suggestions });
+  console.log(`🤖 [AI] Reviewing clinical case: ${cc} | ${findings}`);
+  const analysis = await analyzeClinicalPrescription(cc, findings, meds || []);
+  res.json({ success: true, analysis });
 });
 
 module.exports = router;
