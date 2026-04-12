@@ -36,6 +36,7 @@ export default function PrescriptionPage() {
   const [ptAge, setPtAge] = useState('');
   const [ptSex, setPtSex] = useState('Male');
   const [ptWeight, setPtWeight] = useState('');
+  const [ptBloodGroup, setPtBloodGroup] = useState('');
   const [followUp, setFollowUp] = useState(''); // Stores Date string
 
   // 🔍 Patient Search & Snapshot
@@ -114,6 +115,58 @@ export default function PrescriptionPage() {
   }, [isAutoAiEnabled]);
 
 
+  // 🚀 'Zero Latency' Auto-Fill from Deep-Link Params
+  useEffect(() => {
+    const pId = searchParams.get('patientId');
+    const pName = searchParams.get('ptName');
+    const pPhone = searchParams.get('ptPhone');
+    const pAge = searchParams.get('ptAge');
+    const pSex = searchParams.get('ptSex');
+    const pBlood = searchParams.get('ptBloodGroup');
+
+    if (pName) setPtName(pName);
+    if (pPhone) setPtPhone(pPhone);
+    if (pAge) setPtAge(pAge);
+    if (pSex) setPtSex(pSex);
+    if (pBlood) setPtBloodGroup(pBlood);
+
+    if (!pId) return;
+
+    const fetchPatientById = async () => {
+      setIsLoadingPts(true);
+      try {
+        const { data, error } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('id', pId)
+          .single();
+        
+        if (!error && data) {
+          // Sync with DB values if they differ or weren't provided in URL
+          if (!pName) setPtName(data.name || '');
+          if (!pPhone) setPtPhone(data.contact || '');
+          if (!pAge) setPtAge(data.age || '');
+          if (!pSex) setPtSex(data.gender || 'Male');
+          if (!pBlood) setPtBloodGroup(data.blood_group || '');
+          setPtWeight(data.weight || '');
+          
+          // Also fetch AI summary if available
+          const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
+          const historyData = await res.json();
+          if (historyData && historyData.summary) {
+            setPtSnapshot(historyData.summary);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching patient by ID:', err);
+      } finally {
+        setIsLoadingPts(false);
+      }
+    };
+
+    fetchPatientById();
+  }, [searchParams, supabase]);
+
   // 🤖 AI Auto-Trigger Effect (Smart Persistence)
   useEffect(() => {
     if (activeTab === 'rx' && isAutoAiEnabled) {
@@ -145,6 +198,7 @@ export default function PrescriptionPage() {
       setPtAge('');
       setPtSex('Male');
       setPtWeight('');
+      setPtBloodGroup('');
       setCc('');
       setFindings('');
       setMeds([]);
@@ -286,6 +340,7 @@ export default function PrescriptionPage() {
     setPtAge('');
     setPtSex('Male');
     setPtWeight('');
+    setPtBloodGroup('');
     setCc('');
     setFindings('');
     setDiagnosis('');
@@ -303,6 +358,7 @@ export default function PrescriptionPage() {
     setPtPhone(cleanPhone);
     setPtAge(p.age || '');
     setPtSex(p.gender || 'Male');
+    setPtBloodGroup(p.blood_group || '');
     setPtSuggestions([]);
 
     // Fetch AI Snapshot for selected patient
@@ -429,11 +485,11 @@ export default function PrescriptionPage() {
 
       if (existing && existing.length > 0) {
         patientId = existing[0].id;
-        await supabase.from('patients').update({ age: ptAge, gender: ptSex, clinic_id: clinic?.id, contact: cleanPhone }).eq('id', patientId);
+        await supabase.from('patients').update({ age: ptAge, gender: ptSex, clinic_id: clinic?.id, contact: cleanPhone, blood_group: ptBloodGroup }).eq('id', patientId);
       } else {
         const { data: neu, error: cError } = await supabase
           .from('patients')
-          .insert([{ name: normalizedName, contact: cleanPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .insert([{ name: normalizedName, contact: cleanPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id, blood_group: ptBloodGroup }])
           .select()
           .single();
         if (cError) throw cError;
@@ -567,50 +623,94 @@ export default function PrescriptionPage() {
                     </button>
                   </div>
 
-                  <div className="field" style={{ position: 'relative' }}>
-                    <label>Patient Phone Number</label>
-                      <input 
-                        type="tel" 
-                        value={ptPhone} 
-                        onChange={e => { 
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          skipPtSearchRef.current = false; 
-                          setPtPhone(val); 
-                        }} 
-                        placeholder="10-digit contact number..." 
-                        autoComplete="off"
-                        maxLength={10}
-                        className={styles.mainSearchInput}
-                      />
-                    {ptSuggestions.length > 0 && (
-                      <div className={styles.suggestionsDropdown} style={{ top: '100%', width: '100%' }}>
-                        {/* ✨ Add as New Patient Option */}
-                        <div 
-                          className={styles.suggestionItem} 
-                          style={{ borderBottom: '2px solid var(--sanctuary-lavender)', backgroundColor: 'var(--sanctuary-gray-low)' }}
-                          onClick={handleAddNewPatient}
-                        >
-                          <div className={styles.sugMain}>
-                            <strong style={{ color: 'var(--sanctuary-primary)' }}>✨ Add as New Patient (+)</strong>
-                            <span className={styles.sugCat}>Register new member</span>
-                          </div>
-                        </div>
-
-                        {ptSuggestions.map((p) => (
-                          <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
-                            <div className={styles.sugMain}>
-                              <strong>{p.name}</strong>
-                              <span className={styles.sugCat}>{p.contact}</span>
-                            </div>
-                            <div className={styles.sugSub}>
-                              {p.age} yrs • {p.gender}
-                            </div>
-                          </div>
-                        ))}
+                  {/* ── Queue-launched: show locked summary card ── */}
+                  {searchParams.get('patientId') && ptName ? (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+                      border: '1.5px solid rgba(16,185,129,0.3)',
+                      borderRadius: '16px',
+                      padding: '16px 20px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px'
+                    }}>
+                      <div style={{
+                        width: 48, height: 48, borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 22, fontWeight: 800, color: '#fff', flexShrink: 0
+                      }}>
+                        {ptName[0]}
                       </div>
-                    )}
-                    {isLoadingPts && <div className={styles.sugLoading}>Searching patients...</div>}
-                  </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontWeight: 800, fontSize: 16, color: '#065f46', marginBottom: 2 }}>{ptName}</p>
+                        <p style={{ fontSize: 12, color: '#6ee7b7', fontWeight: 600 }}>
+                          {ptAge ? `${ptAge} yrs` : ''}{ptAge && ptSex ? ' • ' : ''}{ptSex}
+                          {ptBloodGroup ? ` • ${ptBloodGroup}` : ''}
+                          {ptPhone ? ` • ${ptPhone}` : ''}
+                          {ptWeight ? ` • ${ptWeight} kg` : ''}
+                        </p>
+                      </div>
+                      <div style={{
+                        background: '#d1fae5',
+                        color: '#065f46',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '4px 10px',
+                        borderRadius: 20,
+                        letterSpacing: 0.5
+                      }}>
+                        FROM QUEUE ✓
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── Manual entry: show phone search ── */
+                    <div className="field" style={{ position: 'relative' }}>
+                      <label>Patient Phone Number</label>
+                        <input 
+                          type="tel" 
+                          value={ptPhone} 
+                          onChange={e => { 
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            skipPtSearchRef.current = false; 
+                            setPtPhone(val); 
+                          }} 
+                          placeholder="10-digit contact number..." 
+                          autoComplete="off"
+                          maxLength={10}
+                          className={styles.mainSearchInput}
+                        />
+                      {ptSuggestions.length > 0 && (
+                        <div className={styles.suggestionsDropdown} style={{ top: '100%', width: '100%' }}>
+                          {/* ✨ Add as New Patient Option */}
+                          <div 
+                            className={styles.suggestionItem} 
+                            style={{ borderBottom: '2px solid var(--sanctuary-lavender)', backgroundColor: 'var(--sanctuary-gray-low)' }}
+                            onClick={handleAddNewPatient}
+                          >
+                            <div className={styles.sugMain}>
+                              <strong style={{ color: 'var(--sanctuary-primary)' }}>✨ Add as New Patient (+)</strong>
+                              <span className={styles.sugCat}>Register new member</span>
+                            </div>
+                          </div>
+
+                          {ptSuggestions.map((p) => (
+                            <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
+                              <div className={styles.sugMain}>
+                                <strong>{p.name}</strong>
+                                <span className={styles.sugCat}>{p.contact}</span>
+                              </div>
+                              <div className={styles.sugSub}>
+                                {p.age} yrs • {p.gender}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isLoadingPts && <div className={styles.sugLoading}>Searching patients...</div>}
+                    </div>
+                  )}
 
 
                   {ptSnapshot && (
@@ -626,16 +726,19 @@ export default function PrescriptionPage() {
                       </div>
                   )}
 
-                  <div className="field">
-                    <label>Patient Full Name</label>
-                    <input 
-                      type="text" 
-                      value={ptName} 
-                      onFocus={() => setPtSuggestions([])}
-                      onChange={e => setPtName(e.target.value.toUpperCase())} 
-                      placeholder="ENTER PATIENT NAME" 
-                    />
-                  </div>
+                  {/* Only show manual name field when NOT from queue */}
+                  {!searchParams.get('patientId') && (
+                    <div className="field">
+                      <label>Patient Full Name</label>
+                      <input 
+                        type="text" 
+                        value={ptName} 
+                        onFocus={() => setPtSuggestions([])}
+                        onChange={e => setPtName(e.target.value.toUpperCase())} 
+                        placeholder="ENTER PATIENT NAME" 
+                      />
+                    </div>
+                  )}
                   
                   <div style={{ display: 'flex', gap: '16px' }}>
                     <div className="field" style={{ flex: 1 }}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
@@ -644,7 +747,12 @@ export default function PrescriptionPage() {
                   
                   <div style={{ display: 'flex', gap: '16px' }}>
                     <div className="field" style={{ flex: 1 }}><label>Sex</label><select value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div className="field" style={{ flex: 1 }}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Blood Group</label><input type="text" value={ptBloodGroup} onChange={e => setPtBloodGroup(e.target.value.toUpperCase())} placeholder="e.g. O+, B-" /></div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                     <div className="field" style={{ flex: 1 }}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
+                     <div className="field" style={{ flex: 1 }}></div>
                   </div>
                 </div>
                  <div className={styles.panelBlock}>
@@ -938,6 +1046,7 @@ export default function PrescriptionPage() {
               <div className={styles.rxInfoBar}>
                 <div className={styles.infoGroup}><b>NAME:</b> {ptName || '________________'}</div>
                 <div className={styles.infoGroup}><b>AGE/SEX:</b> {ptAge || '___'} / {ptSex[0]}</div>
+                <div className={styles.infoGroup}><b>B.GRP:</b> {ptBloodGroup || '____'}</div>
                 <div className={styles.infoGroup}><b>WT:</b> {ptWeight ? `${ptWeight}Kg` : '____'}</div>
                 <div className={styles.infoGroup}><b>DATE:</b> {new Date(date).toLocaleDateString('en-IN')}</div>
               </div>

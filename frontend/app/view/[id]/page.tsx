@@ -27,6 +27,7 @@ interface Patient {
   age: string;
   gender: string;
   contact: string;
+  blood_group: string;
   created_at: string;
 }
 
@@ -634,6 +635,10 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                         <div className={styles.meta}>
                           <span className={styles.label}>WT:</span>
                           <span className={styles.value}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
+                        </div>
+                        <div className={styles.meta}>
+                          <span className={styles.label}>B.GRP:</span>
+                          <span className={styles.value}>{patient?.blood_group || '—'}</span>
                         </div>
                         <div className={styles.meta}>
                           <span className={styles.label}>DATE:</span>

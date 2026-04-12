@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -13,8 +13,10 @@ export default function RegisterPatientPage() {
   // Form State
   const [ptName, setPtName] = useState('');
   const [ptPhone, setPtPhone] = useState('');
+  const [ptAge, setPtAge] = useState('');
+  const [ptSex, setPtSex] = useState('Male');
+  const [ptBloodGroup, setPtBloodGroup] = useState('');
 
-  
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,6 @@ export default function RegisterPatientPage() {
   useEffect(() => {
     const cleanPhone = ptPhone.replace(/\D/g, '');
     
-    // Only search if we have at least 3 digits
     if (cleanPhone.length < 3 || !clinic) {
       setFoundPatients([]);
       setIsSearching(false);
@@ -52,15 +53,18 @@ export default function RegisterPatientPage() {
       } finally {
         setIsSearching(false);
       }
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [ptPhone, clinic, supabase]);
 
-  const handleSelectPatient = (patient: any) => {
-    setPtName(patient.name || '');
-    setPtPhone(patient.contact || patient.mobile || '');
-    setFoundPatients([]); // Hide the list after selection
+  const handleSelectPatient = (p: any) => {
+    setPtName(p.name || '');
+    setPtPhone(p.contact || '');
+    setPtAge(p.age || '');
+    setPtSex(p.gender || 'Male');
+    setPtBloodGroup(p.blood_group || '');
+    setFoundPatients([]);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -82,49 +86,63 @@ export default function RegisterPatientPage() {
 
     try {
       const normalizedName = ptName.trim().toUpperCase();
-      const { data: existingRecords, error: searchError } = await supabase
+      const normalizedBlood = ptBloodGroup.trim().toUpperCase();
+
+      // SMART DUPLICATE LOGIC:
+      // 1. Check if EXACT match (Name + Phone) exists
+      const { data: existing, error: pError } = await supabase
         .from('patients')
-        .select('id, name')
+        .select('id')
         .eq('name', normalizedName)
         .eq('contact', cleanPhone)
         .eq('clinic_id', clinic.id)
         .limit(1);
-      
-      const existing = existingRecords?.[0];
-      if (searchError) throw searchError;
+
+      if (pError) throw pError;
 
       if (existing && existing.length > 0) {
-        setError(`Patient "${ptName}" with this phone number is already registered.`);
-        setIsSubmitting(false);
-        return;
+        // UPDATE Existing
+        const patientId = existing[0].id;
+        const { error: upError } = await supabase
+          .from('patients')
+          .update({ 
+            age: ptAge, 
+            gender: ptSex, 
+            blood_group: normalizedBlood 
+          })
+          .eq('id', patientId);
+        
+        if (upError) throw upError;
+        setSuccess(`Profile Updated: ${normalizedName} successfully updated.`);
+      } else {
+        // CREATE NEW record (Allows family members with same phone but different names)
+        const { error: insError } = await supabase
+          .from('patients')
+          .insert([{
+            name: normalizedName,
+            contact: cleanPhone,
+            gender: ptSex,
+            age: ptAge,
+            blood_group: normalizedBlood,
+            clinic_id: clinic.id
+          }]);
+
+        if (insError) throw insError;
+        setSuccess(`Registration Success: ${normalizedName} is now in the database.`);
       }
 
-      // 2. Insert new patient
-      const { error: insertError } = await supabase
-        .from('patients')
-        .insert([{
-          name: normalizedName,
-          contact: cleanPhone,
-
-          clinic_id: clinic.id
-        }]);
-
-      if (insertError) throw insertError;
-
-      // 3. Success
-      setSuccess(`Success! ${ptName} has been registered.`);
-      
-      // Clear form
+      // Clear Form on success
       setPtName('');
       setPtPhone('');
-
+      setPtAge('');
+      setPtSex('Male');
+      setPtBloodGroup('');
       
-      // Clear success message after 5 seconds
       setTimeout(() => setSuccess(null), 5000);
 
     } catch (err: any) {
-      console.error('❌ Registration error details:', err.message || err, err);
-      setError(err.message || 'Failed to register patient. Please try again.');
+      console.error('❌ Registration error:', err);
+      setError(err.message || 'Failed to register patient.');
     } finally {
       setIsSubmitting(false);
     }
@@ -135,8 +153,8 @@ export default function RegisterPatientPage() {
       <div className={styles.page}>
         <div className={styles.container}>
           <header className={styles.header}>
-            <h1>Register New Patient</h1>
-            <p>Gather essential details to create a new clinical profile.</p>
+            <h1>Patient Registration</h1>
+            <p>Onboard new patients or update family profiles with clinical accuracy.</p>
           </header>
 
           <div className={styles.card}>
@@ -147,83 +165,81 @@ export default function RegisterPatientPage() {
               </div>
             )}
 
-            {error && (
-              <div className={styles.errorMsg}>
-                {error}
-              </div>
-            )}
+            {error && <div className={styles.errorMsg}>{error}</div>}
 
             <form onSubmit={handleRegister}>
               <div className={styles.formGrid}>
-                {/* Full Name */}
-                <div className={`${styles.formField} ${styles.formFieldFull}`}>
-                  <label htmlFor="ptName">Patient Full Name</label>
+                {/* Section 1: Contact & Search */}
+                <div className={styles.formField}>
+                  <label>10-Digit Phone Number</label>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      type="tel" 
+                      className={styles.inputBox} 
+                      value={ptPhone} 
+                      onChange={e => setPtPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="e.g. 9876543210"
+                      maxLength={10}
+                      autoComplete="off"
+                    />
+                    {/* Search Results */}
+                    {(isSearching || foundPatients.length > 0) && (
+                      <div className={styles.searchResults}>
+                        {isSearching && <div className={styles.searchingLoader}>Syncing contacts...</div>}
+                        {!isSearching && foundPatients.map(p => (
+                          <div key={p.id} className={styles.resultItem} onClick={() => handleSelectPatient(p)}>
+                            <div className={styles.resultIcon}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div className={styles.resultInfo}>
+                              <div className={styles.resultName}>{p.name}</div>
+                              <div className={styles.resultMeta}>{p.gender}, {p.age}y • {p.contact}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 2: Full Name */}
+                <div className={styles.formField}>
+                  <label>Full Name (Uppercase)</label>
                   <input 
-                    id="ptName"
                     type="text" 
                     className={styles.inputBox} 
                     value={ptName} 
                     onChange={e => setPtName(e.target.value.toUpperCase())}
-                    placeholder="e.g. RAHUL SHARMA"
+                    placeholder="Enter patient full name"
                   />
                 </div>
 
-                {/* Phone Number */}
-                <div className={styles.formField} style={{ position: 'relative' }}>
-                  <label htmlFor="ptPhone">Contact Number</label>
-                  <input 
-                    id="ptPhone"
-                    type="tel" 
-                    className={styles.inputBox} 
-                    value={ptPhone} 
-                    onChange={e => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setPtPhone(val);
-                    }}
-                    placeholder="10-digit mobile number"
-                    maxLength={10}
-                    autoComplete="off"
-                  />
-                  
-                  {/* Dynamic Search Results */}
-                  {(isSearching || foundPatients.length > 0) && (
-                    <div className={styles.searchResults}>
-                      {isSearching && <div className={styles.searchingLoader}>Searching database...</div>}
-                      {!isSearching && foundPatients.map(patient => (
-                        <div 
-                          key={patient.id} 
-                          className={styles.resultItem}
-                          onClick={() => handleSelectPatient(patient)}
-                        >
-                          <div className={styles.resultIcon}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                          </div>
-                          <div className={styles.resultInfo}>
-                            <div className={styles.resultName}>{patient.name}</div>
-                            <div className={styles.resultMeta}>
-                              <span>{patient.gender}, {patient.age}y</span>
-                              <span>•</span>
-                              <span>{patient.contact}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* Section 3: Vitals Group */}
+                <div className={styles.vitalsRow}>
+                  <div className={styles.formField}>
+                    <label>Age</label>
+                    <input type="number" className={styles.inputBox} value={ptAge} onChange={e => setPtAge(e.target.value)} placeholder="0" />
+                  </div>
+                  <div className={styles.formField}>
+                    <label>Gender</label>
+                    <select className={styles.inputBox} value={ptSex} onChange={e => setPtSex(e.target.value)}>
+                      <option>Male</option>
+                      <option>Female</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <div className={styles.formField}>
+                    <label>Blood Group</label>
+                    <input type="text" className={styles.inputBox} value={ptBloodGroup} onChange={e => setPtBloodGroup(e.target.value.toUpperCase())} placeholder="O+" />
+                  </div>
                 </div>
               </div>
 
-              <button 
-                type="submit" 
-                className={styles.submitBtn}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  'Saving Clinical Profile...'
-                ) : (
+              <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                {isSubmitting ? 'Securing Clinical Record...' : (
                   <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
-                    Register Patient
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    Confirm Registration
                   </>
                 )}
               </button>

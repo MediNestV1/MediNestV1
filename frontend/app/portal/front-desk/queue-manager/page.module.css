@@ -362,13 +362,75 @@
   flex-shrink: 0;
 }
 
-.siName {
-  font-weight: 700;
+.siInfo { flex: 1; min-width: 0; }
+.siName { font-weight: 700; font-size: 13px; color: var(--sanctuary-primary); }
+.siMeta { font-size: 11px; color: var(--sanctuary-ink-l); }
+
+/* ── New Patient Row (pinned at top of dropdown) ── */
+.newPatientRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  cursor: pointer;
+  background: #f8f7ff;
+  border-bottom: 1.5px solid rgba(23, 3, 55, 0.07);
+  transition: background 0.15s;
+}
+.newPatientRow:hover { background: #ede9fe; }
+.newPatientRow span:first-child {
+  font-weight: 800;
   font-size: 13px;
   color: var(--sanctuary-primary);
 }
 
-.siMeta { font-size: 11px; color: var(--sanctuary-ink-l); }
+.registerBadge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #0d9488;
+  background: #e6fffa;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.phoneBadgeGreen {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0d9488;
+  background: #e6fffa;
+  padding: 3px 9px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* ── New Record link in field header ── */
+.newRecordLink {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.3px;
+}
+
+/* ── Inline new patient registration box ── */
+.newPatientBox {
+  background: #f8f7ff;
+  border: 1.5px solid rgba(23, 3, 55, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.newPatientGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 
 /* Selected patient display */
 .selectedPatient {

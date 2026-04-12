@@ -143,3 +143,204 @@
   background: #fef2f2;
 }
 
+/* Modal & Check-in Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(23, 3, 55, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 500px;
+  background: #fff;
+  height: 100%;
+  box-shadow: -10px 0 30px rgba(23, 3, 55, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.modalHeader {
+  padding: 32px;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h3 {
+  font-family: var(--font-headline);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.closeModalBtn {
+  background: var(--sanctuary-gray-low);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--sanctuary-primary);
+}
+
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}
+
+.checkInBtn {
+  background: var(--sanctuary-primary);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s;
+}
+
+.checkInBtn:hover {
+  transform: translateY(-2px);
+}
+
+.formSection {
+  margin-bottom: 24px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--sanctuary-gray-low);
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sanctuary-primary);
+  transition: all 0.2s;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--sanctuary-primary);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05);
+}
+
+.searchDropdown {
+  background: #fff;
+  border: 1px solid rgba(23, 3, 55, 0.1);
+  border-radius: 12px;
+  margin-top: 8px;
+  box-shadow: 0 10px 25px rgba(23, 3, 55, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.searchItem {
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.03);
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.searchItem:hover {
+  background: var(--sanctuary-gray-low);
+}
+
+.registerMemberBtn {
+  background: #e6fffa;
+  color: #2c7a7b;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.phoneBadge {
+  background: #e6fffa;
+  color: #2c7a7b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.patientMainInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.patientNameSub {
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  font-weight: 600;
+}
+
+.confirmBtn {
+  width: 100%;
+  background: var(--sanctuary-primary);
+  color: #fff;
+  border: none;
+  padding: 18px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vitalsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
