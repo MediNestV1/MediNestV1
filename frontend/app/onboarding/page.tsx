@@ -11,6 +11,9 @@ interface Doctor {
   qualification: string;
   contact: string;
   specialty: string;
+  registration_number: string;
+  license_expiry_date?: string;
+  profile_photo_url?: string;
   is_active: boolean;
   display_order: number;
 }
@@ -36,6 +39,10 @@ export default function OnboardingPage() {
   const [docQual, setDocQual] = useState('');
   const [docContact, setDocContact] = useState('');
   const [docSpecialty, setDocSpecialty] = useState('');
+  const [docRegNumber, setDocRegNumber] = useState('');
+  const [docExpiry, setDocExpiry] = useState('');
+  const [docPhoto, setDocPhoto] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [step2Error, setStep2Error] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,16 +55,66 @@ export default function OnboardingPage() {
   };
 
   const addDoctor = () => {
-    if (!docName.trim()) return;
-    setDoctors(prev => [...prev, {
+    if (!docName.trim()) { setStep2Error('Doctor name is required.'); return; }
+    if (!docRegNumber.trim()) { setStep2Error('Medical License Number is required.'); return; }
+    
+    const docData: Doctor = {
       name: docName.trim(),
       qualification: docQual.trim(),
       contact: docContact.trim(),
       specialty: docSpecialty.trim() || 'General Medicine',
+      registration_number: docRegNumber.trim(),
+      license_expiry_date: docExpiry || undefined,
+      profile_photo_url: docPhoto || undefined,
       is_active: true,
-      display_order: doctors.length,
-    }]);
-    setDocName(''); setDocQual(''); setDocContact(''); setDocSpecialty('');
+      display_order: editingIndex !== null ? doctors[editingIndex].display_order : doctors.length,
+    };
+
+    if (editingIndex !== null) {
+      setDoctors(prev => {
+        const updated = [...prev];
+        updated[editingIndex] = docData;
+        return updated;
+      });
+      setEditingIndex(null);
+    } else {
+      setDoctors(prev => [...prev, docData]);
+    }
+
+    setDocName(''); 
+    setDocQual(''); 
+    setDocContact(''); 
+    setDocSpecialty('');
+    setDocRegNumber('');
+    setDocExpiry('');
+    setDocPhoto('');
+    setStep2Error('');
+  };
+
+  const prepareEdit = (i: number) => {
+    const d = doctors[i];
+    setDocName(d.name);
+    setDocQual(d.qualification);
+    setDocContact(d.contact);
+    setDocSpecialty(d.specialty);
+    setDocRegNumber(d.registration_number);
+    setDocExpiry(d.license_expiry_date || '');
+    setDocPhoto(d.profile_photo_url || '');
+    setEditingIndex(i);
+    setStep2Error('');
+    window.scrollTo({ top: 400, behavior: 'smooth' }); // Scroll to form
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setDocName(''); 
+    setDocQual(''); 
+    setDocContact(''); 
+    setDocSpecialty('');
+    setDocRegNumber('');
+    setDocExpiry('');
+    setDocPhoto('');
+    setStep2Error('');
   };
 
   const removeDoctor = (i: number) => {
@@ -241,18 +298,35 @@ export default function OnboardingPage() {
               
               <div className={styles.doctorsList}>
                 {doctors.map((d, i) => (
-                  <div key={i} className={styles.doctorListItem}>
-                     <div>
+                    <div key={i} className={styles.doctorListItem}>
+                      <div style={{ flex: 1 }}>
                         <strong>Dr. {d.name}</strong> • {d.specialty}
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{d.qualification} | {d.contact}</div>
-                     </div>
-                     <button onClick={() => removeDoctor(i)} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontWeight: 600 }}>X</button>
-                  </div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                          {d.qualification} | {d.contact} | Reg: {d.registration_number}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button 
+                          onClick={() => prepareEdit(i)} 
+                          style={{ border: 'none', background: '#e0f2fe', color: '#0284c7', borderRadius: 8, padding: '4px 12px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => removeDoctor(i)} 
+                          style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          X
+                        </button>
+                      </div>
+                    </div>
                 ))}
               </div>
 
-              <div className={styles.addDoctorForm}>
-                 <h3 style={{ margin: '0 0 16px', fontSize: 14 }}>+ Add New Doctor</h3>
+              <div className={styles.addDoctorForm} style={{ border: editingIndex !== null ? '2px solid #0284c7' : 'none', background: editingIndex !== null ? '#f0f9ff' : 'transparent' }}>
+                 <h3 style={{ margin: '0 0 16px', fontSize: 14 }}>
+                   {editingIndex !== null ? '📝 Edit Doctor Details' : '+ Add New Doctor'}
+                 </h3>
                  <div className={styles.formGrid}>
                     <div className={styles.formField}>
                         <label>Doctor's Name</label>
@@ -270,8 +344,43 @@ export default function OnboardingPage() {
                         <label>Contact Number</label>
                         <input className={styles.inputBox} value={docContact} onChange={e => setDocContact(e.target.value)} placeholder="98XXXXXXXX" />
                     </div>
+                    <div className={styles.formField}>
+                        <label>Medical License No. <span style={{color: '#ef4444'}}>*</span></label>
+                        <input className={styles.inputBox} value={docRegNumber} onChange={e => setDocRegNumber(e.target.value)} placeholder="e.g. MCI-12345" />
+                    </div>
+                    <div className={styles.formField}>
+                        <label>License Expiry Date</label>
+                        <input className={styles.inputBox} type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} />
+                    </div>
+                    <div className={`${styles.formField} ${styles.fullWidth}`}>
+                        <label>Profile Photo URL <span>(Optional)</span></label>
+                        <input className={styles.inputBox} value={docPhoto} onChange={e => setDocPhoto(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                    </div>
                  </div>
-                 <button onClick={addDoctor} style={{ marginTop: 24, background: '#e5e7eb', color: '#1f2937', padding: '12px 24px', borderRadius: 20, border: 'none', fontWeight: 600, cursor: 'pointer' }}>+ Add to List</button>
+                 <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                   <button 
+                     onClick={addDoctor} 
+                     style={{ 
+                       background: editingIndex !== null ? '#0284c7' : '#e5e7eb', 
+                       color: editingIndex !== null ? '#ffffff' : '#1f2937', 
+                       padding: '12px 24px', 
+                       borderRadius: 20, 
+                       border: 'none', 
+                       fontWeight: 600, 
+                       cursor: 'pointer' 
+                     }}
+                   >
+                     {editingIndex !== null ? 'Update Detail' : '+ Add to List'}
+                   </button>
+                   {editingIndex !== null && (
+                     <button 
+                       onClick={cancelEdit} 
+                       style={{ background: 'transparent', color: '#6b7280', padding: '12px 24px', borderRadius: 20, border: '1px solid #e5e7eb', fontWeight: 600, cursor: 'pointer' }}
+                     >
+                       Cancel
+                     </button>
+                   )}
+                 </div>
               </div>
 
               <div className={styles.formFooter} style={{ justifyContent: 'flex-start' }}>

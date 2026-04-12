@@ -34,6 +34,8 @@ export default function DoctorProfilePage() {
   const [experience, setExperience] = useState('');
   const [timings, setTimings] = useState('');
   const [fees, setFees] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -51,6 +53,8 @@ export default function DoctorProfilePage() {
       setExperience(doc.experience_years?.toString() || '');
       setTimings(doc.timings || '');
       setFees(doc.fees?.toString() || '');
+      setExpiry(doc.license_expiry_date || '');
+      setPhotoUrl(doc.profile_photo_url || '');
     }
   }, [doctors]);
 
@@ -69,6 +73,8 @@ export default function DoctorProfilePage() {
           gender,
           dob: dob || null,
           registration_number: regNumber,
+          license_expiry_date: expiry || null,
+          profile_photo_url: photoUrl,
           experience_years: parseInt(experience) || 0,
           timings,
           fees: parseInt(fees) || 0
@@ -97,7 +103,11 @@ export default function DoctorProfilePage() {
         {/* Improved Header Area */}
         <div className={styles.headerCard}>
           <div className={styles.avatarSection}>
-            <div className={styles.avatar}>{initials}</div>
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} className={styles.avatar} style={{ objectFit: 'cover' }} />
+            ) : (
+              <div className={styles.avatar}>{initials}</div>
+            )}
             <div className={styles.headerText}>
               <div className={styles.nameRow}>
                 <h2 className={styles.doctorName}>{name || 'Your Name'}</h2>
@@ -250,6 +260,26 @@ export default function DoctorProfilePage() {
                   onChange={(e) => setTimings(e.target.value)}
                   placeholder="e.g. Mon-Sat: 10 AM - 2 PM, 5 PM - 8 PM"
                 />
+              </div>
+
+              <div className={styles.twoCol}>
+                <div className={styles.field}>
+                  <label><Calendar size={14} /> License Expiry Date</label>
+                  <input
+                    type="date"
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label><User size={14} /> Profile Photo URL</label>
+                  <input
+                    type="text"
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                    placeholder="https://example.com/photo.jpg"
+                  />
+                </div>
               </div>
             </div>
           )}

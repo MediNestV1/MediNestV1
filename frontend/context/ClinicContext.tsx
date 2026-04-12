@@ -14,6 +14,8 @@ interface Doctor {
   gender?: string;
   dob?: string;
   registration_number?: string;
+  license_expiry_date?: string;
+  profile_photo_url?: string;
   experience_years?: number;
   timings?: string;
   fees?: number;
