@@ -4,7 +4,7 @@
 }
 
 .main {
-  max-width: 560px;
+  max-width: 640px;
   margin: 0 auto;
   padding: 32px 20px 80px;
   display: flex;
@@ -85,7 +85,8 @@
   letter-spacing: 0.5px;
 }
 
-.field input {
+.field input,
+.select {
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(23, 3, 55, 0.1);
@@ -94,9 +95,11 @@
   color: var(--sanctuary-primary, #170337);
   outline: none;
   transition: border-color 0.2s, background 0.2s;
+  width: 100%;
 }
 
-.field input:focus {
+.field input:focus,
+.select:focus {
   border-color: var(--sanctuary-primary, #170337);
   background: #fff;
 }

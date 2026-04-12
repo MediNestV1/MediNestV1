@@ -14,6 +14,13 @@ export default function DoctorProfilePage() {
   const [qualification, setQualification] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('');
+  const [dob, setDob] = useState('');
+  const [regNumber, setRegNumber] = useState('');
+  const [experience, setExperience] = useState('');
+  const [timings, setTimings] = useState('');
+  const [fees, setFees] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -23,7 +30,14 @@ export default function DoctorProfilePage() {
       setName(doc.name || '');
       setQualification(doc.qualification || '');
       setSpecialty(doc.specialty || '');
-      setPhone(doc.phone || '');
+      setPhone(doc.phone || doc.contact || '');
+      setEmail(doc.email || '');
+      setGender(doc.gender || '');
+      setDob(doc.dob || '');
+      setRegNumber(doc.registration_number || '');
+      setExperience(doc.experience_years?.toString() || '');
+      setTimings(doc.timings || '');
+      setFees(doc.fees?.toString() || '');
     }
   }, [doctors]);
 
@@ -33,7 +47,19 @@ export default function DoctorProfilePage() {
     try {
       const { error } = await supabase
         .from('clinic_doctors')
-        .update({ name, qualification, specialty, phone })
+        .update({ 
+          name, 
+          qualification, 
+          specialty, 
+          phone,
+          email,
+          gender,
+          dob: dob || null,
+          registration_number: regNumber,
+          experience_years: parseInt(experience) || 0,
+          timings,
+          fees: parseInt(fees) || 0
+        })
         .eq('id', doctors[0].id);
       if (error) throw error;
       refresh();
@@ -64,19 +90,69 @@ export default function DoctorProfilePage() {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Basic Information */}
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Personal Details</h3>
+          <h3 className={styles.cardTitle}>Personal Information</h3>
+
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <label>Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Dr. Pradeep Jain"
+              />
+            </div>
+            <div className={styles.field}>
+              <label>Gender</label>
+              <select 
+                value={gender} 
+                onChange={(e) => setGender(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <label>Date of Birth</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+              />
+            </div>
+            <div className={styles.field}>
+              <label>Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. pradeep@example.com"
+              />
+            </div>
+          </div>
 
           <div className={styles.field}>
-            <label>Full Name</label>
+            <label>Contact Phone</label>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Dr. Pradeep Jain"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 9876543210"
             />
           </div>
+        </div>
+
+        {/* Professional Details */}
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>Professional Details</h3>
 
           <div className={styles.field}>
             <label>Qualification</label>
@@ -99,14 +175,45 @@ export default function DoctorProfilePage() {
               />
             </div>
             <div className={styles.field}>
-              <label>Contact Phone</label>
+              <label>Medical Reg. Number</label>
               <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 9876543210"
+                type="text"
+                value={regNumber}
+                onChange={(e) => setRegNumber(e.target.value)}
+                placeholder="e.g. MCI 12345"
               />
             </div>
+          </div>
+
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <label>Experience (Years)</label>
+              <input
+                type="number"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                placeholder="e.g. 15"
+              />
+            </div>
+            <div className={styles.field}>
+              <label>Consultation Fees (₹)</label>
+              <input
+                type="number"
+                value={fees}
+                onChange={(e) => setFees(e.target.value)}
+                placeholder="e.g. 500"
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label>Consultation Timings</label>
+            <input
+              type="text"
+              value={timings}
+              onChange={(e) => setTimings(e.target.value)}
+              placeholder="e.g. Mon-Sat: 10 AM - 2 PM, 5 PM - 8 PM"
+            />
           </div>
         </div>
 

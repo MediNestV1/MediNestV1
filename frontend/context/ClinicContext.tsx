@@ -9,6 +9,14 @@ interface Doctor {
   qualification?: string;
   specialty?: string;
   contact?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  dob?: string;
+  registration_number?: string;
+  experience_years?: number;
+  timings?: string;
+  fees?: number;
   is_active: boolean;
   display_order: number;
 }
