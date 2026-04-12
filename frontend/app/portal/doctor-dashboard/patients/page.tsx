@@ -26,6 +26,7 @@ interface Patient {
 function PatientHistoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const patientId = searchParams?.get('patientId');
   const { clinic } = useClinic();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
