@@ -21,6 +21,7 @@ interface Medicine {
   note: string;
   tier?: 'MUST' | 'OPTIONAL';
   functionalGroup?: string;
+  emoji?: string;
 }
 
 export default function PrescriptionPage() {
@@ -934,7 +935,7 @@ export default function PrescriptionPage() {
                                 gap: '4px'
                               }}
                             >
-                              <span style={{ fontSize: '14px' }}>{med.emoji || '✅'}</span> {med.name} {med.dose && <small>[{med.dose}]</small>}
+                              <span style={{ fontSize: '14px' }}>{(med as any).emoji || '✅'}</span> {med.name} {med.dose && <small>[{med.dose}]</small>}
                             </button>
                           ))}
                         </div>

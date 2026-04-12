@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { API_BASE_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import styles from './page.module.css';
 
 interface Prescription {
@@ -142,10 +144,14 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     setLoadingHistory(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/patient-history/${pId}`);
+      if (!res.ok) {
+        console.warn('⚠️ Clinical history API error - falling back to degraded mode');
+        return;
+      }
       const data = await res.json();
       if (data) setHistory(data);
     } catch (err) {
-      console.error('Error fetching history:', err);
+      console.error('❌ Network error fetching clinical history:', err);
     } finally {
       setLoadingHistory(false);
     }
@@ -528,14 +534,16 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                              Key Clinical Conditions
                           </div>
                           <div className={styles.tagsRow}>
-                             {history?.summary?.keyConditions?.map((c: string, i: number) => (
-                               <div key={i} className={`${styles.tag} ${i ===0 ? styles.tagAlert : styles.tagNormal}`}>
-                                  {i === 0 && <span className={styles.dot} />} {c}
-                               </div>
-                             )) || (
-                               <div className={`${styles.tag} ${styles.tagNormal}`}>Healthy Assessment</div>
-                             )}
-                          </div>
+                              {(history?.summary?.keyConditions && Array.isArray(history.summary.keyConditions)) ? (
+                                history.summary.keyConditions.map((c: string, i: number) => (
+                                  <div key={i} className={`${styles.tag} ${i ===0 ? styles.tagAlert : styles.tagNormal}`}>
+                                     {i === 0 && <span className={styles.dot} />} {c}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className={`${styles.tag} ${styles.tagNormal}`}>Assessment Pending</div>
+                              )}
+                           </div>
                        </section>
 
                        <section className={styles.medsSection}>
@@ -544,23 +552,28 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                              <Link href="#" className={styles.viewHistory}>View History</Link>
                           </div>
                           <div className={styles.medsGrid}>
-                             {history?.summary?.currentMedications?.slice(0, 3).map((m: any, i: number) => (
-                               <div key={i} className={styles.medCard}>
-                                  <div className={styles.medIconBox}>
-                                     {typeof m === 'object' && (m.name.toLowerCase().includes('iv') || m.name.toLowerCase().includes('ors')) ? (
-                                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5"><path d="M10 2v8"/><path d="M14 2v8"/><path d="M8 10h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10Z"/><path d="M8 14h8"/></svg>
-                                     ) : (
-                                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 2v20"/><path d="M2 12h20"/></svg>
-                                     )}
+                              {history?.summary?.currentMedications && Array.isArray(history.summary.currentMedications) && history.summary.currentMedications.length > 0 ? (
+                                history.summary.currentMedications.slice(0, 3).map((m: any, i: number) => (
+                                  <div key={i} className={styles.medCard}>
+                                     <div className={styles.medIconBox}>
+                                        {typeof m === 'object' && (m.name?.toLowerCase().includes('iv') || m.name?.toLowerCase().includes('ors')) ? (
+                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5"><path d="M10 2v8"/><path d="M14 2v8"/><path d="M8 10h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10Z"/><path d="M8 14h8"/></svg>
+                                        ) : (
+                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5"><circle cx="7" cy="7" r="5"/><circle cx="17" cy="17" r="5"/><path d="M12 2v20"/><path d="M2 12h20"/></svg>
+                                        )}
+                                     </div>
+                                     <div className={styles.medInfo}>
+                                        <h4>{typeof m === 'object' ? m.name : m}</h4>
+                                        <div className={styles.medInstruction}>Maintenance Dosage</div>
+                                     </div>
                                   </div>
-                                  <div className={styles.medInfo}>
-                                     <h4>{typeof m === 'object' ? m.name : m}</h4>
-                                     <div className={styles.medInstruction}>1 Tablet • Twice Daily</div>
-                                     <div className={styles.medDuration}>Duration: 7 Days</div>
-                                  </div>
-                               </div>
-                             )) || <p>No maintenance medications listed.</p>}
-                          </div>
+                                ))
+                              ) : (
+                                <div className={styles.emptyPrompt} style={{ padding: 20, textAlign: 'center', background: '#f8fafc', borderRadius: 12, border: '1px dashed #e2e8f0' }}>
+                                   <p style={{ margin: 0, fontSize: 13, color: 'var(--text-soft)' }}>No maintenance medications listed in clinical history.</p>
+                                </div>
+                              )}
+                           </div>
                        </section>
                     </div>
 
