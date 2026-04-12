@@ -137,24 +137,31 @@ router.get('/:patientId', async (req, res) => {
       .from('patient_histories')
       .select('summary_text, updated_at')
       .eq('patient_id', patientId)
-      .single();
+      .maybeSingle();
 
     const latestVisitDate = visits.length > 0 ? new Date(visits[0].visit_date) : new Date(0);
     const summaryUpdateDate = existing?.updated_at ? new Date(existing.updated_at) : new Date(0);
 
     let finalSummary;
-    let needsRefresh = !existing || latestVisitDate > summaryUpdateDate;
+    let needsRefresh = !existing || (latestVisitDate.getTime() > summaryUpdateDate.getTime());
 
     // 2. Decide what to return IMMEDIATELY
     if (existing?.summary_text) {
       try {
         finalSummary = JSON.parse(existing.summary_text);
+        
+        // CRITICAL FIX: If we have visits but the cache says "No previous visits found", 
+        // it means the cache was generated when the patient was empty (RLS or newly added).
+        // Force a refresh now that we have data.
+        if (visits.length > 0 && finalSummary.recentVisitsSummary === "No previous visits found.") {
+          console.log(`🔄 [REFRESH] Empty snapshot detected for ${patient.name}. Forcing AI re-summary.`);
+          needsRefresh = true;
+        }
       } catch (e) {
         finalSummary = calculateHeuristicSummary(visits);
-        needsRefresh = true; // Force refresh if cached JSON is corrupted
+        needsRefresh = true; 
       }
     } else {
-      // First time patient: Return heuristic summary immediately
       finalSummary = calculateHeuristicSummary(visits);
     }
 

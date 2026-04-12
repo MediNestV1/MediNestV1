@@ -7,9 +7,9 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 4001;
 
-// Supabase Initialization - BRUTE FORCE FIX for missing .env
-const supabaseUrl = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
-const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
+// Supabase Initialization - Using Service Role for background tasks
+const supabaseUrl = process.env.SUPABASE_URL || 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTUyODA3OCwiZXhwIjoyMDkxMTA0MDc4fQ.y5UHfrIzvA2AEyuwAU8TDuTimOdRr-9Um4LNpdQxqW0';
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
