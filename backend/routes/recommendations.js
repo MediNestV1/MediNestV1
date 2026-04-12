@@ -4,34 +4,47 @@ const { validatePrescription } = require('../lib/clinicalVault');
 
 // Helper: AI Clinical Suggestion Logic
 async function suggestClinicalPath(cc, findings) {
-  const prompt = `You are a clinical-grade medical decision support system. 
-  Provide a suggested treatment path for the following case.
+  const prompt = `Persona: You are a professional medical decision support system assisting a doctor.
   
+  TASK:
+  1. ANALYZE the symptoms and findings provided below.
+  2. IDENTIFY the most probable diagnosis.
+  3. SUGGEST exactly 1 or 2 clinically relevant medicines for THAT diagnosis only.
+  4. PROVIDE a clinical reason for each medicine (Why is it being prescribed?).
+  5. LIMIT suggests: 1 CORE medicine (treats cause) and max 1 SUPPORTIVE medicine (treats symptoms).
+  6. FORMATTING RULES:
+     - "freq": MUST use standard patterns: 1-0-0, 0-0-1, 1-0-1, 1-1-1, or SOS.
+     - "instructions": MUST use: 'After Meal', 'Before Meal', or 'Empty Stomach' if applicable.
+  7. GENERATE patient-friendly, diagnosis-specific advice (not generic templates).
+
+  CASE DATA:
   Symptoms: ${cc}
-  Diagnosis: ${findings}
+  Current Findings: ${findings}
   
-  CRITICAL REASONING STEPS:
-  1. Determine the "clinicalIntent" (The primary goal, e.g., "Clear Infection", "Symptom Control").
-  2. Determine the "diseaseStage" (e.g., "Early/Mild", "Active/Acute", "Recovery").
-  3. Organize medicines into three tiers:
-     - "CORE": Essential drugs for the primary intent.
-     - "SUPPORTIVE": Secondary drugs for secondary symptoms.
-     - "OPTIONAL": Consider only if needed.
-  4. Assign each drug a "functionalGroup" string from this list [GI_UP, GI_DOWN, GI_SOFT, PAIN, INFLAMMATION, ACID_CONTROL, INFECTION, LOCAL_CARE, OTHER].
-  
-  RULES:
-  - DO NOT prescribe opposite mechanisms (e.g., laxative + anti-diarrheal).
-  - DO NOT over-prescribe. One drug per functional group.
-  - No "defensive" prescribing for symptoms not present.
-  
-  OUTPUT FORMAT (STRICT JSON ONLY):
+  STRICT RULES:
+  - Do NOT mix treatments for different conditions.
+  - Do NOT provide more than 2 medicines.
+  - Do NOT use generic advice like "Rest well" unless it's specifically relevant to the severity.
+  - Respond ONLY with VALID JSON.
+
+  JSON STRUCTURE:
   {
-    "clinicalIntent": "...",
-    "diseaseStage": "...",
+    "probableDiagnosis": "The identified primary diagnosis",
+    "clinicalIntent": "Main objective (e.g., Clear Infection, Rehydration)",
+    "diseaseStage": "Status (e.g., Acute, Sub-acute)",
     "suggestedMeds": [ 
-       { "name": "...", "type": "...", "dose": "...", "freq": "...", "duration": "...", "instructions": "...", "tier": "CORE/SUPPORTIVE/OPTIONAL", "functionalGroup": "..." } 
+       { 
+         "name": "...", 
+         "type": "Tab/Syp/Cap", 
+         "dose": "...", 
+         "freq": "...", 
+         "duration": "...", 
+         "instructions": "...", 
+         "tier": "CORE/SUPPORTIVE", 
+         "reason": "Clear medical reason for the doctor" 
+       } 
     ],
-    "suggestedAdvice": "Concise advice text."
+    "suggestedAdvice": "Specific clinical advice for this condition."
   }`;
 
   try {

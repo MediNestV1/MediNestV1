@@ -59,20 +59,58 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   // --- TABS & HISTORY ---
   const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('AI Summary');
-  const [history, setHistory] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // --- TTS STATE ---
+  // --- TTS & LANGUAGE STATE ---
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showSpeechPopup, setShowSpeechPopup] = useState(false);
+  const [selectedLang, setSelectedLang] = useState('English');
+  const [showLangModal, setShowLangModal] = useState(false);
+
+  const languages = [
+    { name: 'English', sub: 'Default', icon: '🇬🇧', code: 'en-US' },
+    { name: 'Hindi', sub: 'हिन्दी', icon: '🇮🇳', code: 'hi-IN' },
+    { name: 'Bhojpuri', sub: 'भोजपुरी', icon: '🌾', code: 'hi-IN' },
+    { name: 'Bengali', sub: 'বাংলা', icon: '🎨', code: 'bn-IN' },
+    { name: 'Marathi', sub: 'मराठी', icon: '🚩', code: 'mr-IN' },
+    { name: 'Telugu', sub: 'తెలుగు', icon: '🏛️', code: 'te-IN' },
+    { name: 'Tamil', sub: 'தமிழ்', icon: '🛕', code: 'ta-IN' },
+    { name: 'Gujarati', sub: 'ગુજરાતી', icon: '💎', code: 'gu-IN' },
+    { name: 'Urdu', sub: 'اردو', icon: '✍️', code: 'ur-IN' },
+    { name: 'Kannada', sub: 'ಕನ್ನಡ', icon: '🌳', code: 'kn-IN' },
+    { name: 'Odia', sub: 'ଓଡ଼ିଆ', icon: '🌊', code: 'or-IN' },
+    { name: 'Malayalam', sub: 'മലയാളം', icon: '🌴', code: 'ml-IN' },
+    { name: 'Punjabi', sub: 'ਪੰਜਾਬੀ', icon: '🌾', code: 'pa-IN' },
+  ];
+
+  // Show language modal for patients on landing
+  useEffect(() => {
+    if (!user && mounted && activeTab === 'AI Summary') {
+      const hasSeenModal = sessionStorage.getItem(`langModalSeen-${id}`);
+      if (!hasSeenModal) {
+        setShowLangModal(true);
+      }
+    }
+  }, [mounted, activeTab, !!user]);
+
+  const handleLangSelect = (lang: string) => {
+    setSelectedLang(lang);
+    setShowLangModal(false);
+    sessionStorage.setItem(`langModalSeen-${id}`, 'true');
+    // Trigger regeneration in specific language
+    if (rx) {
+      setRx(prev => prev ? ({ ...prev, ai_summary: null }) : null); // Show loader
+      generateAiSummary(rx, patient, lang);
+    }
+  };
 
   // Show popup after a delay when AI Summary is active
   useEffect(() => {
-    if (activeTab === 'AI Summary' && activeSummary && !isSpeaking) {
+    if (activeTab === 'AI Summary' && activeSummary && !isSpeaking && !showLangModal) {
       const timer = setTimeout(() => setShowSpeechPopup(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, !!activeSummary]);
+  }, [activeTab, !!activeSummary, isSpeaking, showLangModal]);
 
   async function fetchHistory(pId: string) {
     if (!pId) return;
@@ -88,8 +126,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     }
   }
 
-  async function generateAiSummary(currentRx: Prescription, pt: Patient | null) {
-    // English Only
+  async function generateAiSummary(currentRx: Prescription, pt: Patient | null, lang: string = 'English') {
+    // Dynamic Language Support
     
     // Hardened Retry Wrapper
     const fetchWithRetry = async (url: string, opts: any, retries = 2): Promise<any> => {
@@ -118,8 +156,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           medicines: typeof currentRx.medicines === 'string' ? JSON.parse(currentRx.medicines) : currentRx.medicines,
           advice: currentRx.advice,
           followUp: currentRx.valid_till,
-          lang: 'English',
-          persist: true 
+          lang: lang,
+          persist: lang === 'English' // Only persist English as default
         })
       });
 
@@ -248,13 +286,21 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
     }
 
     const utterance = new SpeechSynthesisUtterance(script);
-    utterance.lang = isHindi ? 'hi-IN' : 'en-US';
-    utterance.rate = 0.9; // Slightly slower for clarity
     
-    // Find Hindi voice if available
-    if (isHindi) {
-      const voices = window.speechSynthesis.getVoices();
-      const hiVoice = voices.find(v => v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi'));
+    // Find matching voice for selected language
+    const langConfig = languages.find(l => l.name === selectedLang) || languages[0];
+    utterance.lang = langConfig.code;
+    utterance.rate = 0.85; // Slightly slower for Indian regional nuances
+    
+    // Voice selection logic
+    const voices = window.speechSynthesis.getVoices();
+    const targetVoice = voices.find(v => v.lang.startsWith(langConfig.code.slice(0, 2)) || v.name.toLowerCase().includes(selectedLang.toLowerCase()));
+    
+    if (targetVoice) {
+      utterance.voice = targetVoice;
+    } else if (selectedLang === 'Bhojpuri') {
+      // Fallback for Bhojpuri to Hindi voice
+      const hiVoice = voices.find(v => v.lang.startsWith('hi'));
       if (hiVoice) utterance.voice = hiVoice;
     }
 
@@ -826,6 +872,31 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             )}
           </div>
         </main>
+
+        {/* --- LANGUAGE SELECTION MODAL --- */}
+        {showLangModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.langModal}>
+              <h2>Select Language</h2>
+              <p>Choose your preferred language for the AI clinical guide.</p>
+              <div className={styles.langGrid}>
+                {languages.map((l) => (
+                  <div key={l.name} className={styles.langCard} onClick={() => handleLangSelect(l.name)}>
+                    <div className={styles.langIcon}>{l.icon}</div>
+                    <div className={styles.langName}>{l.name}</div>
+                    <div className={styles.langSub}>{l.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <button 
+                style={{ marginTop: 24, background: 'none', border: 'none', color: 'var(--text-soft)', cursor: 'pointer', fontWeight: 700 }}
+                onClick={() => setShowLangModal(false)}
+              >
+                Continue in English
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* --- BROWSER TTS CONTROLS --- */}
         {activeTab === 'AI Summary' && activeSummary && (

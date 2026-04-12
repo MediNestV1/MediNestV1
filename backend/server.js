@@ -96,73 +96,44 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             medicines = typeof dbRx.medicines === 'string' ? JSON.parse(dbRx.medicines) : dbRx.medicines;
         }
 
-        // 2. Prepare Prompt (EMPATHETIC & DETAILED)
-        let prompt;
-        if (lang === 'Hindi') {
-            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
-            
-            INPUT DATA:
-            Patient Name: ${patientName}
-            Symptoms: ${rx.complaints}
-            Findings: ${rx.findings}
-            Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
-            Advice: ${rx.advice}
-            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+        // 2. Prepare Prompt (DYNAMIC MULTILINGUAL)
+        const prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+        
+        INPUT DATA:
+        Patient Name: ${patientName}
+        Symptoms: ${rx.complaints}
+        Findings: ${rx.findings}
+        Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
+        Advice: ${rx.advice}
+        Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
 
-            STRICT RULES:
-            - Write in simple, natural Hindi (not robotic or repetitive).
-            - Keep all medicine names strictly in English.
-            - Avoid repeating any sentence or idea.
-            - Tone: Caring, human, and trustworthy.
-            - Do NOT hallucinate diseases or risks.
-            - Do NOT use Latin letters for Hindi words.
+        OUTPUT LANGUAGE: ${lang}
 
-            JSON Structure (STRICT HINDI INSTRUCTIONS):
+        STRICT RULES:
+        - Write EXCLUSIVELY in the script and natural flow of ${lang}.
+        - If the language is an Indian regional dialect (like Bhojpuri, Magahi), use the appropriate Devanagari script and local conversational tone.
+        - KEEP ALL MEDICINE NAMES IN ENGLISH (Latin script).
+        - Avoid robotic or repetitive phrasing.
+        - Tone: Caring, empathetic, human, and trustworthy.
+        - Do NOT hallucinate diseases or risks.
+        - Respond ONLY with VALID JSON.
+
+        JSON Structure:
+        {
+          "greeting": "A warm greeting in ${lang} adding the patient name ${patientName}",
+          "condition": "Detailed summary of the patient's condition and symptoms in ${lang}. Explain what is happening in a reassuring way.",
+          "medicines": [
             {
-              "greeting": "👋 नमस्ते ${patientName}",
-              "condition": "सरल हिंदी में स्थिति का विस्तृत सार (Detailed Summary)। Symptoms और बीमारी को गहराई से विस्तार से समझाएं।",
-              "medicines": [
-                {
-                  "name": "MedicineName (English only)",
-                  "purpose": "हिंदी में विस्तृत विवरण: क्यों दी गई है + खुराक और लेने के सही तरीके की पूरी जानकारी (Detailed purpose, no repetition)"
-                }
-              ],
-              "expectations": "ठीक होने का विस्तृत विवरण + आश्वासन और सकारात्मक उम्मीद (Detailed recovery details and reassurance)",
-              "care": "विस्तृत और व्यावहारिक सलाह। लक्षणों के आधार पर खान-पान, आराम और परहेज की पूरी जानकारी दें (Comprehensive advice).",
-              "warnings": "सिर्फ ज़रूरी warning signs। अगर कुछ खास नहीं है तो \"\" लौटाओ।",
-              "next_steps": "अगला कदम या फॉलो-अप की विस्तृत जानकारी (Detailed next steps)"
+              "name": "MedicineName (STRICTLY ENGLISH)",
+              "purpose": "Detailed explanation in ${lang} of why this is given and exactly how/when to take it."
             }
-
-            - Respond ONLY with VALID JSON.
-            `;
-        } else {
-            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
-            
-            INPUT DATA:
-            Patient Name: ${patientName}
-            Symptoms: ${rx.complaints}
-            Findings: ${rx.findings}
-            Medicines: ${JSON.stringify(medicines)}
-            Advice: ${rx.advice}
-            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
-
-            Instructions (ENGLISH):
-            - Explain the medical condition in simple, reassuring, and professional terms.
-            - Provide clear diet, rest, and precaution instructions based on symptoms.
-            - Tone: Caring, human, and trustworthy.
-            - Respond ONLY with VALID JSON.
-
-            JSON Structure:
-            {
-              "greeting": "👋 Hello ${patientName}",
-              "condition": "Explanation + reassurance",
-              "medicines": [{"name": "Med Name", "purpose": "Clear purpose and how to take it"}],
-              "expectations": "Recovery timeline & reassurance",
-              "care": "Diet/Rest/Precautions (No filler)",
-              "warnings": ["Real sign to watch out for if condition worsens"],
-              "next_steps": "Follow-up details (Keep it concise)"
-            }`;
+          ],
+          "expectations": "Detailed recovery timeline and positive assurance in ${lang}.",
+          "care": "Practical advice in ${lang} regarding diet, rest, and lifestyle based on symptoms.",
+          "warnings": ["Specific warning signs to watch for in ${lang}. If none, return empty list []"],
+          "next_steps": "Clear follow-up instructions in ${lang}."
         }
+        `;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);

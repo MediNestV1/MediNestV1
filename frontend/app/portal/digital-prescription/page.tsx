@@ -71,7 +71,12 @@ export default function PrescriptionPage() {
   const [aiValidationFlags, setAiValidationFlags] = useState<string[]>([]);
   const [aiIntent, setAiIntent] = useState('');
   const [aiStage, setAiStage] = useState('');
+  const [aiDiagnosis, setAiDiagnosis] = useState('');
+  const [isAutoAiEnabled, setIsAutoAiEnabled] = useState(true);
   const [adviceApproved, setAdviceApproved] = useState(true);
+
+  // 🧠 Smart Trigger Tracking
+  const lastAiHashRef = useRef('');
 
   // 💾 Draft Persistence (Cache) Logic
   useEffect(() => {
@@ -98,6 +103,28 @@ export default function PrescriptionPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const autoAi = localStorage.getItem('medinest_auto_ai');
+    if (autoAi !== null) setIsAutoAiEnabled(JSON.parse(autoAi));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('medinest_auto_ai', JSON.stringify(isAutoAiEnabled));
+  }, [isAutoAiEnabled]);
+
+  // 🤖 AI Auto-Trigger Effect (Smart Persistence)
+  useEffect(() => {
+    if (activeTab === 'rx' && isAutoAiEnabled) {
+      const currentHash = `${cc}|${findings}`;
+      
+      // Only trigger if data exists AND it differs from the last time we suggested
+      if ((cc || findings) && currentHash !== lastAiHashRef.current) {
+        handleAiSuggest();
+        lastAiHashRef.current = currentHash;
+      }
+    }
+  }, [activeTab, isAutoAiEnabled, cc, findings]);
 
   useEffect(() => {
     const draft = { 
@@ -129,17 +156,16 @@ export default function PrescriptionPage() {
       setMeds([]);
       setAdvice('');
       setFollowUp('');
+      setAiDiagnosis('');
       setPtSnapshot(null);
       if (doctors.length !== 1) setDoctor('');
     }
   };
 
   const handleAiSuggest = async () => {
-    if (!cc && !findings) {
-        alert('Please enter symptoms or diagnosis first.');
-        return;
-    }
+    if (!cc && !findings) return; // Silent return for automation
     setIsAiLoading(true);
+    setAiValidationFlags([]);
     try {
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
@@ -148,10 +174,11 @@ export default function PrescriptionPage() {
         });
         const data = await res.json();
         if (data.success && data.suggestions) {
-            const { suggestedMeds, suggestedAdvice, clinicalIntent, diseaseStage } = data.suggestions;
+            const { suggestedMeds, suggestedAdvice, clinicalIntent, diseaseStage, probableDiagnosis } = data.suggestions;
             
             if (clinicalIntent) setAiIntent(clinicalIntent);
             if (diseaseStage) setAiStage(diseaseStage);
+            if (probableDiagnosis) setAiDiagnosis(probableDiagnosis);
 
             if (suggestedMeds) {
               setPendingAiMeds(suggestedMeds.map((s: any) => ({
@@ -163,7 +190,7 @@ export default function PrescriptionPage() {
                   duration: s.duration || '',
                   instructions: s.instructions || '',
                   tier: s.tier || 'SUPPORTIVE',
-                  functionalGroup: s.functionalGroup,
+                  reason: s.reason,
                   note: ''
               })));
             }
@@ -187,13 +214,29 @@ export default function PrescriptionPage() {
     }
   };
 
-  const toggleAiMed = (med: Medicine) => {
-    const exists = meds.some(m => m.name === med.name);
-    if (exists) {
-      setMeds(meds.filter(m => m.name !== med.name));
+  const handleApproveSuggestedMed = (med: Medicine) => {
+    // 1. Fill manual writing section
+    skipSearchRef.current = true; // Prevent DB search from triggering on auto-fill
+    setMName(med.name);
+    setMType(med.type || 'Tab');
+    setMDose(med.dose || '');
+    setMFreq(med.freq || '');
+    
+    // Smart Duration Handling
+    const standardDurations = ['1 Day', '3 Days', '5 Days', '7 Days', '15 Days', '1 Month'];
+    if (med.duration && !standardDurations.includes(med.duration)) {
+      setShowCustomDur(true);
+      setMDur(med.duration);
     } else {
-      setMeds([...meds, med]);
+      setShowCustomDur(false);
+      setMDur(med.duration || '');
     }
+
+    setMInst(med.instructions || '');
+    setMNote(med.note || '');
+
+    // 2. Remove from suggestions list
+    setPendingAiMeds(prev => prev.filter(m => m.name !== med.name));
   };
 
   // 🚀 Real-time Patient Lookup
@@ -292,14 +335,20 @@ export default function PrescriptionPage() {
 
   const addMed = () => {
     if (!mName) return;
+
+    // Sanitize 'None' values back to empty strings for the final Rx
+    const finalFreq = mFreq === 'None' ? '' : mFreq;
+    const finalDur = mDur === 'None' ? '' : mDur;
+    const finalInst = mInst === 'None' ? '' : mInst;
+
     setMeds([...meds, {
       id: Date.now().toString(),
       name: mName,
       type: mType,
       dose: mDose,
-      freq: mFreq,
-      duration: mDur,
-      instructions: mInst,
+      freq: finalFreq,
+      duration: finalDur,
+      instructions: finalInst,
       note: mNote
     }]);
     setMName('');
@@ -489,20 +538,11 @@ export default function PrescriptionPage() {
               <div className={styles.tabContent}>
                 <div className={styles.panelBlock}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Doctor & Patient Details</h3>
+                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Patient Details</h3>
                     <button onClick={handleNewRecord} className={styles.btnLink} style={{ color: '#ef4444', fontSize: '13px', fontWeight: 600 }}>
                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 4 }}><path d="M19 6L6 19M6 6l13 13"/></svg>
                        New Record
                     </button>
-                  </div>
-                  <div className="field">
-                    <label>Consulting Doctor</label>
-                    <select value={doctor} onChange={e => setDoctor(e.target.value)}>
-                      <option value="">Select Doctor...</option>
-                      {doctors.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
                   </div>
 
                   <div className="field" style={{ position: 'relative' }}>
@@ -532,6 +572,7 @@ export default function PrescriptionPage() {
                     )}
                     {isLoadingPts && <div className={styles.sugLoading}>Searching patients...</div>}
                   </div>
+
 
                   {ptSnapshot && (
                       <div className={styles.aiSnapshotBox}>
@@ -573,16 +614,40 @@ export default function PrescriptionPage() {
 
             {activeTab === 'rx' && (
               <div className={styles.tabContent}>
+                
+                {ptSnapshot && (
+                      <div className={styles.aiSnapshotBox} style={{ marginBottom: 20 }}>
+                          <div className={styles.snapshotHeader}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                Clinical Profile Snapshot
+                          </div>
+                          <div className={styles.snapshotData}>
+                              <strong>Recent Conditions:</strong> {ptSnapshot.keyConditions?.join(', ')}<br/>
+                              <strong>Maintenance Meds:</strong> {ptSnapshot.currentMedications?.join(', ')}
+                          </div>
+                      </div>
+                )}
+
                 <div className={styles.panelBlock}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 className={styles.blockTitle} style={{ margin: 0 }}>Prescribe Medicine</h3>
-                    <button 
-                      onClick={handleAiSuggest} 
-                      className={styles.btnAiSuggest}
-                      disabled={isAiLoading}
-                    >
-                       {isAiLoading ? '✨ Recommending...' : '✨ AI Suggest'}
-                    </button>
+                    <h3 className={styles.blockTitle} style={{ margin: 0, border: 'none' }}>Prescribe Medicine</h3>
+                    <div className={styles.aiControlArea}>
+                       <span className={styles.aiStatusLabel}>
+                         {isAiLoading ? (
+                           <span className={styles.aiLoadingText}>✨ Analyzing Case...</span>
+                         ) : (
+                           'AI Auto-Suggest'
+                         )}
+                       </span>
+                       <label className={styles.switch}>
+                          <input 
+                            type="checkbox" 
+                            checked={isAutoAiEnabled} 
+                            onChange={(e) => setIsAutoAiEnabled(e.target.checked)}
+                          />
+                          <span className={`${styles.slider} ${isAiLoading ? styles.sliderLoading : ''}`}></span>
+                       </label>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                     <div className="field" style={{ width: '120px', marginBottom: 0 }}>
@@ -624,7 +689,15 @@ export default function PrescriptionPage() {
 
                   <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                     <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}><option value="" disabled>Frequency</option><option>1-0-0</option><option>0-0-1</option><option>1-0-1</option><option>1-1-1</option><option>SOS</option></select>
+                      <select value={mFreq} onChange={e => setMFreq(e.target.value)}>
+                        <option value="" disabled>Frequency</option>
+                        <option value="None">Not Required</option>
+                        <option>1-0-0</option>
+                        <option>0-0-1</option>
+                        <option>1-0-1</option>
+                        <option>1-1-1</option>
+                        <option>SOS</option>
+                      </select>
                     </div>
                     
                     <div className="field" style={{ flex: 1, marginBottom: 0 }}>
@@ -639,13 +712,27 @@ export default function PrescriptionPage() {
                             setMDur(e.target.value);
                           }
                         }}>
-                          <option value="" disabled>Duration</option><option>1 Day</option><option>3 Days</option><option>5 Days</option><option>7 Days</option><option>15 Days</option><option>1 Month</option><option value="Custom">Custom</option>
+                          <option value="" disabled>Duration</option>
+                          <option value="None">Not Required</option>
+                          <option>1 Day</option>
+                          <option>3 Days</option>
+                          <option>5 Days</option>
+                          <option>7 Days</option>
+                          <option>15 Days</option>
+                          <option>1 Month</option>
+                          <option value="Custom">Custom</option>
                         </select>
                       )}
                     </div>
 
                     <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                      <select value={mInst} onChange={e => setMInst(e.target.value)}><option value="" disabled>Timing</option><option>After Meal</option><option>Before Meal</option><option>Empty Stomach</option></select>
+                      <select value={mInst} onChange={e => setMInst(e.target.value)}>
+                        <option value="" disabled>Timing</option>
+                        <option value="None">Not Required</option>
+                        <option>After Meal</option>
+                        <option>Before Meal</option>
+                        <option>Empty Stomach</option>
+                      </select>
                     </div>
                   </div>
                   
@@ -661,12 +748,14 @@ export default function PrescriptionPage() {
                     <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0', marginBottom: 12 }}>
                       <span className={styles.auditIcon}>📋</span>
                       <div style={{ flex: 1 }}>
-                        <h3 style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>Suggested Treatment Draft</h3>
-                        <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2, fontWeight: 700 }}>
+                        <h3 style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>
+                           Suggested Diagnosis: <span style={{ color: '#6366f1' }}>{aiDiagnosis || 'Analyzing...'}</span>
+                        </h3>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: 700 }}>
                           INTENT: {aiIntent} • STAGE: {aiStage}
                         </div>
                       </div>
-                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); setAiIntent(''); setAiStage(''); }} className={styles.btnClearAudit}>Discard</button>
+                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); setAiIntent(''); setAiStage(''); setAiDiagnosis(''); }} className={styles.btnClearAudit}>Discard AI Draft</button>
                     </div>
                     
                     {aiValidationFlags.length > 0 && (
@@ -686,23 +775,23 @@ export default function PrescriptionPage() {
                         <div key={tier} className={styles.tierSection}>
                           <h4 className={styles.tierTitle}>{tier} Care</h4>
                           <div className={styles.suggestedMedsGrid}>
-                            {tierMeds.map((med) => {
-                              const isAdded = meds.some(m => m.name === med.name);
-                              return (
-                                <div 
-                                  key={med.id} 
-                                  className={`${styles.suggestItem} ${isAdded ? styles.added : ''}`}
-                                  onClick={() => toggleAiMed(med)}
-                                >
-                                  <input type="checkbox" checked={isAdded} readOnly style={{ cursor: 'pointer' }} />
-                                  <div className={styles.suggestContent}>
-                                     <strong>{med.type}. {med.name}</strong>
-                                     <span>{med.dose} • {med.freq} • {med.duration}</span>
-                                     {med.functionalGroup && <small style={{ color: '#94a3b8', fontSize: 10 }}>{med.functionalGroup}</small>}
-                                  </div>
+                            {tierMeds.map((med) => (
+                              <div 
+                                key={med.id} 
+                                className={styles.suggestItem}
+                                onClick={() => handleApproveSuggestedMed(med)}
+                                title="Click to fill details & approve"
+                              >
+                                <div className={styles.suggestCheck}>
+                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
                                 </div>
-                              );
-                            })}
+                                <div className={styles.suggestContent}>
+                                   <strong>{med.type}. {med.name}</strong>
+                                   <span>{med.dose} • {med.freq} • {med.duration}</span>
+                                   {med.reason && <div className={styles.clinicalReason}>{med.reason}</div>}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       );
