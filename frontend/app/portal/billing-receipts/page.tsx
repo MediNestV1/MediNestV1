@@ -49,6 +49,11 @@ export default function BillingPage() {
       alert('Please fill patient name and add at least one service.');
       return;
     }
+
+    if (!clinic?.id) {
+       alert('Clinic information not loaded. Please wait for the page to fully load.');
+       return;
+    }
     
     setIsSaving(true);
     const supabase = createClient();
@@ -66,17 +71,19 @@ export default function BillingPage() {
         total_amount: total,
         items_json: JSON.stringify(items.map(it => ({ desc: it.name, qty: it.qty, amt: it.price }))),
         printed_at: new Date().toISOString(),
-        clinic_id: clinic?.id // Track which clinic this belongs to
+        clinic_id: clinic.id
       }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database Save Error:', error);
+        throw error;
+      }
       
       alert(`Receipt ${receiptNo} saved successfully!`);
-      // Reset form or redirect
-      window.print(); // Optional: trigger print
+      window.print();
     } catch (err: any) {
-      console.error('Save error:', err);
-      alert('Failed to save receipt: ' + err.message);
+      console.error('Save error detail:', err);
+      alert('Failed to save receipt: ' + (err.message || 'Unknown database error. Check your network or permissions.'));
     } finally {
       setIsSaving(false);
     }

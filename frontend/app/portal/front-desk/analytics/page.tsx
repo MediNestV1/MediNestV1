@@ -123,7 +123,6 @@ export default function AnalyticsDashboardPage() {
      }
   }, [baseFilter, baseCustomStart, baseCustomEnd, isComparisonMode, compareFilter, compareCustomStart, compareCustomEnd]);
 
-  useEffect(() => {
     async function fetchAnalytics() {
       if (!clinic) return;
       if (baseFilter === 'Custom...' && (!baseCustomStart || !baseCustomEnd)) return;
@@ -161,6 +160,7 @@ export default function AnalyticsDashboardPage() {
       }
     }
 
+  useEffect(() => {
     fetchAnalytics();
   }, [clinic, computedRanges.base, computedRanges.compare, isComparisonMode]);
 
@@ -614,9 +614,28 @@ export default function AnalyticsDashboardPage() {
         <div className={styles.container}>
           
           <div className={styles.filterRow} style={{ flexWrap: 'wrap', gap: '1rem' }}>
-             <div className={styles.header} style={{ marginBottom: 0 }}>
-               <h1>Clinical Intelligence</h1>
-               <p>AI-aggregated insights and trends across your operations</p>
+             <div className={styles.header} style={{ marginBottom: 0, flex: '1 1 400px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                   <div>
+                     <h1>Clinical Intelligence</h1>
+                     <p>Advanced diagnostic and financial oversight for {clinic?.name}</p>
+                   </div>
+                   <button 
+                     className={styles.refreshBtn} 
+                     onClick={fetchAnalytics}
+                     disabled={isLoading}
+                     title="Refresh Analytics"
+                   >
+                      <svg 
+                       className={isLoading ? styles.spinning : ''} 
+                       width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        <polyline points="22 4 22 10 16 10"></polyline>
+                      </svg>
+                      <span>Refresh Data</span>
+                   </button>
+                </div>
              </div>
              
              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

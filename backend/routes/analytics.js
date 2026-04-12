@@ -45,7 +45,7 @@ router.get('/dashboard', async (req, res) => {
         let promises = [];
         
         let currPresQuery = supabase.from('prescriptions').select('*, patients(*)').eq('clinic_id', clinic_id);
-        let currRecQuery = supabase.from('receipts').select('total_amount').eq('clinic_id', clinic_id);
+        let currRecQuery = supabase.from('receipts').select('total_amount, printed_at').eq('clinic_id', clinic_id);
         
         if (hasBase) {
             currPresQuery = currPresQuery.gte('created_at', baseStart).lte('created_at', baseEnd);
@@ -56,7 +56,7 @@ router.get('/dashboard', async (req, res) => {
         if (doCompare) {
             let prevPresQuery = supabase.from('prescriptions').select('*, patients(*)').eq('clinic_id', clinic_id)
                                         .gte('created_at', compareStart).lte('created_at', compareEnd);
-            let prevRecQuery = supabase.from('receipts').select('total_amount').eq('clinic_id', clinic_id)
+            let prevRecQuery = supabase.from('receipts').select('total_amount, printed_at').eq('clinic_id', clinic_id)
                                         .gte('printed_at', compareStart).lte('printed_at', compareEnd);
             promises.push(prevPresQuery, prevRecQuery);
         }

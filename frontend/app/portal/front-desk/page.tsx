@@ -26,16 +26,31 @@ export default function ReceptionistPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const start = today.toISOString();
+      const end = new Date().toISOString(); // Now
+      
+      // 1. Fetch Prescriptions (Clinical Count)
       const { data, count, error } = await supabase
         .from('prescriptions')
-        .select('*, patients(name, gender, age)')
-        .eq('date', todayStr);
+        .select('*, patients(name, gender, age)', { count: 'exact' })
+        .gte('created_at', start)
+        .lte('created_at', end);
       
+      // 2. Fetch Actual Receipts (Financial Truth)
+      const { data: recData, error: recError } = await supabase
+        .from('receipts')
+        .select('total_amount')
+        .gte('printed_at', start)
+        .lte('printed_at', end);
+
       if (!error && data) {
+        const actualRevenue = (recData || []).reduce((sum, r) => sum + (r.total_amount || 0), 0);
+        
         setTodayCounts({
           patients: count || data.length,
-          revenue: (count || data.length) * 500
+          revenue: actualRevenue
         });
         setRecentPatients(data);
       }
