@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
+import { useClinic } from '@/context/ClinicContext';
+import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 interface BillRecord {
@@ -13,20 +15,45 @@ interface BillRecord {
 }
 
 export default function SearchPage() {
+  const { clinic } = useClinic();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<BillRecord[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const supabase = createClient();
 
-  const handleSearch = () => {
-    // Mock search logic
-    setHasSearched(true);
+  const handleSearch = async () => {
     if (!query) { setResults([]); return; }
+    if (!clinic) return;
+
+    setIsSearching(true);
+    setHasSearched(true);
     
-    // Mock results for UI presentation
-    setResults([
-      { id: 'REC-1001', patient_name: 'Rahul Kumar', phone: '9876543210', amount: 500, date: new Date().toISOString() },
-      { id: 'REC-1002', patient_name: 'Amit Sharma', phone: '9876543211', amount: 1200, date: new Date().toISOString() }
-    ]);
+    try {
+      const { data, error } = await supabase
+        .from('receipts')
+        .select('*')
+        .eq('clinic_id', clinic.id)
+        .or(`patient_name.ilike.%${query}%,patient_phone.ilike.%${query}%,receipt_number.ilike.%${query}%`)
+        .order('printed_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setResults(data.map(r => ({
+          id: r.receipt_number,
+          patient_name: r.patient_name,
+          phone: r.patient_phone,
+          amount: r.total_amount,
+          date: r.printed_at
+        })));
+      }
+    } catch (err: any) {
+      console.error('Search error:', err);
+      alert('Error searching records: ' + err.message);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (

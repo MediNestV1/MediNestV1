@@ -25,8 +25,7 @@ interface Patient {
 function PatientHistoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const patientId = searchParams?.get('patientId');
-  
+  const { clinic } = useClinic();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [summary, setSummary] = useState<string>('');
@@ -38,13 +37,14 @@ function PatientHistoryContent() {
 
   // 1. Fetch patients for grid (Search Mode)
   useEffect(() => {
-    if (patientId) return;
+    if (patientId || !clinic) return;
     
     const fetchPatients = async () => {
       setIsSearching(true);
       const { data, error } = await supabase
         .from('patients')
         .select('*')
+        .eq('clinic_id', clinic.id)
         .or(`name.ilike.%${searchTerm}%,contact.ilike.%${searchTerm}%`)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -57,19 +57,30 @@ function PatientHistoryContent() {
     
     const delayDebounceFn = setTimeout(fetchPatients, 300);
     return () => clearTimeout(delayDebounceFn);
-  }, [patientId, searchTerm, supabase]);
+  }, [patientId, searchTerm, supabase, clinic]);
 
   // 2. Fetch specific history (Detail Mode)
   useEffect(() => {
-    if (!patientId) return;
+    if (!patientId || !clinic) return;
     
     const fetchHistory = async () => {
-      // Fetch patient details
-      const { data: pData } = await supabase.from('patients').select('*').eq('id', patientId).single();
+      // Fetch patient details (with clinic verify)
+      const { data: pData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientId)
+        .eq('clinic_id', clinic.id)
+        .single();
+
       if (pData) setPatient(pData);
 
-      // Fetch visits (prescriptions)
-      const { data: vData } = await supabase.from('prescriptions').select('*').eq('patient_id', patientId).order('created_at', { ascending: false });
+      // Fetch visits (prescriptions) (with clinic verify)
+      const { data: vData } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('clinic_id', clinic.id)
+        .order('created_at', { ascending: false });
       
       if (vData) {
         setVisits(vData.map(v => ({
@@ -78,11 +89,11 @@ function PatientHistoryContent() {
           prescription: v
         })));
         
-        // Use advice as a summary placeholder if summary generating logic is complex
         setSummary(vData[0]?.advice || 'No summary available.');
       }
     };
-  }, [searchTerm, supabase]);
+    fetchHistory();
+  }, [patientId, supabase, clinic]);
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
