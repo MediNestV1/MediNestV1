@@ -31,7 +31,7 @@ export default function SearchPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Search Medical Records" backHref="/portal/receptionist" />
+      <TopBar title="Search Medical Records" backHref="/portal/front-desk" />
       
       <main className={styles.main}>
         <div className={styles.searchBox}>

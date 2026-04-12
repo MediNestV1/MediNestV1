@@ -7,7 +7,7 @@ import styles from './MobileBottomNav.module.css';
 const navItems = [
   {
     label: 'Home',
-    href: '/portal/doctor',
+    href: '/portal/doctor-dashboard',
     exact: true,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -18,7 +18,7 @@ const navItems = [
   },
   {
     label: 'Patients',
-    href: '/portal/doctor/patients',
+    href: '/portal/doctor-dashboard/patients',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -30,7 +30,7 @@ const navItems = [
   },
   {
     label: 'Prescribe',
-    href: '/portal/prescription',
+    href: '/portal/digital-prescription',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -42,7 +42,7 @@ const navItems = [
   },
   {
     label: 'Summary',
-    href: '/portal/summary',
+    href: '/portal/discharge-summary',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M9 11l3 3L22 4"/>

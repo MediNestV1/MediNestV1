@@ -474,7 +474,7 @@ export default function PrescriptionPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Digital Prescription" backHref="/portal/doctor" />
+      <TopBar title="Digital Prescription" backHref="/portal/doctor-dashboard" />
 
       <main className={styles.main}>
         <div className={styles.grid}>

@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Clinic Settings" backHref="/portal/receptionist" />
+      <TopBar title="Clinic Settings" backHref="/portal/front-desk" />
       
       <main className={styles.main}>
         {/* Clinic Profile */}

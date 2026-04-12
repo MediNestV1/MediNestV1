@@ -84,7 +84,7 @@ export default function BillingPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="New Bill & Receipt" backHref="/portal/receptionist" />
+      <TopBar title="New Bill & Receipt" backHref="/portal/front-desk" />
       
       <main className={styles.main}>
         <div className={styles.grid}>

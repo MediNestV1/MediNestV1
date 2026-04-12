@@ -143,7 +143,7 @@ export default function DoctorPage() {
                       COMPLETED
                     </span>
                   </div>
-                  <Link href={`/portal/doctor/patients/${p.patient_id}`} style={{ color: 'var(--sanctuary-ink-l)', textDecoration: 'none' }}>
+                  <Link href={`/portal/doctor-dashboard/patients/${p.patient_id}`} style={{ color: 'var(--sanctuary-ink-l)', textDecoration: 'none' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   </Link>
                 </div>

@@ -87,7 +87,7 @@ export default function DaySummaryPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Clinic Day Summary" backHref="/portal/doctor" />
+      <TopBar title="Clinic Day Summary" backHref="/portal/doctor-dashboard" />
       
       <main className={styles.main}>
         <header className={styles.header}>

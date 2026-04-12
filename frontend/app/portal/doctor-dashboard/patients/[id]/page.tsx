@@ -302,7 +302,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
            <div className={styles.hubHeader}>
               <h2 className={styles.patientTitle}>{activeTab}</h2>
               <div className={styles.actionGroup}>
-                 <button className={`${styles.actionBtn} ${styles.btnPrimary}`} onClick={() => router.push(`/portal/prescription?patientId=${patientId}`)}>
+                 <button className={`${styles.actionBtn} ${styles.btnPrimary}`} onClick={() => router.push(`/portal/digital-prescription?patientId=${patientId}`)}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     New Visit
                  </button>

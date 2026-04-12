@@ -82,7 +82,7 @@ export default function SummaryPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Discharge Summary" backHref="/portal/doctor" />
+      <TopBar title="Discharge Summary" backHref="/portal/doctor-dashboard" />
       
       <main className={styles.main}>
         <div className={styles.grid}>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
-import docStyles from '../doctor/page.module.css'; // Reusing bento/queue styles
+import docStyles from '../doctor-dashboard/page.module.css'; // Reusing bento/queue styles
 
 export default function ReceptionistPage() {
   const [todayCounts, setTodayCounts] = useState({ patients: 0, revenue: 0 });
@@ -50,8 +50,8 @@ export default function ReceptionistPage() {
   ];
 
   const quickActions = [
-    { label: 'Create New Bill', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 3v5h5"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>, href: '/portal/billing' },
-    { label: 'Search Patients', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, href: '/portal/search' },
+    { label: 'Create New Bill', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 3v5h5"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>, href: '/portal/billing-receipts' },
+    { label: 'Search Patients', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, href: '/portal/record-search' },
     { label: 'Register Patient', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>, href: '#' },
   ];
 
@@ -89,7 +89,7 @@ export default function ReceptionistPage() {
              <div className={docStyles.sectionHeader}>
                 <h4>Patient Lobby</h4>
                 <div style={{ display: 'flex', gap: 12 }}>
-                   <Link href="/portal/doctor/patients" style={{ padding: '8px 20px', borderRadius: 30, border: 'none', background: 'var(--sanctuary-primary)', fontSize: 12, fontWeight: 800, color: '#fff', cursor: 'pointer', textDecoration: 'none' }}>Manage All</Link>
+                   <Link href="/portal/doctor-dashboard/patients" style={{ padding: '8px 20px', borderRadius: 30, border: 'none', background: 'var(--sanctuary-primary)', fontSize: 12, fontWeight: 800, color: '#fff', cursor: 'pointer', textDecoration: 'none' }}>Manage All</Link>
                 </div>
              </div>
 
@@ -124,11 +124,11 @@ export default function ReceptionistPage() {
 
                       {activeMenu === p.id && (
                         <div className={styles.dropdownMenu} ref={menuRef}>
-                          <Link href={`/portal/doctor/patients/${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
+                          <Link href={`/portal/doctor-dashboard/patients/${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                             View Profile
                           </Link>
-                          <Link href={`/portal/billing?patientId=${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
+                          <Link href={`/portal/billing-receipts?patientId=${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
                             Generate Bill
                           </Link>
