@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 interface TopBarProps {
   title: string;
@@ -17,8 +17,10 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
   const supabase = createClient();
 
   const handleLogout = async () => {
+    // 1. Client-side sign out (clears local state)
     await supabase.auth.signOut();
-    router.push('/auth');
+    // 2. Server-side sign out (clears cookies and redirects)
+    window.location.href = '/auth/logout';
   };
 
   return (

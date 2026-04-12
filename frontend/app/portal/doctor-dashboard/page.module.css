@@ -1,0 +1,450 @@
+.dashboardHeader {
+  margin-bottom: 48px;
+}
+
+.dashboardHeader h2 {
+  font-family: var(--font-headline);
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  letter-spacing: -1.5px;
+  margin-bottom: 8px;
+}
+
+.dashboardHeader p {
+  color: var(--sanctuary-ink-l);
+  font-size: 16px;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.fullWidthLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.mainCol {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.metricCard {
+  background: #fff;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(23, 3, 55, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metricIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.metricLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+  margin-bottom: 4px;
+}
+
+.metricValue {
+  font-family: var(--font-headline);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.metricTrend {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.sectionBox {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: 1px solid rgba(23, 3, 55, 0.03);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+
+.sectionHeader h4 {
+  font-family: var(--font-headline);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.queueItem {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: center;
+  padding: 24px;
+  background-color: var(--sanctuary-gray-low);
+  border-radius: var(--radius-lg);
+  transition: background 0.2s;
+}
+
+.queueItem:hover {
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.patientInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.patientAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.patientName {
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.patientType {
+  font-size: 12px;
+  color: var(--sanctuary-ink-l);
+}
+
+.timeCol p:first-child {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+}
+
+.timeCol p:last-child {
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Search Styles */
+.searchContainer {
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.searchLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInputIcon {
+  position: absolute;
+  left: 16px;
+  color: var(--sanctuary-ink-l);
+}
+
+.searchField {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border-radius: 16px;
+  background-color: #f4f4ef;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.searchField:focus {
+  background-color: #fff;
+  border-color: var(--sanctuary-primary);
+  box-shadow: 0 4px 12px rgba(23, 3, 55, 0.05);
+}
+
+.searchResults {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(23, 3, 55, 0.15);
+  margin-top: 8px;
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(23, 3, 55, 0.05);
+}
+
+.searchItem {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.03);
+}
+
+.searchItem:last-child {
+  border-bottom: none;
+}
+
+.searchItem:hover {
+  background-color: var(--sanctuary-gray-low);
+}
+
+.searchItemName {
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  font-size: 14px;
+}
+
+.searchItemInfo {
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+}
+
+.noResults {
+  padding: 24px;
+  text-align: center;
+  color: var(--sanctuary-ink-l);
+  font-size: 13px;
+}
+
+.addNewBtn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--sanctuary-primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: transform 0.2s;
+}
+
+.addNewBtn:hover {
+  transform: translateY(-1px);
+}
+
+.clinicalDesk {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.deskHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.deskHeader h4 {
+  font-family: var(--font-headline);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  margin: 0;
+}
+
+.deskHeader .deskIcon {
+  color: var(--sanctuary-primary);
+  opacity: 0.8;
+}
+
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid rgba(23, 3, 55, 0.03);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.actionButton:hover {
+  background: var(--sanctuary-primary);
+}
+
+.actionButtonIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sanctuary-lavender);
+  color: var(--sanctuary-primary);
+}
+
+.actionButton:hover .actionButtonIcon {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+
+.actionButton span:last-child {
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  font-size: 14px;
+}
+
+.actionButton:hover span:last-child {
+  color: #fff;
+}
+
+@media (max-width: 1200px) {
+  .bentoGrid { grid-template-columns: 1fr; }
+  .mainCol, .sideCol { grid-column: span 12; }
+}
+
+@media (max-width: 768px) {
+  .dashboardHeader { margin-bottom: 20px; }
+  .dashboardHeader h2 { font-size: 24px; letter-spacing: -0.5px; }
+  .dashboardHeader p { font-size: 13px; }
+  .metricsRow { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .metricCard { padding: 16px; border-radius: 14px; }
+  .metricValue { font-size: 22px; }
+  .metricIcon { width: 36px; height: 36px; margin-bottom: 12px; }
+  .sectionBox { padding: 16px; border-radius: 16px; }
+  .sectionHeader { margin-bottom: 16px; }
+  .sectionHeader h4 { font-size: 16px; }
+}
+
+@media (max-width: 640px) {
+  /* --- Separate Boxes Mobile Layout ---
+     Each metric becomes a full standalone box.
+     Each patient becomes a distinct card with shadow.
+  */
+  .metricsRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .metricCard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(23, 3, 55, 0.06);
+    border: 1px solid rgba(23, 3, 55, 0.04);
+  }
+
+  .metricIcon {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .queueList {
+    gap: 10px;
+  }
+
+  .queueItem {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(23, 3, 55, 0.05);
+    border: 1px solid rgba(23, 3, 55, 0.04);
+  }
+
+  /* On mobile: show only name + time + arrow, hide extra columns */
+  .timeCol {
+    display: none;
+  }
+
+  .statusBadge {
+    display: none;
+  }
+
+  .patientInfo {
+    flex: 1;
+  }
+
+  .fullWidthLayout {
+    gap: 16px;
+  }
+
+  .sectionBox {
+    background: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .sectionHeader {
+    padding: 0 4px;
+    margin-bottom: 10px;
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 interface Doctor {
   id: string;
@@ -9,6 +9,14 @@ interface Doctor {
   qualification?: string;
   specialty?: string;
   contact?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  dob?: string;
+  registration_number?: string;
+  experience_years?: number;
+  timings?: string;
+  fees?: number;
   is_active: boolean;
   display_order: number;
 }
@@ -32,6 +40,7 @@ interface ClinicContextType {
   loading: boolean;
   user: any;
   refresh: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const ClinicContext = createContext<ClinicContextType>({
@@ -40,6 +49,7 @@ const ClinicContext = createContext<ClinicContextType>({
   loading: true,
   user: null,
   refresh: async () => {},
+  signOut: async () => {},
 });
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
@@ -56,11 +66,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       // First check local session (fast)
       const { data: { session } } = await supabase.auth.getSession();
       let currentUser = session?.user || null;
+      console.log('🔍 ClinicContext: getSession user:', currentUser?.email || 'null');
 
       // If no local session, verify with server (thorough)
       if (!currentUser) {
         const { data: { user: verifiedUser } } = await supabase.auth.getUser();
         currentUser = verifiedUser;
+        console.log('🔍 ClinicContext: getUser (verified) user:', currentUser?.email || 'null');
       }
       
       setUser(currentUser);
@@ -103,6 +115,16 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Redirect to landing page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   useEffect(() => {
     refresh();
 
@@ -120,7 +142,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh }}>
+    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh, signOut }}>
       {children}
     </ClinicContext.Provider>
   );

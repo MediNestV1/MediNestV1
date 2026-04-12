@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 interface Service {
@@ -22,6 +22,11 @@ export default function SettingsPage() {
   const [address, setAddress] = useState(clinic?.address || '');
   const [tagline, setTagline] = useState(clinic?.tagline || '');
 
+  // Doctor Details State (Primary Doctor)
+  const [docName, setDocName] = useState('');
+  const [docQual, setDocQual] = useState('');
+  const [docSpec, setDocSpec] = useState('');
+
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
 
@@ -33,7 +38,12 @@ export default function SettingsPage() {
       setTagline(clinic.tagline || '');
       fetchServices();
     }
-  }, [clinic]);
+    if (doctors && doctors.length > 0) {
+      setDocName(doctors[0].name || '');
+      setDocQual(doctors[0].qualification || '');
+      setDocSpec(doctors[0].specialty || '');
+    }
+  }, [clinic, doctors]);
 
   const supabase = createClient();
 
@@ -69,6 +79,27 @@ export default function SettingsPage() {
       alert('Error: ' + e.message);
     }
   };
+
+  const saveDoctorProfile = async () => {
+    if (!doctors || doctors.length === 0) return;
+    try {
+      const { error } = await supabase
+        .from('clinic_doctors')
+        .update({ 
+          name: docName, 
+          qualification: docQual, 
+          specialty: docSpec 
+        })
+        .eq('id', doctors[0].id);
+      
+      if (error) throw error;
+      alert('Practitioner Profile Updated!');
+      refresh();
+    } catch (e: any) {
+      alert('Error updating doctor profile: ' + e.message);
+    }
+  };
+
 
   const openSheet = () => {
     setIsSheetOpen(true);
@@ -111,7 +142,7 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar title="Clinic Settings" backHref="/portal/receptionist" />
+      <TopBar title="Clinic Settings" backHref="/portal/front-desk" />
       
       <main className={styles.main}>
         {/* Clinic Profile */}
@@ -131,6 +162,25 @@ export default function SettingsPage() {
           </div>
         </div>
         <button className={styles.saveBtn} onClick={saveClinicProfile}>Save Hospital Details</button>
+
+        {/* Doctor Profile */}
+        <div className={styles.sectionLabel} style={{ marginTop: 32 }}>Practitioner Profile</div>
+        <div className={styles.box}>
+          <div className={styles.row}>
+            <span className={styles.rlabel}>Full Name</span>
+            <input type="text" value={docName} onChange={e => setDocName(e.target.value)} placeholder="e.g. Dr. Pradeep Jain" />
+          </div>
+          <div className={styles.row}>
+            <span className={styles.rlabel}>Qualification</span>
+            <input type="text" value={docQual} onChange={e => setDocQual(e.target.value)} placeholder="e.g. MBBS, MD (Medicine)" />
+          </div>
+          <div className={styles.row}>
+            <span className={styles.rlabel}>Specialty</span>
+            <input type="text" value={docSpec} onChange={e => setDocSpec(e.target.value)} placeholder="e.g. Cardiologist" />
+          </div>
+        </div>
+        <button className={styles.saveBtn} onClick={saveDoctorProfile}>Update Practitioner Profile</button>
+
 
         {/* Services List */}
         <div className={styles.sectionLabel} style={{ marginTop: 32 }}>Clinical Services & Fees</div>

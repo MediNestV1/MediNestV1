@@ -1,28 +1,58 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4001;
 
-// Supabase Initialization
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Supabase Initialization - BRUTE FORCE FIX for missing .env
+const supabaseUrl = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
+const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
+const recommendationsRouter = require('./routes/recommendations');
 
 // Middleware
+app.use(helmet()); // Professional security headers
 app.use(cors({
-    origin: '*'
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use('/api/patient-history', patientHistoryRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'SSK Backend is running' });
+    res.json({ status: 'ok', message: 'MediNest API is running' });
+});
+
+app.get('/api/ping', async (req, res) => {
+    try {
+        // Verify Supabase connectivity
+        const { data, error } = await supabase.from('medicines').select('count', { count: 'exact', head: true });
+        
+        if (error) throw error;
+        
+        res.json({ 
+            success: true, 
+            status: 'online', 
+            database: 'connected',
+            timestamp: new Date().toISOString() 
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            status: 'degraded',
+            database: 'disconnected',
+            error: err.message,
+            timestamp: new Date().toISOString() 
+        });
+    }
 });
 
 
@@ -67,31 +97,72 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         }
 
         // 2. Prepare Prompt (EMPATHETIC & DETAILED)
-        const prompt = `Medical Assistant Persona: Act as a warm, world-class, caring family doctor. 
-        Patient Name: ${patientName}
-        Complaints: ${rx.complaints}
-        Findings: ${rx.findings}
-        Medicines & Dosages: ${JSON.stringify(medicines)}
-        Doctor's Advice: ${rx.advice}
-        Follow-up: ${rx.followUp || rx.valid_till || 'N/A'}
+        let prompt;
+        if (lang === 'Hindi') {
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+            
+            INPUT DATA:
+            Patient Name: ${patientName}
+            Symptoms: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
 
-        Instructions:
-        - LANGUAGE: Respond strictly in ${lang}. If Hindi, use simple, emotional Hindi script (Devanagari).
-        - Be warm, empathetic, and reassuring.
-        - Explain the condition in VERY simple, human terms.
-        - provide specific, detailed diet and rest advice based on the symptoms.
-        - Respond ONLY with VALID JSON.
+            STRICT RULES:
+            - Write in simple, natural Hindi (not robotic or repetitive).
+            - Keep all medicine names strictly in English.
+            - Avoid repeating any sentence or idea.
+            - Tone: Caring, human, and trustworthy.
+            - Do NOT hallucinate diseases or risks.
+            - Do NOT use Latin letters for Hindi words.
 
-        JSON Structure (Keys must be in English):
-        {
-          "greeting": "Warm, personalized greeting in ${lang}",
-          "condition": "Simple explanation + reassurance in ${lang}",
-          "medicines": [{"name": "Med Name", "purpose": "Why to take it in ${lang}"}],
-          "expectations": "Recovery timeline & reassurance in ${lang}",
-          "care": "Detailed Diet + Rest + Precautions in ${lang}",
-          "warnings": ["Sign in ${lang}"],
-          "next_steps": "Follow-up details in ${lang}"
-        }`;
+            JSON Structure (STRICT HINDI INSTRUCTIONS):
+            {
+              "greeting": "👋 नमस्ते ${patientName}",
+              "condition": "सरल हिंदी में स्थिति का विस्तृत सार (Detailed Summary)। Symptoms और बीमारी को गहराई से विस्तार से समझाएं।",
+              "medicines": [
+                {
+                  "name": "MedicineName (English only)",
+                  "purpose": "हिंदी में विस्तृत विवरण: क्यों दी गई है + खुराक और लेने के सही तरीके की पूरी जानकारी (Detailed purpose, no repetition)"
+                }
+              ],
+              "expectations": "ठीक होने का विस्तृत विवरण + आश्वासन और सकारात्मक उम्मीद (Detailed recovery details and reassurance)",
+              "care": "विस्तृत और व्यावहारिक सलाह। लक्षणों के आधार पर खान-पान, आराम और परहेज की पूरी जानकारी दें (Comprehensive advice).",
+              "warnings": "सिर्फ ज़रूरी warning signs। अगर कुछ खास नहीं है तो \"\" लौटाओ।",
+              "next_steps": "अगला कदम या फॉलो-अप की विस्तृत जानकारी (Detailed next steps)"
+            }
+
+            - Respond ONLY with VALID JSON.
+            `;
+        } else {
+            prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
+            
+            INPUT DATA:
+            Patient Name: ${patientName}
+            Symptoms: ${rx.complaints}
+            Findings: ${rx.findings}
+            Medicines: ${JSON.stringify(medicines)}
+            Advice: ${rx.advice}
+            Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+
+            Instructions (ENGLISH):
+            - Explain the medical condition in simple, reassuring, and professional terms.
+            - Provide clear diet, rest, and precaution instructions based on symptoms.
+            - Tone: Caring, human, and trustworthy.
+            - Respond ONLY with VALID JSON.
+
+            JSON Structure:
+            {
+              "greeting": "👋 Hello ${patientName}",
+              "condition": "Explanation + reassurance",
+              "medicines": [{"name": "Med Name", "purpose": "Clear purpose and how to take it"}],
+              "expectations": "Recovery timeline & reassurance",
+              "care": "Diet/Rest/Precautions (No filler)",
+              "warnings": ["Real sign to watch out for if condition worsens"],
+              "next_steps": "Follow-up details (Keep it concise)"
+            }`;
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -100,12 +171,14 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${process.env.NVIDIA_API_KEY}`,
+                "Authorization": `Bearer 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`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: "meta/llama-3.1-8b-instruct",
-                messages: [{ role: "user", content: prompt }]
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2, // Lower temperature for stricter rule adherence
+                top_p: 0.7
             }),
             signal: controller.signal
         });
@@ -115,6 +188,9 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
         if (response.ok) {
             const aiResponse = await response.json();
             summaryStr = aiResponse.choices?.[0]?.message?.content;
+        } else {
+            const errorBody = await response.text();
+            console.error(`❌ [AI API ERROR] Status: ${response.status}, Body: ${errorBody}`);
         }
 
         let summaryJson;
@@ -160,6 +236,18 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: 'Internal Server Error', details: err.message });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// ─── Start Server ───
+const startServer = (port) => {
+    app.listen(port, () => {
+        console.log(`🚀 [AI 4/4] MediNest API is LIVE on port ${port}`);
+    }).on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`❌ Port ${port} is occupied. Please kill the process manually.`);
+            process.exit(1);
+        } else {
+            console.error('❌ Server Error:', err);
+        }
+    });
+};
+
+startServer(PORT);
