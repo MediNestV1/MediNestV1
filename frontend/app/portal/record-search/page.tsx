@@ -66,9 +66,13 @@ export default function SearchPage() {
              <input 
                type="text" 
                className={styles.searchInput} 
-               placeholder="Search by Patient Name, Phone or Receipt No..."
+               placeholder="Search by NAME, 10-DIGIT PHONE, or RECEIPT NO..."
                value={query}
-               onChange={(e) => setQuery(e.target.value)}
+               onChange={(e) => {
+                 const val = e.target.value.toUpperCase();
+                 setQuery(val);
+               }}
+               maxLength={15} // Allowing more for names/receipts but hinting 10 for phones
              />
              <button className="btn-primary" onClick={handleSearch}>Search</button>
            </div>

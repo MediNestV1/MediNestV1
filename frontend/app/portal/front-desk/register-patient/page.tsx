@@ -17,7 +17,7 @@ export default function RegisterPatientPage() {
   const [ptSex, setPtSex] = useState('Male');
   const [ptWeight, setPtWeight] = useState('');
   const [ptAddress, setPtAddress] = useState('');
-  const [ptBp, setPtBp] = useState('');
+  const [ptBloodGroup, setPtBloodGroup] = useState('');
   
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,14 +42,16 @@ export default function RegisterPatientPage() {
     setSuccess(null);
 
     try {
-      // 1. Check if patient already exists for this clinic
-      const { data: existing, error: searchError } = await supabase
+      const normalizedName = ptName.trim().toUpperCase();
+      const { data: existingRecords, error: searchError } = await supabase
         .from('patients')
         .select('id, name')
+        .eq('name', normalizedName)
         .eq('contact', cleanPhone)
         .eq('clinic_id', clinic.id)
-        .maybeSingle();
-
+        .limit(1);
+      
+      const existing = existingRecords?.[0];
       if (searchError) throw searchError;
 
       if (existing) {
@@ -62,13 +64,13 @@ export default function RegisterPatientPage() {
       const { error: insertError } = await supabase
         .from('patients')
         .insert([{
-          name: ptName.trim(),
+          name: normalizedName,
           contact: cleanPhone,
           age: ptAge ? parseInt(ptAge) : null,
           gender: ptSex,
           weight: ptWeight ? parseFloat(ptWeight) : null,
           address: ptAddress.trim(),
-          blood_pressure: ptBp.trim(),
+          blood_group: ptBloodGroup.trim().toUpperCase(),
           clinic_id: clinic.id
         }]);
 
@@ -84,13 +86,13 @@ export default function RegisterPatientPage() {
       setPtSex('Male');
       setPtWeight('');
       setPtAddress('');
-      setPtBp('');
+      setPtBloodGroup('');
       
       // Clear success message after 5 seconds
       setTimeout(() => setSuccess(null), 5000);
 
     } catch (err: any) {
-      console.error('Registration error:', err);
+      console.error('❌ Registration error details:', err.message || err, err);
       setError(err.message || 'Failed to register patient. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -130,8 +132,8 @@ export default function RegisterPatientPage() {
                     type="text" 
                     className={styles.inputBox} 
                     value={ptName} 
-                    onChange={e => setPtName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
+                    onChange={e => setPtName(e.target.value.toUpperCase())}
+                    placeholder="e.g. RAHUL SHARMA"
                   />
                 </div>
 
@@ -143,8 +145,12 @@ export default function RegisterPatientPage() {
                     type="tel" 
                     className={styles.inputBox} 
                     value={ptPhone} 
-                    onChange={e => setPtPhone(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPtPhone(val);
+                    }}
                     placeholder="10-digit mobile number"
+                    maxLength={10}
                   />
                 </div>
 
@@ -195,16 +201,16 @@ export default function RegisterPatientPage() {
                   />
                 </div>
 
-                {/* Blood Pressure */}
+                {/* Blood Group */}
                 <div className={styles.formField}>
-                  <label htmlFor="ptBp">Blood Pressure (mmHg)</label>
+                  <label htmlFor="ptBloodGroup">Blood Group (Optional)</label>
                   <input 
-                    id="ptBp"
+                    id="ptBloodGroup"
                     type="text" 
                     className={styles.inputBox} 
-                    value={ptBp} 
-                    onChange={e => setPtBp(e.target.value)}
-                    placeholder="e.g. 120/80"
+                    value={ptBloodGroup} 
+                    onChange={e => setPtBloodGroup(e.target.value.toUpperCase())}
+                    placeholder="e.g. O+, B-, AB+"
                   />
                 </div>
 

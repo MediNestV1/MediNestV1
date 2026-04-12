@@ -93,12 +93,16 @@ export default function BillingPage() {
             <div className={styles.panelBlock}>
               <h3 className={styles.blockTitle}>Patient Details</h3>
               <div className="field">
-                <label>Phone Number (Search)</label>
+                <label>Phone Number (10-digits)</label>
                 <input 
                   type="tel" 
                   value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhone(val);
+                  }} 
                   placeholder="e.g. 9876543210" 
+                  maxLength={10}
                 />
               </div>
               <div className="field">
@@ -106,8 +110,8 @@ export default function BillingPage() {
                 <input 
                   type="text" 
                   value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  placeholder="e.g. Rahul Kumar" 
+                  onChange={(e) => setName(e.target.value.toUpperCase())} 
+                  placeholder="e.g. RAHUL KUMAR" 
                 />
               </div>
               <div className={styles.row2}>

@@ -242,15 +242,32 @@ export default function PrescriptionPage() {
 
     const fetchPatients = async () => {
       setIsLoadingPts(true);
+      const cleanSearch = ptPhone.replace(/\D/g, '').slice(-10);
       try {
-        const { data, error } = await supabase
-          .from('patients')
-          .select('*')
-          .ilike('contact', `%${ptPhone}%`)
-          .limit(5);
+        // 1. Try Clinic-Specific Search First
+        let query = supabase.from('patients').select('*').ilike('contact', `%${cleanSearch}%`);
+        if (clinic?.id) query.eq('clinic_id', clinic.id);
+        
+        let { data, error } = await query.limit(5);
+
+        // 2. Fallback: Systematic Global Search (If clinic search fails for 10-digit input)
+        if ((!data || data.length === 0) && cleanSearch.length === 10) {
+          const globalResult = await supabase
+            .from('patients')
+            .select('*')
+            .ilike('contact', `%${cleanSearch}%`)
+            .limit(1);
+          if (globalResult.data && globalResult.data.length > 0) {
+            data = globalResult.data;
+          }
+        }
         
         if (!error && data) {
           setPtSuggestions(data);
+          // 🚀 AUTO-FETCH: If exactly one match and user typed 10 digits
+          if (data.length === 1 && cleanSearch.length === 10) {
+            handleSelectPatient(data[0]);
+          }
         }
       } catch (err) {
         console.error('Error searching patients:', err);
@@ -263,10 +280,27 @@ export default function PrescriptionPage() {
     return () => clearTimeout(debounce);
   }, [ptPhone]);
 
+  const handleAddNewPatient = () => {
+    skipPtSearchRef.current = true;
+    setPtName('');
+    setPtAge('');
+    setPtSex('Male');
+    setPtWeight('');
+    setCc('');
+    setFindings('');
+    setDiagnosis('');
+    setMeds([]);
+    setPtSnapshot(null);
+    setPtSuggestions([]);
+  };
+
   const handleSelectPatient = async (p: any) => {
     skipPtSearchRef.current = true;
-    setPtName(p.name);
-    setPtPhone(p.contact);
+    const cleanName = p.name ? p.name.toUpperCase() : '';
+    const cleanPhone = p.contact ? p.contact.replace(/\D/g, '').slice(-10) : '';
+    
+    setPtName(cleanName);
+    setPtPhone(cleanPhone);
     setPtAge(p.age || '');
     setPtSex(p.gender || 'Male');
     setPtSuggestions([]);
@@ -383,10 +417,11 @@ export default function PrescriptionPage() {
 
     try {
       let patientId: string;
+      const normalizedName = ptName.trim().toUpperCase();
       const { data: existing, error: pError } = await supabase
         .from('patients')
         .select('id')
-        .eq('name', ptName)
+        .eq('name', normalizedName)
         .eq('contact', cleanPhone)
         .limit(1);
 
@@ -398,7 +433,7 @@ export default function PrescriptionPage() {
       } else {
         const { data: neu, error: cError } = await supabase
           .from('patients')
-          .insert([{ name: ptName, contact: cleanPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
+          .insert([{ name: normalizedName, contact: cleanPhone, age: ptAge, gender: ptSex, clinic_id: clinic?.id }])
           .select()
           .single();
         if (cError) throw cError;
@@ -534,16 +569,33 @@ export default function PrescriptionPage() {
 
                   <div className="field" style={{ position: 'relative' }}>
                     <label>Patient Phone Number</label>
-                    <input 
-                      type="tel" 
-                      value={ptPhone} 
-                      onChange={e => { skipPtSearchRef.current = false; setPtPhone(e.target.value); }} 
-                      placeholder="Start typing contact number..." 
-                      autoComplete="off"
-                      className={styles.mainSearchInput}
-                    />
+                      <input 
+                        type="tel" 
+                        value={ptPhone} 
+                        onChange={e => { 
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          skipPtSearchRef.current = false; 
+                          setPtPhone(val); 
+                        }} 
+                        placeholder="10-digit contact number..." 
+                        autoComplete="off"
+                        maxLength={10}
+                        className={styles.mainSearchInput}
+                      />
                     {ptSuggestions.length > 0 && (
                       <div className={styles.suggestionsDropdown} style={{ top: '100%', width: '100%' }}>
+                        {/* ✨ Add as New Patient Option */}
+                        <div 
+                          className={styles.suggestionItem} 
+                          style={{ borderBottom: '2px solid var(--sanctuary-lavender)', backgroundColor: 'var(--sanctuary-gray-low)' }}
+                          onClick={handleAddNewPatient}
+                        >
+                          <div className={styles.sugMain}>
+                            <strong style={{ color: 'var(--sanctuary-primary)' }}>✨ Add as New Patient (+)</strong>
+                            <span className={styles.sugCat}>Register new member</span>
+                          </div>
+                        </div>
+
                         {ptSuggestions.map((p) => (
                           <div key={p.id} className={styles.suggestionItem} onClick={() => handleSelectPatient(p)}>
                             <div className={styles.sugMain}>
@@ -574,7 +626,16 @@ export default function PrescriptionPage() {
                       </div>
                   )}
 
-                  <div className="field"><label>Patient Full Name</label><input type="text" value={ptName} onChange={e => setPtName(e.target.value)} placeholder="Enter Name" /></div>
+                  <div className="field">
+                    <label>Patient Full Name</label>
+                    <input 
+                      type="text" 
+                      value={ptName} 
+                      onFocus={() => setPtSuggestions([])}
+                      onChange={e => setPtName(e.target.value.toUpperCase())} 
+                      placeholder="ENTER PATIENT NAME" 
+                    />
+                  </div>
                   
                   <div style={{ display: 'flex', gap: '16px' }}>
                     <div className="field" style={{ flex: 1 }}><label>Date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
@@ -651,8 +712,8 @@ export default function PrescriptionPage() {
                       <input 
                         type="text" 
                         value={mName} 
-                        onChange={e => { skipSearchRef.current = false; setMName(e.target.value); }} 
-                        placeholder="Medicine Name or Symptom..." 
+                        onChange={e => { skipSearchRef.current = false; setMName(e.target.value.toUpperCase()); }} 
+                        placeholder="MEDICINE NAME OR SYMPTOM..." 
                         autoComplete="off"
                       />
                       {dbSuggestions.length > 0 && (
