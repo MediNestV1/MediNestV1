@@ -36,6 +36,7 @@ interface AnalyticsData {
   demographics: StatItem[];
   advancedDemographics: any[];
   diseaseTimeline?: any[];
+  revenueTimeline?: { date: string, amount: number }[];
 }
 
 export default function AnalyticsDashboardPage() {
@@ -61,6 +62,7 @@ export default function AnalyticsDashboardPage() {
 
   const [showAllDiagnoses, setShowAllDiagnoses] = useState(false);
   const [showAllMedicines, setShowAllMedicines] = useState(false);
+  const [revenueDrawerOpen, setRevenueDrawerOpen] = useState(false);
 
   const computedRanges = useMemo(() => {
      let bStart = new Date(); let bEnd = new Date();
@@ -309,6 +311,7 @@ export default function AnalyticsDashboardPage() {
 
     const maxDiagnosis = Math.max(...(data.diagnoses.map(d => Number(d.count)) || [1]));
     const maxMedicine = Math.max(...(data.medicines.map(m => Number(m.count)) || [1]));
+    const maxRevenue = Math.max(...(data.revenueTimeline?.map(r => Number(r.amount)) || [1]));
     const totalDemographics = data.demographics.reduce((acc, curr) => acc + Number(curr.count), 0);
 
     let conicStr = '';
@@ -366,10 +369,15 @@ export default function AnalyticsDashboardPage() {
                 </div>
 
                 {/* Gold Revenue Box */}
-                <div className={`${styles.metricBox} ${styles.boxGold}`}>
+                <div 
+                  className={`${styles.metricBox} ${styles.boxGold}`} 
+                  onClick={() => setRevenueDrawerOpen(true)}
+                  style={{ cursor: 'pointer' }}
+                >
                    <div className={styles.metricLabel}>
                       <div className={styles.metricIconWrapper}>💳</div>
-                      Revenue
+                      Revenue 
+                      <span style={{ fontSize: '0.6rem', color: 'var(--sanctuary-primary)', marginLeft: 'auto' }}>View Details ↗</span>
                    </div>
                    <div className={styles.metricValue}>₹{(data.summary?.revenue || 0).toLocaleString()}</div>
                    <div className={styles.metricSubtext}>
@@ -710,6 +718,101 @@ export default function AnalyticsDashboardPage() {
                )}
             </div>
           </div>
+        </div>
+      )}
+      {revenueDrawerOpen && data && (
+        <div className={styles.drawerOverlay} onClick={() => setRevenueDrawerOpen(false)}>
+           <div className={styles.drawerBox} onClick={e => e.stopPropagation()}>
+              <div className={styles.drawerHeader}>
+                 <div>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Revenue Intelligence</h2>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--sanctuary-ink-l)', margin: '4px 0 0 0' }}>Detailed financial performance analysis</p>
+                 </div>
+                 <button className={styles.closeBtn} onClick={() => setRevenueDrawerOpen(false)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                 </button>
+              </div>
+
+              <div className={styles.drawerBody}>
+                 <div className={styles.revenueDetailCard}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--sanctuary-ink-l)', textTransform: 'uppercase' }}>Total Revenue ({baseFilter})</div>
+                    <div className={styles.revenuePrimaryValue}>₹{data.summary.revenue.toLocaleString()}</div>
+                    {isComparisonMode && (
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {renderTrend(data.summary.revenueTrend)}
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--sanctuary-ink-l)' }}>vs Prev. ₹{data.summary.prevRevenue.toLocaleString()}</span>
+                       </div>
+                    )}
+                 </div>
+
+                 {/* Trend Chart (Line) */}
+                 <div className={styles.chartContainer}>
+                    <div className={styles.chartHeader}>
+                       <h4>Revenue Trend</h4>
+                       <span className={styles.cardHeaderBadge}>Dynamic Range</span>
+                    </div>
+                    <div style={{ width: '100%', height: '120px' }}>
+                       <svg viewBox="0 0 300 120" width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                          {/* Grid Lines */}
+                          <line x1="0" y1="0" x2="300" y2="0" stroke="#f1f5f9" strokeWidth="1" />
+                          <line x1="0" y1="60" x2="300" y2="60" stroke="#f1f5f9" strokeWidth="1" />
+                          <line x1="0" y1="120" x2="300" y2="120" stroke="#f1f5f9" strokeWidth="1" />
+
+                          {data.revenueTimeline && data.revenueTimeline.length > 0 ? (() => {
+                             const maxRev = Math.max(1, ...data.revenueTimeline.map(r => r.amount));
+                             const points = data.revenueTimeline.map((pt, idx) => {
+                                const x = (idx / (data.revenueTimeline!.length - 1 || 1)) * 300;
+                                const y = 120 - ((pt.amount / maxRev) * 100); // 20px padding top
+                                return `${x},${y}`;
+                             }).join(' ');
+                             return (
+                                <polyline points={points} fill="none" stroke="var(--sanctuary-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                             );
+                          })() : null}
+                       </svg>
+                    </div>
+                 </div>
+
+                 {/* Daily Breakdown (Bar Chart) */}
+                 <div className={styles.chartContainer}>
+                    <div className={styles.chartHeader}>
+                       <h4>Daily Breakdown</h4>
+                    </div>
+                    <div className={styles.barChart}>
+                       {data.revenueTimeline && data.revenueTimeline.length > 0 ? (
+                         data.revenueTimeline.slice(-7).map((pt, idx) => {
+                            const maxRev = Math.max(1, ...data.revenueTimeline!.map(r => r.amount));
+                            const height = (pt.amount / maxRev) * 100;
+                            const day = new Date(pt.date).toLocaleDateString('en-US', { weekday: 'short' });
+                            return (
+                               <div key={idx} className={styles.barItem} style={{ height: `${height}%` }}>
+                                  <div className={styles.barLabel}>{day}</div>
+                               </div>
+                            )
+                         })
+                       ) : (
+                          <div className={styles.emptyState}>Insufficient data for breakdown</div>
+                       )}
+                    </div>
+                 </div>
+
+                 <div style={{ marginTop: '2rem' }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '1rem' }}>Financial Summary</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--sanctuary-gray-low)', borderRadius: '12px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>Average Ticket Size</span>
+                          <span style={{ fontWeight: 800, color: 'var(--sanctuary-ink)' }}>₹{(data.summary.revenue / (data.summary.totalPatients || 1)).toFixed(0)}</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--sanctuary-gray-low)', borderRadius: '12px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>Busiest Revenue Day</span>
+                          <span style={{ fontWeight: 800, color: 'var(--sanctuary-ink)' }}>
+                             {data.revenueTimeline?.reduce((max, curr) => curr.amount > max.amount ? curr : max, { date: 'N/A', amount: 0 }).date.split('-').reverse().join('/')}
+                          </span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
       )}
     </DashboardLayout>

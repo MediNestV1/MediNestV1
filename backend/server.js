@@ -16,6 +16,7 @@ const patientHistoryRouter = require('./routes/patientHistory');
 const recommendationsRouter = require('./routes/recommendations');
 const queueRouter = require('./routes/queue');
 const analyticsRouter = require('./routes/analytics');
+const notificationsRouter = require('./routes/notifications');
 
 // Validation Helpers
 function isValidHindi(text) {
@@ -37,6 +38,7 @@ app.use('/api/patient-history', patientHistoryRouter);
 app.use('/api/recommendations', recommendationsRouter);
 app.use('/api/queue', queueRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {

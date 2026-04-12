@@ -146,6 +146,19 @@ router.get('/dashboard', async (req, res) => {
             const totalInGroup = sorted.reduce((sum, [,v]) => sum + v, 0);
             return { ageGroup, topDisease, total: totalInGroup };
         }).filter(a => a.total > 0);
+        
+        // Revenue Timeline aggregation
+        const revDateMap = {};
+        currReceipts.forEach(r => {
+            if (r.printed_at) {
+                const dateStr = new Date(r.printed_at).toISOString().split('T')[0];
+                revDateMap[dateStr] = (revDateMap[dateStr] || 0) + (r.total_amount || 0);
+            }
+        });
+        const revenueTimeline = Object.keys(revDateMap).sort().map(d => ({ 
+            date: d, 
+            amount: revDateMap[d] 
+        }));
 
         const summaryData = {
             totalPatients: currData.length,
@@ -176,7 +189,8 @@ router.get('/dashboard', async (req, res) => {
                 medicines: finalMedicines,
                 demographics: Object.entries(genderMap).map(([k,v]) => ({ gender: k, count: v })),
                 advancedDemographics: demoAdvanced,
-                diseaseTimeline: diseaseTimeline
+                diseaseTimeline: diseaseTimeline,
+                revenueTimeline: revenueTimeline
             }
         });
 

@@ -503,7 +503,121 @@
   border-color: var(--sanctuary-ink-l);
 }
 
+/* 🏰 Revenue Drawer Styles */
+.drawerOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(23, 3, 55, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.drawerBox {
+  background: var(--sanctuary-white);
+  width: 100%;
+  max-width: 500px;
+  height: 100%;
+  box-shadow: -10px 0 50px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawerHeader {
+  padding: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawerBody {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.revenueDetailCard {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+}
+
+.revenuePrimaryValue {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--sanctuary-ink);
+  margin: 0.5rem 0;
+}
+
+.chartContainer {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chartHeader h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--sanctuary-ink-l);
+  font-weight: 800;
+  margin: 0;
+}
+
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-top: 20px;
+}
+
+.barItem {
+  flex: 1;
+  background: #fceec5;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: 0.3s ease;
+}
+
+.barItem:hover {
+  background: #fbbf24;
+}
+
+.barLabel {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
