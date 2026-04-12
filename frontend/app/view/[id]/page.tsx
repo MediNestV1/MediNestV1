@@ -46,6 +46,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [history, setHistory] = useState<any>(null);
   
   const hospitalName = clinic?.name || 'MediNest Partner Clinic';
   const hospitalLocation = clinic?.address || 'Location not set';
@@ -66,21 +67,42 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [showSpeechPopup, setShowSpeechPopup] = useState(false);
   const [selectedLang, setSelectedLang] = useState('English');
   const [showLangModal, setShowLangModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const translations: Record<string, any> = {
+    'Hindi': {
+      medicines: 'आपकी दवाएं',
+      care: 'देखभाल और आहार निर्देश',
+      expectations: 'क्या उम्मीद करें',
+      warnings: 'चेतावनी के संकेत',
+      condition: 'आपकी स्थिति',
+      nextSteps: 'अगले कदम',
+      tagline: '✦ सुरक्षित AI एजेंट रिकॉर्ड'
+    },
+    'English': {
+      medicines: 'YOUR MEDICINES',
+      care: 'CARE & DIET INSTRUCTIONS',
+      expectations: 'WHAT TO EXPECT',
+      warnings: 'WARNING SIGNS',
+      condition: 'CONDITION INSIGHT',
+      nextSteps: 'NEXT STEPS',
+      tagline: '✦ Secure AI Agent Record'
+    }
+  };
+
+  const t = translations[selectedLang] || translations['English'];
+
+  // Load language from storage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLang = sessionStorage.getItem(`lang-${id}`);
+      if (savedLang) setSelectedLang(savedLang);
+    }
+  }, [id]);
 
   const languages = [
     { name: 'English', sub: 'Default', icon: '🇬🇧', code: 'en-US' },
     { name: 'Hindi', sub: 'हिन्दी', icon: '🇮🇳', code: 'hi-IN' },
-    { name: 'Bhojpuri', sub: 'भोजपुरी', icon: '🌾', code: 'hi-IN' },
-    { name: 'Bengali', sub: 'বাংলা', icon: '🎨', code: 'bn-IN' },
-    { name: 'Marathi', sub: 'मराठी', icon: '🚩', code: 'mr-IN' },
-    { name: 'Telugu', sub: 'తెలుగు', icon: '🏛️', code: 'te-IN' },
-    { name: 'Tamil', sub: 'தமிழ்', icon: '🛕', code: 'ta-IN' },
-    { name: 'Gujarati', sub: 'ગુજરાતી', icon: '💎', code: 'gu-IN' },
-    { name: 'Urdu', sub: 'اردو', icon: '✍️', code: 'ur-IN' },
-    { name: 'Kannada', sub: 'ಕನ್ನಡ', icon: '🌳', code: 'kn-IN' },
-    { name: 'Odia', sub: 'ଓଡ଼ିଆ', icon: '🌊', code: 'or-IN' },
-    { name: 'Malayalam', sub: 'മലയാളം', icon: '🌴', code: 'ml-IN' },
-    { name: 'Punjabi', sub: 'ਪੰਜਾਬੀ', icon: '🌾', code: 'pa-IN' },
   ];
 
   // Show language modal for patients on landing
@@ -94,9 +116,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   }, [mounted, activeTab, !!user]);
 
   const handleLangSelect = (lang: string) => {
+    if (isGenerating) return;
     setSelectedLang(lang);
     setShowLangModal(false);
     sessionStorage.setItem(`langModalSeen-${id}`, 'true');
+    sessionStorage.setItem(`lang-${id}`, lang);
     // Trigger regeneration in specific language
     if (rx) {
       setRx(prev => prev ? ({ ...prev, ai_summary: null }) : null); // Show loader
@@ -127,6 +151,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   }
 
   async function generateAiSummary(currentRx: Prescription, pt: Patient | null, lang: string = 'English') {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    
     // Dynamic Language Support
     
     // Hardened Retry Wrapper
@@ -138,7 +165,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           if (i === retries) throw new Error(`Fetch failed with status: ${res.status}`);
         } catch (err) {
           if (i === retries) throw err;
-          console.warn(`⚠️ Retrying English AI (${i + 1}/${retries})...`);
+          console.warn(`⚠️ Retrying AI Generation (${i + 1}/${retries})...`);
           await new Promise(r => setTimeout(r, 1000));
         }
       }
@@ -166,7 +193,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         setRx(prev => prev ? ({ ...prev, ai_summary: result.summary }) : null);
       }
     } catch (err) {
-      console.error(`❌ AI Trigger Error after retries:`, err);
+      console.error(`❌ AI Trigger Error:`, err);
+    } finally {
+      setIsGenerating(false);
     }
   }
 
@@ -232,21 +261,17 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     async function triggerSequentially() {
-      if (!rx || loading) return;
+      if (!rx || loading || isGenerating) return;
 
-      // 1. English Priority & Self-Healing
-      // Check if current slot is empty or contains Hindi script (Devanagari range)
-      const isEnglishSlotHindi = rx.ai_summary?.greeting && /[\u0900-\u097F]/.test(rx.ai_summary.greeting);
-      
       // AI Priority & Self-Healing
       if (!rx.ai_summary) {
         console.log("⏱️ AI Snapshot fetch starting...");
-        await generateAiSummary(rx, patient);
+        await generateAiSummary(rx, patient, selectedLang);
       }
     }
 
     triggerSequentially();
-  }, [rx?.id, !!rx?.ai_summary, loading]);
+  }, [rx?.id, !!rx?.ai_summary, loading, selectedLang]);
 
   const followUpDate = rx?.valid_till;
   const meds = rx?.medicines ? (typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines) : [];
@@ -407,24 +432,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            <div className={styles.sidebarFooter}>
-                <div className={styles.drInfoCard}>
-                  <div className={styles.drAvatar}>
-                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e0f2fe', color: '#0369a1', fontWeight: 800 }}>
-                       {(rx?.doctor_name || 'Dr').charAt(0)}
-                     </div>
-                  </div>
-                  <h4 className={styles.drName}>{rx?.doctor_name || 'Consulting Physician'}</h4>
-                  <div className={styles.drId}>ID: {id.slice(0, 6).toUpperCase()}</div>
-                </div>
-                {user && (
-                  <button 
-                    className={styles.newRecordBtn}
-                    onClick={() => router.push('/portal/prescription')}
-                  >
-                     New Record
-                  </button>
-                )}
+            <div className={styles.sidebarFooter} style={{ border: 'none', padding: 0, margin: 0 }}>
+               {/* Sidebar footer content removed as per request */}
             </div>
           </aside>
         )}
@@ -444,11 +453,12 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               </div>
             ) : (
               <>
-                <header className={styles.pageHeader}>
-                   <div className={styles.clinicDetails}>
-                      <div className={styles.clinicNameFinal}>{hospitalName}</div>
-                      <div className={styles.clinicSubFinal}>{user ? (clinic?.tagline || 'Advanced Clinical Hub') : 'Electronic Medical Record'}</div>
-                   </div>
+                 <header className={styles.pageHeader}>
+                    <div className={styles.clinicDetails}>
+                       <div className={styles.clinicNameFinal}>{hospitalName}</div>
+                       <div className={styles.doctorNameTop}>By {rx?.doctor_name || 'Consulting Physician'}</div>
+                       <div className={styles.clinicSubFinal}>{user ? (clinic?.tagline || 'Advanced Clinical Hub') : 'Electronic Medical Record'}</div>
+                    </div>
                    <div className={styles.headerActions}>
                       <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>Export PDF</button>
                        {user && (
@@ -525,9 +535,6 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                <div className={`${styles.tag} ${styles.tagNormal}`}>Healthy Assessment</div>
                              )}
                           </div>
-                          <div className={styles.quoteBox}>
-                             "Patient reports onset of symptoms 48 hours ago after dining out. No previous history of GI distress in the last 6 months. Symptoms peaked last evening."
-                          </div>
                        </section>
 
                        <section className={styles.medsSection}>
@@ -581,7 +588,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                           </div>
                           <div className={styles.demoRow}>
                              <span className={styles.demoLabel}>Preferred Language</span>
-                             <span className={styles.demoVal}>English</span>
+                             <span className={styles.demoVal}>{selectedLang}</span>
                           </div>
                           <div className={styles.demoRow}>
                              <span className={styles.demoLabel}>Residential Status</span>
@@ -702,15 +709,15 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                       <div className={styles.aiContainer}>
                         <div className={styles.aiHero}>
                           <div className={styles.aiHeroText}>
-                            <h1 className={styles.aiGreeting}>{activeSummary?.greeting || 'Hello!'}</h1>
-                            <p className={styles.aiTagline}>Your AI-powered recovery assistant has analyzed your latest records to provide a streamlined clinical guide.</p>
+                            <p className={styles.aiTagline} style={{ fontSize: 13, color: '#4f46e5', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>{t.tagline}</p>
+                            <h1 className={styles.aiGreeting} style={{ marginTop: 0 }}>{activeSummary?.greeting || 'Hello!'}</h1>
                           </div>
                         </div>
 
                         <div className={styles.aiCardMain}>
                           <div className={styles.insightHeader}>
                             <div className={styles.insightIcon}><svg viewBox="0 0 24 24" fill="currentColor" width="20"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
-                            <h3>Prescription Insight</h3>
+                            <h3>{t.condition}</h3>
                           </div>
                           <p className={styles.aiCondition}>{activeSummary?.condition || 'Analyzing your condition...'}</p>
                         </div>
@@ -720,7 +727,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             <div className={styles.medsCard}>
                               <div className={styles.cardHeader}>
                                 <div className={styles.headerIcon}>💊</div>
-                                <h3>Your Medicines</h3>
+                                <h3>{t.medicines}</h3>
                               </div>
                               <div className={styles.medsContent}>
                                 {activeSummary?.medicines?.map((m: any, i: number) => (
@@ -732,6 +739,11 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                         <span className={styles.medTagAI}>Scheduled</span>
                                       </div>
                                       <p className={styles.medPurposeAI}>{m.purpose}</p>
+                                      {m.dosage && (
+                                        <div className={styles.medDosageAI} style={{ marginTop: '8px', padding: '4px 10px', background: '#f5f3ff', color: '#5b21b6', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'inline-block' }}>
+                                           ➡️ {m.dosage}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -741,7 +753,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             <div className={styles.careCard}>
                                <div className={styles.cardHeader}>
                                   <div className={styles.headerIcon}>🥗</div>
-                                  <h3>Care & Diet</h3>
+                                  <h3>{t.care}</h3>
                                </div>
                                <div className={styles.careContent}>
                                   <p>{activeSummary?.care}</p>
@@ -753,7 +765,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             <div className={styles.expectCard}>
                               <div className={styles.cardHeader}>
                                  <div className={styles.headerIcon}>⏳</div>
-                                 <h3>What to Expect</h3>
+                                 <h3>{t.expectations}</h3>
                               </div>
                               <div className={styles.timelineContent}>
                                  <p>{activeSummary?.expectations}</p>
@@ -763,7 +775,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             <div className={styles.warningCard}>
                               <div className={styles.cardHeader}>
                                 <div className={styles.headerIcon}>🚨</div>
-                                <h3 style={{ color: '#ef4444' }}>Warning Signs</h3>
+                                <h3 style={{ color: '#ef4444' }}>{t.warnings}</h3>
                               </div>
                               <div className={styles.warningContent}>
                                 {Array.isArray(activeSummary?.warnings) ? (
@@ -776,6 +788,14 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                   <p>{activeSummary?.warnings || 'No specific warning signs to report.'}</p>
                                 )}
                               </div>
+                            </div>
+
+                            <div className={styles.nextStepsCard} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 20, padding: 24, marginTop: 20 }}>
+                               <div className={styles.cardHeader} style={{ marginBottom: 16 }}>
+                                  <div className={styles.headerIcon}>📅</div>
+                                  <h3 style={{ margin: 0, fontWeight: 900, color: 'var(--text-main)', fontSize: 13 }}>{t.nextSteps}</h3>
+                               </div>
+                               <p style={{ margin: 0, fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6, fontWeight: 500 }}>{activeSummary?.next_steps}</p>
                             </div>
                           </div>
                         </div>

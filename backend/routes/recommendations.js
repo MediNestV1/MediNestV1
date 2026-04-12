@@ -2,53 +2,81 @@ const express = require('express');
 const router = express.Router();
 const { validatePrescription } = require('../lib/clinicalVault');
 
-// Helper: AI Clinical Suggestion Logic
+const { createClient } = require('@supabase/supabase-js');
+
+// Supabase Init (same as server.js)
+const supabaseUrl = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
+const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
+const supabase = createClient(supabaseUrl, supabaseServiceRole);
+
+// Helper: Emoji Mapping for Medicine Categories
+function getCategoryEmoji(category) {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('tab')) return '💊';
+  if (cat.includes('cap')) return '💊';
+  if (cat.includes('inj')) return '💉';
+  if (cat.includes('syp') || cat.includes('susp')) return '🧪';
+  if (cat.includes('crm') || cat.includes('oint') || cat.includes('gel')) return '🧴';
+  if (cat.includes('drop')) return '💧';
+  return '💊'; // Default
+}
+
+// Helper: AI Recommendation Logic (Ranked DB Search + AI Advice)
 async function suggestClinicalPath(cc, findings) {
-  const prompt = `Persona: You are a professional medical decision support system assisting a doctor.
-  
-  TASK:
-  1. ANALYZE the symptoms and findings provided below.
-  2. IDENTIFY the most probable diagnosis.
-  3. SUGGEST exactly 1 or 2 clinically relevant medicines for THAT diagnosis only.
-  4. PROVIDE a clinical reason for each medicine (Why is it being prescribed?).
-  5. LIMIT suggests: 1 CORE medicine (treats cause) and max 1 SUPPORTIVE medicine (treats symptoms).
-  6. FORMATTING RULES:
-     - "freq": MUST use standard patterns: 1-0-0, 0-0-1, 1-0-1, 1-1-1, or SOS.
-     - "instructions": MUST use: 'After Meal', 'Before Meal', or 'Empty Stomach' if applicable.
-  7. GENERATE patient-friendly, diagnosis-specific advice (not generic templates).
-
-  CASE DATA:
-  Symptoms: ${cc}
-  Current Findings: ${findings}
-  
-  STRICT RULES:
-  - Do NOT mix treatments for different conditions.
-  - Do NOT provide more than 2 medicines.
-  - Do NOT use generic advice like "Rest well" unless it's specifically relevant to the severity.
-  - Respond ONLY with VALID JSON.
-
-  JSON STRUCTURE:
-  {
-    "probableDiagnosis": "The identified primary diagnosis",
-    "clinicalIntent": "Main objective (e.g., Clear Infection, Rehydration)",
-    "diseaseStage": "Status (e.g., Acute, Sub-acute)",
-    "suggestedMeds": [ 
-       { 
-         "name": "...", 
-         "type": "Tab/Syp/Cap", 
-         "dose": "...", 
-         "freq": "...", 
-         "duration": "...", 
-         "instructions": "...", 
-         "tier": "CORE/SUPPORTIVE", 
-         "reason": "Clear medical reason for the doctor" 
-       } 
-    ],
-    "suggestedAdvice": "Specific clinical advice for this condition."
-  }`;
-
   try {
-    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    // 🔍 STEP 1: Search Medicines from DB based on Symptom Keywords
+    const keywords = (cc || '').toLowerCase().split(/[\s,]+/).filter(w => w.length > 2);
+    const scoreMap = new Map(); // medicineName -> { data, score }
+
+    if (keywords.length > 0) {
+      for (const kw of keywords) {
+        const { data: rpcData } = await supabase.rpc('search_medicines', { search_term: kw });
+        
+        if (rpcData && rpcData.length > 0) {
+          rpcData.forEach(m => {
+            const existing = scoreMap.get(m.name);
+            if (existing) {
+              existing.score += 1;
+            } else {
+              scoreMap.set(m.name, {
+                name: m.name,
+                category: m.category,
+                strength: m.strength,
+                emoji: getCategoryEmoji(m.category),
+                score: 1,
+                fromInventory: true
+              });
+            }
+          });
+        }
+      }
+    }
+
+    // Sort by score (descending) and limit to Top 5
+    const matchedMeds = Array.from(scoreMap.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    // 🤖 STEP 2: AI Advice ONLY
+    const systemPrompt = `SYSTEM ROLE:
+You are a clinical advisor. Your ONLY task is to provide 2-3 concise, professional clinical advice points (Lifestyle, Diet, or Precaution) for the patient.
+
+FORMAT RULES:
+1. Provide 2-3 pointers ONLY.
+2. Use standard dark bullet points (•) for each point.
+3. DO NOT use emojis.
+4. Place EACH pointer on a NEW LINE.
+5. Keep each pointer under 10 words.
+
+EXAMPLE:
+• Eat fiber-rich foods and curd.
+• Drink plenty of oral rehydration fluids.
+• Avoid strenuous activity for 2 days.
+`;
+
+    const userPrompt = `SYMPTOMS: ${cc} | FINDINGS: ${findings}`;
+
+    const aiRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer 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`,
@@ -56,41 +84,30 @@ async function suggestClinicalPath(cc, findings) {
       },
       body: JSON.stringify({
         model: 'meta/llama-3.1-8b-instruct',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
         temperature: 0.1
       })
     });
 
-    const data = await response.json();
-    let result = data.choices?.[0]?.message?.content?.trim() || '{}';
-    
-    // Cleanup AI artifacts
-    if (result.includes('```json')) {
-      result = result.split('```json')[1].split('```')[0].trim();
-    } else if (result.includes('```')) {
-      result = result.split('```')[1].split('```')[0].trim();
-    }
-    
-    const parsed = JSON.parse(result);
-    
-    // 🔥 SECOND TIER: PATTERN-AWARE VALIDATION
-    if (parsed.suggestedMeds) {
-      const { validMeds, flags } = validatePrescription(parsed.suggestedMeds);
-      parsed.suggestedMeds = validMeds;
-      parsed.validationFlags = flags;
-    }
-    
-    return parsed;
+    const aiData = await aiRes.json();
+    const suggestedAdvice = aiData.choices?.[0]?.message?.content?.trim() || '';
+
+    return { 
+      suggestedMeds: matchedMeds,
+      suggestedAdvice: suggestedAdvice
+    };
   } catch (err) {
-    console.error('❌ [AI ERROR] Clinical Decision Support:', err.message);
-    return { error: "Decision service unavailable" };
+    console.error('❌ [AI ERROR]:', err.message);
+    return { error: `AI Connection: ${err.message}` };
   }
 }
 
 router.post('/suggest', async (req, res) => {
   const { cc, findings } = req.body;
-  
-  console.log(`🤖 [AI] Suggesting treatment path for: ${cc} | ${findings}`);
+  console.log(`🤖 [AI] Ranked Inventory Mode: ${cc} | ${findings}`);
   const suggestions = await suggestClinicalPath(cc, findings);
   res.json({ success: true, suggestions });
 });

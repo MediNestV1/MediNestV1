@@ -42,58 +42,75 @@ const DRUG_REGISTRY = {
 };
 
 /**
- * Validates a list of suggested medicines.
- * suggestedMeds: Array of { name, type, dose, freq, duration, instructions, tier, functionalGroup }
+ * Validates a list of suggested care items.
+ * suggestedMeds: Array of { name, type, tier }
  */
-function validatePrescription(suggestedMeds) {
+function validatePrescription(suggestedMeds, cc = "", findings = "", severity = "", diagnosis = "") {
   const flags = [];
-  const validMeds = [];
+  let validMeds = [];
   
-  // 1. Group analysis
-  const activeFunctionGroups = new Set();
+  const ctx = (cc + " " + findings + " " + diagnosis).toLowerCase();
+
+  // 1. RED FLAG BLOCK (Safety Priority 1)
+  if (severity.toLowerCase() === 'red_flag') {
+    flags.push("🚨 RED FLAG DETECTED: Suggested referral/urgent care only. No outpatient medications advised.");
+    return { validMeds: [], flags }; // Early exit for safety
+  }
+
+  // 2. GASTROENTERITIS CHECK (Safety Priority 2)
+  const isGastro = ctx.includes("diarrhea") || ctx.includes("vomiting") || ctx.includes("gastro") || ctx.includes("stomach flu");
+  const hasORS = suggestedMeds.some(m => m.name.toUpperCase().includes("ORS") || m.name.toUpperCase().includes("ELECTROLYTE"));
   
-  // 2. CONTRADICTORY PATTERN DETECTION
-  suggestedMeds.forEach(m => {
-    const fGroup = m.functionalGroup || getFunctionalGroup(m.name);
-    activeFunctionGroups.add(fGroup);
+  if (isGastro && !hasORS) {
+    validMeds.push({ name: "ORS / Oral Rehydration Solution", type: "non-drug", tier: "MUST" });
+    flags.push("🛡️ SAFETY RULE: Added mandatory ORS for gastroenteritis management.");
+  }
+
+  // 3. ANTIBIOTIC / ANTIVIRAL BLOCK (Safety Priority 3)
+  const isViral = ctx.includes("viral") || ctx.includes("flu") || ctx.includes("cold") || ctx.includes("cough");
+  const isDentalMild = (ctx.includes("tooth") || ctx.includes("dental") || ctx.includes("gum")) && 
+                       !(ctx.includes("abscess") || ctx.includes("swelling") || ctx.includes("infection"));
+
+  const filteredMeds = suggestedMeds.filter(m => {
+    const fGroup = getFunctionalGroup(m.name);
+    const isAntibiotic = fGroup === "INFECTION";
+    
+    if (isAntibiotic && isViral) {
+      flags.push(`🛡️ SAFETY BLOCK: Removed ${m.name} (Antibiotics not advised for viral patterns).`);
+      return false;
+    }
+    if (isAntibiotic && isDentalMild) {
+      flags.push(`🛡️ SAFETY BLOCK: Removed ${m.name} (Antibiotics not advised for non-infectious dental pain).`);
+      return false;
+    }
+    return true;
   });
 
-  CONTRADICTORY_PATTERNS.forEach(pattern => {
-    if (pattern.pair.every(g => activeFunctionGroups.has(g))) {
-      flags.push(`🛡️ CRITICAL PATTERN ERROR: ${pattern.message}`);
+  // 4. PRUNING & PRIORITIZATION (MUST -> OPTIONAL, Limit 3)
+  const mustMeds = filteredMeds.filter(m => (m.tier || '').toUpperCase() === 'MUST');
+  const optionalMeds = filteredMeds.filter(m => (m.tier || '').toUpperCase() === 'OPTIONAL' || (m.tier || '').toUpperCase() === 'SUPPORTIVE');
+
+  // Add MUST items (that aren't already added by safety rules like ORS)
+  mustMeds.forEach(m => {
+    if (validMeds.length < 3 && !validMeds.some(v => v.name.toLowerCase() === m.name.toLowerCase())) {
+       validMeds.push(m);
     }
   });
 
-  // 3. HIERARCHICAL PRUNING (Core -> Supportive -> Optional)
-  // Step A: Keep all CORE
-  const coreMeds = suggestedMeds.filter(m => m.tier === 'CORE');
-  validMeds.push(...coreMeds);
-  const coreFunctionalGroups = new Set(coreMeds.map(m => m.functionalGroup || getFunctionalGroup(m.name)));
+  const currentFunctionalGroups = new Set(validMeds.map(m => getFunctionalGroup(m.name)));
 
-  // Step B: Filter SUPPORTIVE (Keep only one per functional group not covered by CORE)
-  const supportiveMeds = suggestedMeds.filter(m => m.tier === 'SUPPORTIVE');
-  const addedSupportiveGroups = new Set();
-  
-  supportiveMeds.forEach(m => {
-    const fGroup = m.functionalGroup || getFunctionalGroup(m.name);
-    if (!coreFunctionalGroups.has(fGroup) && !addedSupportiveGroups.has(fGroup)) {
+  // Add OPTIONAL items (Fill up to 3 total)
+  for (const m of optionalMeds) {
+    if (validMeds.length >= 3) break;
+    const fGroup = getFunctionalGroup(m.name);
+    
+    if (!currentFunctionalGroups.has(fGroup)) {
       validMeds.push(m);
-      addedSupportiveGroups.add(fGroup);
+      currentFunctionalGroups.add(fGroup);
     } else {
-      flags.push(`PRUNED: Redundant supportive drug for ${FUNCTIONAL_GROUPS[fGroup] || fGroup} (${m.name}) removed.`);
+      flags.push(`PRUNED: Redundant ${m.name} removed to maintain minimal 3-item management.`);
     }
-  });
-
-  // Step C: OPTIONAL (Only keep if total meds < 4 and no functional duplication)
-  const optionalMeds = suggestedMeds.filter(m => m.tier === 'OPTIONAL');
-  optionalMeds.forEach(m => {
-    const fGroup = m.functionalGroup || getFunctionalGroup(m.name);
-    if (validMeds.length < 4 && !activeFunctionGroups.has(fGroup) && !addedSupportiveGroups.has(fGroup) && !coreFunctionalGroups.has(fGroup)) {
-      validMeds.push(m);
-    } else {
-      // Quietly prune optional
-    }
-  });
+  }
 
   return { validMeds, flags };
 }

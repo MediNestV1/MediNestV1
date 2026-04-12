@@ -19,7 +19,7 @@ interface Medicine {
   duration: string;
   instructions: string;
   note: string;
-  tier?: 'CORE' | 'SUPPORTIVE' | 'OPTIONAL';
+  tier?: 'MUST' | 'OPTIONAL';
   functionalGroup?: string;
 }
 
@@ -36,7 +36,6 @@ export default function PrescriptionPage() {
   const [ptAge, setPtAge] = useState('');
   const [ptSex, setPtSex] = useState('Male');
   const [ptWeight, setPtWeight] = useState('');
-  const [doctor, setDoctor] = useState(searchParams.get('doctorName') || '');
   const [followUp, setFollowUp] = useState(''); // Stores Date string
 
   // 🔍 Patient Search & Snapshot
@@ -69,9 +68,12 @@ export default function PrescriptionPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [pendingAiMeds, setPendingAiMeds] = useState<Medicine[]>([]);
   const [aiValidationFlags, setAiValidationFlags] = useState<string[]>([]);
+  const [aiDiagnosis, setAiDiagnosis] = useState('');
+  const [severity, setSeverity] = useState(''); // 'mild', 'moderate', 'red_flag'
   const [aiIntent, setAiIntent] = useState('');
   const [aiStage, setAiStage] = useState('');
-  const [aiDiagnosis, setAiDiagnosis] = useState('');
+  const [aiStatus, setAiStatus] = useState(''); // 'analyzing', 'ready', 'error', or ''
+  const [aiError, setAiError] = useState('');
   const [isAutoAiEnabled, setIsAutoAiEnabled] = useState(true);
   const [adviceApproved, setAdviceApproved] = useState(true);
 
@@ -89,9 +91,6 @@ export default function PrescriptionPage() {
         if (draft.ptAge) setPtAge(draft.ptAge);
         if (draft.ptSex) setPtSex(draft.ptSex);
         if (draft.ptWeight) setPtWeight(draft.ptWeight);
-        if (draft.doctor) setDoctor(draft.doctor);
-        if (draft.cc) setCc(draft.cc);
-        if (draft.findings) setFindings(draft.findings);
         if (draft.meds) setMeds(draft.meds);
         if (draft.advice) setAdvice(draft.advice);
         if (draft.followUp) setFollowUp(draft.followUp);
@@ -113,35 +112,29 @@ export default function PrescriptionPage() {
     localStorage.setItem('medinest_auto_ai', JSON.stringify(isAutoAiEnabled));
   }, [isAutoAiEnabled]);
 
+
   // 🤖 AI Auto-Trigger Effect (Smart Persistence)
   useEffect(() => {
     if (activeTab === 'rx' && isAutoAiEnabled) {
       const currentHash = `${cc}|${findings}`;
       
-      // Only trigger if data exists AND it differs from the last time we suggested
+      // Trigger if we have data AND it's different from our last successful run
       if ((cc || findings) && currentHash !== lastAiHashRef.current) {
         handleAiSuggest();
-        lastAiHashRef.current = currentHash;
       }
     }
   }, [activeTab, isAutoAiEnabled, cc, findings]);
 
   useEffect(() => {
     const draft = { 
-      ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, 
+      ptName, ptPhone, ptAge, ptSex, ptWeight, cc, findings, 
       meds, advice, followUp, pendingAiMeds, adviceApproved 
     };
     localStorage.setItem('medinest_rx_draft', JSON.stringify(draft));
-  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, doctor, cc, findings, meds, advice, followUp, pendingAiMeds, adviceApproved]);
+  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, cc, findings, meds, advice, followUp, pendingAiMeds, adviceApproved]);
 
-  // 🩺 Auto-Select Doctor
-  useEffect(() => {
-    if (!doctor && doctors.length > 0) {
-      if (doctors.length === 1) {
-        setDoctor(doctors[0].name);
-      }
-    }
-  }, [doctors, doctor]);
+  // 🩺 Auto-Select Doctor (Backend logic remains for database attribution)
+  const selectedDoctorObj = doctors.length === 1 ? doctors[0] : doctors.find(d => d.name === searchParams.get('doctorName'));
 
   const handleNewRecord = () => {
     if (window.confirm('Clear current draft and start a new record?')) {
@@ -158,85 +151,80 @@ export default function PrescriptionPage() {
       setFollowUp('');
       setAiDiagnosis('');
       setPtSnapshot(null);
-      if (doctors.length !== 1) setDoctor('');
+      lastAiHashRef.current = ''; // 🔄 Reset AI memory
     }
   };
 
   const handleAiSuggest = async () => {
     if (!cc && !findings) return; // Silent return for automation
+    const currentHash = `${cc}|${findings}`;
     setIsAiLoading(true);
+    setAiStatus('analyzing');
+    setAiError('');
     setAiValidationFlags([]);
     try {
+        console.log('[AI] Analyzing clinical case data...');
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cc, findings })
         });
+        
         const data = await res.json();
-        if (data.success && data.suggestions) {
-            const { suggestedMeds, suggestedAdvice, clinicalIntent, diseaseStage, probableDiagnosis } = data.suggestions;
+        
+        if (data.success && data.suggestions && !data.suggestions.error) {
+            const { suggestedMeds, suggestedAdvice } = data.suggestions;
             
-            if (clinicalIntent) setAiIntent(clinicalIntent);
-            if (diseaseStage) setAiStage(diseaseStage);
-            if (probableDiagnosis) setAiDiagnosis(probableDiagnosis);
-
-            if (suggestedMeds) {
-              setPendingAiMeds(suggestedMeds.map((s: any) => ({
+            if (suggestedMeds && Array.isArray(suggestedMeds)) {
+              setPendingAiMeds(suggestedMeds.map((med: any) => ({
                   id: Math.random().toString(36).substr(2, 9),
-                  name: s.name,
-                  type: s.type || 'Tab',
-                  dose: s.dose || '',
-                  freq: s.freq || '',
-                  duration: s.duration || '',
-                  instructions: s.instructions || '',
-                  tier: s.tier || 'SUPPORTIVE',
-                  reason: s.reason,
+                  name: med.name,
+                  type: med.category || 'Tab',
+                  dose: med.strength || '',
+                  freq: '',
+                  duration: '',
+                  instructions: '',
+                  fromInventory: true,
+                  emoji: med.emoji || '💊',
                   note: ''
               })));
-            }
-
-            if (data.suggestions.validationFlags && data.suggestions.validationFlags.length > 0) {
-              // Store flags for UI display
-              setAiValidationFlags(data.suggestions.validationFlags);
-            } else {
-              setAiValidationFlags([]);
+              if (suggestedMeds.length === 0) setAiStatus('no_suggestions');
+              else setAiStatus('ready');
             }
 
             if (suggestedAdvice) {
               setAdvice(suggestedAdvice);
-              setAdviceApproved(false); // Require approval for AI advice
+              setAdviceApproved(false); // Mark as draft
             }
+            
+            lastAiHashRef.current = currentHash;
+        } else {
+            setAiStatus('error');
+            setAiError(data.suggestions?.error || 'Service Unavailable');
         }
     } catch (err) {
-        console.error('AI Suggestion Error:', err);
+        setAiStatus('error');
+        setAiError('Connection failure');
+        console.error('❌ [AI] Communication failure:', err);
     } finally {
         setIsAiLoading(false);
     }
   };
 
-  const handleApproveSuggestedMed = (med: Medicine) => {
+  const handleApproveSuggestedMed = (med: any) => {
     // 1. Fill manual writing section
     skipSearchRef.current = true; // Prevent DB search from triggering on auto-fill
     setMName(med.name);
-    setMType(med.type || 'Tab');
-    setMDose(med.dose || '');
-    setMFreq(med.freq || '');
+    setMType(med.type);
+    setMDose(med.dose);
+    setMNote('');
     
-    // Smart Duration Handling
-    const standardDurations = ['1 Day', '3 Days', '5 Days', '7 Days', '15 Days', '1 Month'];
-    if (med.duration && !standardDurations.includes(med.duration)) {
-      setShowCustomDur(true);
-      setMDur(med.duration);
-    } else {
-      setShowCustomDur(false);
-      setMDur(med.duration || '');
-    }
-
-    setMInst(med.instructions || '');
-    setMNote(med.note || '');
-
-    // 2. Remove from suggestions list
-    setPendingAiMeds(prev => prev.filter(m => m.name !== med.name));
+    // Remaining details left for doctor
+    setMFreq('');
+    setMDur('');
+    setMInst('');
+    
+    setPendingAiMeds(prev => prev.filter(p => p.id !== med.id));
   };
 
   // 🚀 Real-time Patient Lookup
@@ -365,9 +353,6 @@ export default function PrescriptionPage() {
   const commonCC = ['Fever', 'Cough', 'Cold', 'Loose Motion', 'Vomiting', 'Body Ache', 'Weakness'];
   const commonAdvice = ['Drink plenty of fluids', 'Rest for 2-3 days', 'Light diet', 'Monitor temperature', 'Follow-up if fever persists'];
 
-  // Current Doctor Data
-  const selectedDoctorObj = doctors.find(d => d.name === doctor);
-
   const removeMed = (id: string) => {
     setMeds(meds.filter(m => m.id !== id));
   };
@@ -442,7 +427,7 @@ export default function PrescriptionPage() {
         date: date,
         weight: ptWeight,
         clinic_id: clinic?.id,
-        doctor_name: doctor || selectedDoctorObj?.name || 'Dr. Consultant'
+        doctor_name: selectedDoctorObj?.name || 'Dr. Consultant'
       }]).select('id').single();
 
       if (error) throw error;
@@ -487,7 +472,7 @@ export default function PrescriptionPage() {
     const msg = `🏥 *${clinic?.name || 'MediNest Clinic'}*\n` +
       `━━━━━━━━━━━━━━━\n` +
       `Hello *${ptName}*,\n\n` +
-      `Your digital prescription from *Dr. ${doctor || 'Medical Officer'}* is ready. You can view it here:\n` +
+      `Your digital prescription from *Dr. ${selectedDoctorObj?.name || 'Medical Officer'}* is ready. You can view it here:\n` +
       `🔗 ${shareUrl}\n\n` +
       `📅 *Follow-up Date:* ${displayFollowUp}\n` +
       `━━━━━━━━━━━━━━━\n` +
@@ -632,13 +617,13 @@ export default function PrescriptionPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 className={styles.blockTitle} style={{ margin: 0, border: 'none' }}>Prescribe Medicine</h3>
                     <div className={styles.aiControlArea}>
-                       <span className={styles.aiStatusLabel}>
-                         {isAiLoading ? (
-                           <span className={styles.aiLoadingText}>✨ Analyzing Case...</span>
-                         ) : (
-                           'AI Auto-Suggest'
-                         )}
-                       </span>
+                        <span className={styles.aiStatusLabel}>
+                          {isAiLoading && <span className={styles.aiLoadingText}>✨ Analyzing...</span>}
+                          {!isAiLoading && aiStatus === 'ready' && <span style={{ color: '#10b981' }}>✅ Suggestions Ready</span>}
+                          {!isAiLoading && aiStatus === 'no_suggestions' && <span style={{ color: '#94a3b8' }}>🔍 No suggestions found</span>}
+                          {!isAiLoading && aiStatus === 'error' && <span style={{ color: '#ef4444' }}>⚠️ AI Error: {aiError}</span>}
+                          {!isAiLoading && !aiStatus && 'AI Auto-Suggest'}
+                        </span>
                        <label className={styles.switch}>
                           <input 
                             type="checkbox" 
@@ -743,73 +728,91 @@ export default function PrescriptionPage() {
                   {meds.length > 0 && (<div className={styles.medsList}>{meds.map((m) => (<div key={m.id} className={styles.medItem}><div className={styles.mLeft}><b style={{ color: 'var(--teal)' }}>{m.type}. {m.name}</b> {m.dose}<div className={styles.mDetails}>{m.freq} × {m.duration} · {m.instructions}</div>{m.note && <div className={styles.mNote}>Note: {m.note}</div>}</div><button className={styles.btnRemove} onClick={() => removeMed(m.id)}>×</button></div>))}</div>)}
                 </div>
 
-                {pendingAiMeds.length > 0 && (
-                  <div className={styles.auditContainer} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a' }}>
-                    <div className={styles.auditHeader} style={{ borderColor: '#e2e8f0', marginBottom: 12 }}>
-                      <span className={styles.auditIcon}>📋</span>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ color: '#0f172a', fontWeight: 800, margin: 0 }}>
-                           Suggested Diagnosis: <span style={{ color: '#6366f1' }}>{aiDiagnosis || 'Analyzing...'}</span>
-                        </h3>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: 700 }}>
-                          INTENT: {aiIntent} • STAGE: {aiStage}
-                        </div>
-                      </div>
-                      <button onClick={() => { setPendingAiMeds([]); setAiValidationFlags([]); setAiIntent(''); setAiStage(''); setAiDiagnosis(''); }} className={styles.btnClearAudit}>Discard AI Draft</button>
-                    </div>
+                {(isAiLoading || pendingAiMeds.length > 0 || (advice && !adviceApproved)) && isAutoAiEnabled && (
+                  <div className={styles.auditContainer} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', padding: '16px', borderRadius: '12px' }}>
                     
-                    {aiValidationFlags.length > 0 && (
-                      <div className={styles.validationWarnings}>
-                        {aiValidationFlags.map((flag, i) => (
-                          <div key={i} className={styles.validationFlag}>
-                            <span style={{ marginRight: 8, fontSize: '14px' }}>🛡️</span> {flag}
-                          </div>
-                        ))}
+                    {pendingAiMeds.length > 0 && (
+                      <div className={styles.suggestedMedsArea} style={{ marginBottom: advice ? '20px' : 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Matched Inventory</p>
+                          <button onClick={() => setPendingAiMeds([])} className={styles.btnClearAudit} style={{ fontSize: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>Clear</button>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {pendingAiMeds.map((med) => (
+                            <button 
+                              key={med.id} 
+                              onClick={() => handleApproveSuggestedMed(med)}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#f0fdf4',
+                                border: '1px solid #bbf7d0',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                color: '#166534',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <span style={{ fontSize: '14px' }}>{med.emoji || '✅'}</span> {med.name} {med.dose && <small>[{med.dose}]</small>}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {['CORE', 'SUPPORTIVE', 'OPTIONAL'].map((tier) => {
-                      const tierMeds = pendingAiMeds.filter(m => m.tier === tier);
-                      if (tierMeds.length === 0) return null;
-                      return (
-                        <div key={tier} className={styles.tierSection}>
-                          <h4 className={styles.tierTitle}>{tier} Care</h4>
-                          <div className={styles.suggestedMedsGrid}>
-                            {tierMeds.map((med) => (
-                              <div 
-                                key={med.id} 
-                                className={styles.suggestItem}
-                                onClick={() => handleApproveSuggestedMed(med)}
-                                title="Click to fill details & approve"
-                              >
-                                <div className={styles.suggestCheck}>
-                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
-                                </div>
-                                <div className={styles.suggestContent}>
-                                   <strong>{med.type}. {med.name}</strong>
-                                   <span>{med.dose} • {med.freq} • {med.duration}</span>
-                                   {med.reason && <div className={styles.clinicalReason}>{med.reason}</div>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                    {advice && !adviceApproved && (
+                      <div className={styles.adviceDraftArea} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                           <p style={{ fontSize: '11px', color: '#6366f1', fontWeight: 800, margin: 0 }}>✨ AI CLINICAL GUIDANCE</p>
+                           <span style={{ fontSize: '9px', background: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>DRAFT</span>
                         </div>
-                      );
-                    })}
+                        <div style={{ fontSize: '13px', whiteSpace: 'pre-line', color: '#334155', lineHeight: 1.5, marginBottom: '12px' }}>
+                          {advice}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            onClick={() => setAdviceApproved(true)}
+                            style={{ flex: 1, padding: '8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Accept Advice
+                          </button>
+                          <button 
+                            onClick={() => { setAdvice(''); setAdviceApproved(true); }}
+                            style={{ padding: '8px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className={styles.panelBlock}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 className={styles.blockTitle} style={{ margin: 0 }}>Final Advice & Follow-up</h3>
-                    {!adviceApproved && (
-                      <button 
-                        onClick={() => setAdviceApproved(true)} 
-                        className={styles.btnApprove}
-                      >
-                        ✅ Approve AI Advice
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {!adviceApproved && (
+                        <>
+                          <button 
+                            onClick={() => setAdviceApproved(true)} 
+                            className={styles.btnApprove}
+                          >
+                            ✅ Approve AI Advice
+                          </button>
+                          <button 
+                            onClick={() => { setAdvice(''); setAdviceApproved(true); }} 
+                            className={styles.btnReject}
+                            style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}
+                          >
+                            ❌ Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="field">
                     <textarea 
@@ -844,7 +847,7 @@ export default function PrescriptionPage() {
               {/* 1. Header with Qualifications */}
               <div className={styles.rxHeader}>
                 <div className={styles.headerColumn}>
-                  <div className={styles.drName}>{doctor ? `Dr. ${doctor}` : 'Dr. Consultant Name'}</div>
+                  <div className={styles.drName}>Dr. {selectedDoctorObj?.name || 'Consultant Name'}</div>
                   <div className={styles.drQual}>{selectedDoctorObj?.qualification || 'M.B.B.S., M.D.'}</div>
                   <div className={styles.drSmall}>{selectedDoctorObj?.specialty || 'General Consultant'}</div>
                 </div>
@@ -892,7 +895,7 @@ export default function PrescriptionPage() {
                       ))}
                       {meds.length === 0 && <div className={styles.emptyRx}>Prescribe medicines...</div>}
                     </div>
-                    {advice && <div className={styles.previewAdvice}><b>Advice:</b><br />{advice}</div>}
+                    {advice && <div className={styles.previewAdvice} style={{ whiteSpace: 'pre-line' }}><b>Advice:</b><br />{advice}</div>}
                   </div>
                 </div>
               </div>

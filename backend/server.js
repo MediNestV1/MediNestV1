@@ -15,6 +15,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole);
 const patientHistoryRouter = require('./routes/patientHistory');
 const recommendationsRouter = require('./routes/recommendations');
 
+// Validation Helpers
+function isValidHindi(text) {
+    if (!text) return true;
+    // Check if the text contains Devanagari characters
+    // Allowing for common punctuation and whitespace
+    return /^[\u0900-\u097F\s.,!?:\n-ँ-ःा-्]*$/.test(text);
+}
+
 // Middleware
 app.use(helmet()); // Professional security headers
 app.use(cors({
@@ -69,21 +77,20 @@ app.post('/api/secure-save', async (req, res) => {
     }
 });
 
-// ─── AI SUMMARY (OPENROUTER) ──────────────────────────────────
+// ─── AI SUMMARY (PRODUCTION GRADE) ──────────────────────────────────
 app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
     const { id } = req.params;
     const { lang = 'English', persist = true } = req.body || req.query || {};
     
-    console.log(`🤖 [AI 1/4] Starting ${lang} generation for Rx: ${id} (Persist: ${persist})`);
+    console.log(`🤖 [AI] Starting clinical snapshot for Rx: ${id} (Language: ${lang}, Persist: ${persist})`);
 
     try {
         let rx = req.body || {};
         let patientName = rx.patientName || 'Patient';
         let medicines = rx.medicines || [];
 
-        // 1. Fetch Rx Data ONLY if not provided or incomplete (Zero-Fetch Strategy)
+        // 1. Fetch Rx Data if incomplete
         if (!rx.complaints || !rx.findings) {
-            console.log(`🤖 [AI 2/4] Data incomplete. Fetching from DB...`);
             const { data: dbRx, error: rxError } = await supabase
                 .from('prescriptions')
                 .select('*, patients(name)')
@@ -96,97 +103,132 @@ app.post('/api/prescriptions/:id/ai-summary', async (req, res) => {
             medicines = typeof dbRx.medicines === 'string' ? JSON.parse(dbRx.medicines) : dbRx.medicines;
         }
 
-        // 2. Prepare Prompt (DYNAMIC MULTILINGUAL)
-        const prompt = `Persona: You are a professional medical assistant generating a patient-friendly prescription summary.
-        
-        INPUT DATA:
-        Patient Name: ${patientName}
-        Symptoms: ${rx.complaints}
-        Findings: ${rx.findings}
-        Medicines: ${JSON.stringify(medicines)}  // Format: name, dosage, timing, duration
-        Advice: ${rx.advice}
-        Follow Up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+        // 2. Production Grade Prompt Construction
+        const systemRole = `
+You are the "✦ Secure AI Agent Record", a specialized clinical assistant. Your goal is to provide a reassuring, safe, and professional recovery guide.
 
-        OUTPUT LANGUAGE: ${lang}
+IMPORTANT: RETURN ONLY A PURE JSON OBJECT. NO PREAMBLE. NO GREETINGS. NO INTRODUCTIONS.
 
-        STRICT RULES:
-        - Write EXCLUSIVELY in the script and natural flow of ${lang}.
-        - If the language is an Indian regional dialect (like Bhojpuri, Magahi), use the appropriate Devanagari script and local conversational tone.
-        - KEEP ALL MEDICINE NAMES IN ENGLISH (Latin script).
-        - Avoid robotic or repetitive phrasing.
-        - Tone: Caring, empathetic, human, and trustworthy.
-        - Do NOT hallucinate diseases or risks.
-        - Respond ONLY with VALID JSON.
+AI ROLE:
+- You ONLY explain the doctor's prescription. You DO NOT prescribe or guess.
 
-        JSON Structure:
-        {
-          "greeting": "A warm greeting in ${lang} adding the patient name ${patientName}",
-          "condition": "Detailed summary of the patient's condition and symptoms in ${lang}. Explain what is happening in a reassuring way.",
-          "medicines": [
-            {
-              "name": "MedicineName (STRICTLY ENGLISH)",
-              "purpose": "Detailed explanation in ${lang} of why this is given and exactly how/when to take it."
+MEDICAL RULES (STRICT):
+1. DOSAGE LOGIC: 
+   - IF doctor provided dosage/frequency (e.g., "1-0-1", "SOS"): Show EXACT SAME and explain it (e.g., ${lang === 'Hindi' ? '"1-0-1 (सुबह-दोपहर-शाम)"' : '"1-0-1 (Morning-Noon-Night)"'}).
+   - IF doctor did NOT provide dosage: DO NOT GUESS. Show: ${lang === 'Hindi' ? '"डॉक्टर के अनुसार लें"' : '"As directed by doctor"'}.
+2. FORBIDDEN: NEVER suggest "Twice a day", "Morning/Night", or "5 days" unless explicitly provided in the INPUT med list.
+3. PROTOCOLS: If Dengue/Viral detected, prioritize hydration and bleeding warning signs.
+
+TONE & STYLE:
+- Warm, encouraging, supportive in ${lang}.
+- Use specific emojis: 💊, ⏳, 🥗, 🚨, 📅.
+
+JSON OUTPUT FORMAT:
+{
+  "greeting": "👋 Hello ${patientName} in ${lang}",
+  "condition": "Explanation of the illness in ${lang}",
+  "medicines": [
+    {
+      "name": "Medicine name in ${lang}",
+      "purpose": "Purpose of medicine in ${lang}",
+      "dosage": "Exact dosage from input + explanation ${lang === 'Hindi' ? '(e.g. 1-0-1 (सुबह-दोपहर-शाम))' : '(e.g. 1-0-1 (Morning-Noon-Night))'} OR ${lang === 'Hindi' ? 'डॉक्टर के अनुसार लें' : 'As directed by doctor'}"
+    }
+  ],
+  "expectations": "Brief recovery timeline and what the patient should expect in the next 2-3 days in ${lang}",
+  "care": "Simple diet/rest points in ${lang}",
+  "warnings": ["Alerts in ${lang}"],
+  "next_steps": "Closing in ${lang}"
+}
+`;
+
+        const userPrompt = `
+INPUT DATA:
+- Patient: ${patientName}
+- Diagnosis: ${rx.findings}
+- Symptoms: ${rx.complaints}
+- Medicines: ${JSON.stringify(medicines)}
+- Advice: ${rx.advice}
+- Follow-up Date: ${rx.followUp || rx.valid_till || 'N/A'}
+`;
+
+        let summaryJson = null;
+        let attempts = 0;
+        const maxAttempts = 2;
+
+        while (attempts < maxAttempts && !summaryJson) {
+            attempts++;
+            console.log(`🤖 [AI] Generation attempt ${attempts}/${maxAttempts} for ${lang}...`);
+            
+            const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer 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`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "meta/llama-3.1-8b-instruct",
+                    messages: [
+                        { role: "system", content: systemRole },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 0.1,
+                    max_tokens: 1200, // Increased to prevent truncation
+                    top_p: 1
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`❌ [AI API ERROR]:`, errorText);
+                if (attempts === maxAttempts) throw new Error('AI Service unavailable');
+                continue;
             }
-          ],
-          "expectations": "Detailed recovery timeline and positive assurance in ${lang}.",
-          "care": "Practical advice in ${lang} regarding diet, rest, and lifestyle based on symptoms.",
-          "warnings": ["Specific warning signs to watch for in ${lang}. If none, return empty list []"],
-          "next_steps": "Clear follow-up instructions in ${lang}."
-        }
-        `;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-        console.log(`🤖 [AI 3/4] Calling NVIDIA API in ${lang}...`);
-        const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer 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`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "meta/llama-3.1-8b-instruct",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.2, // Lower temperature for stricter rule adherence
-                top_p: 0.7
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        let summaryStr = null;
-        if (response.ok) {
             const aiResponse = await response.json();
-            summaryStr = aiResponse.choices?.[0]?.message?.content;
-        } else {
-            const errorBody = await response.text();
-            console.error(`❌ [AI API ERROR] Status: ${response.status}, Body: ${errorBody}`);
+            let content = aiResponse.choices?.[0]?.message?.content || '';
+            
+            try {
+                // 1. Standardize cleanup for control characters
+                content = content.replace(/[\u0000-\u001F\u007F-\u009F\uFFFD]/g, '');
+
+                // 2. Locate the JSON block
+                const firstBrace = content.indexOf('{');
+                const lastBrace = content.lastIndexOf('}');
+                
+                if (firstBrace === -1 || lastBrace === -1) {
+                  throw new Error('No JSON object found in AI response');
+                }
+
+                let jsonStr = content.substring(firstBrace, lastBrace + 1);
+
+                // 3. Aggressive Sanitization: Replace literal newlines and tabs with spaces
+                // This is the most common cause of JSON.parse failures in LLM outputs
+                jsonStr = jsonStr.replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\t/g, ' ');
+                
+                const parsed = JSON.parse(jsonStr);
+                
+                // VALIDATION: If lang is Hindi, check if it's pure Hindi
+                if (lang === 'Hindi') {
+                    const isPure = isValidHindi(parsed.condition) && isValidHindi(parsed.care);
+                    if (!isPure && attempts < maxAttempts) {
+                        console.warn(`⚠️ [AI] Language mix detected in Hindi output. Retrying...`);
+                        continue;
+                    }
+                }
+                
+                summaryJson = parsed;
+            } catch (pErr) {
+                console.error(`⚠️ [AI] JSON Extraction failed on attempt ${attempts}: ${pErr.message}`);
+                console.log('--- FAILED CONTENT ---');
+                console.log(content);
+                console.log('----------------------');
+                if (attempts === maxAttempts) throw pErr;
+            }
         }
 
-        let summaryJson;
-        try {
-            const jsonMatch = summaryStr?.match(/\{[\s\S]*\}/);
-            summaryJson = JSON.parse(jsonMatch ? jsonMatch[0] : summaryStr);
-        } catch (parseErr) {
-            console.error(`⚠️ AI JSON Parse Failed. Using emergency fallback.`);
-            summaryJson = {
-                greeting: lang === 'Hindi' ? `नमस्ते ${patientName} 👋` : `Hello ${patientName} 👋`,
-                condition: lang === 'Hindi' ? "हमें आपकी सेहत की फिक्र है। आपकी जल्दी रिकवरी के लिए हमने यह गाइड बनाई है।" : "We care about your health. We've created this guide for your quick recovery.",
-                medicines: Array.isArray(medicines) ? medicines.map(m => ({ name: m.name || 'Medicine', purpose: "As prescribed" })) : [],
-                expectations: lang === 'Hindi' ? "थोड़े ही दिनों में आप बेहतर महसूस करेंगे।" : "You will feel better within a few days.",
-                care: lang === 'Hindi' ? "भरपूर आराम करें और तरल पदार्थ लेते रहें।" : "Rest well and stay hydrated.",
-                warnings: [lang === 'Hindi' ? "अगर तबियत बिगड़े तो तुरंत बताएं" : "Contact us if symptoms worsen"],
-                next_steps: lang === 'Hindi' ? "डॉक्टर की सलाह का पालन करें।" : "Follow the doctor's advice."
-            };
-        }
-
-        // 3. Save to DB ONLY if persist is true (Stateless Hindi Support)
+        // 3. Persist and Return
         if (persist === true || persist === 'true') {
-            console.log(`🤖 [AI 4/4] Persisting summary to DB...`);
             await supabase.from('prescriptions').update({ ai_summary: summaryJson }).eq('id', id);
-        } else {
-            console.log(`🤖 [AI 4/4] Stateless generation (Skipping DB update)`);
         }
 
         res.json({ success: true, summary: summaryJson });
