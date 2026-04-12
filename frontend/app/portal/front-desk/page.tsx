@@ -245,11 +245,19 @@ export default function FrontDeskPage() {
   const handleDrop = async () => {
     const from = dragItem.current, to = dragOverItem.current;
     if (from === null || to === null || from === to) { handleDragEnd(); return; }
+    
+    // 1. Reorder the waiting list
     const reordered = [...waiting];
     const [moved] = reordered.splice(from, 1);
     reordered.splice(to, 0, moved);
-    const baseToken = serving ? 2 : 1;
-    const updated = reordered.map((e, i) => ({ ...e, token_number: baseToken + i }));
+    
+    // 2. Extract and sort existing token numbers to maintain the same sequence
+    // This prevents tokens from resetting to 1/2 when rearranging.
+    const tokens = waiting.map(q => q.token_number).sort((a, b) => a - b);
+    
+    // 3. Map tokens back to the new order
+    const updated = reordered.map((e, i) => ({ ...e, token_number: tokens[i] }));
+    
     setQueue([...(serving ? [serving] : []), ...updated]);
     handleDragEnd();
     try {
