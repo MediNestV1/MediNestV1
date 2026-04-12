@@ -71,8 +71,8 @@ html {
 
 body {
   font-family: 'Inter', sans-serif;
-  color: var(--ink);
-  background: var(--bg);
+  color: var(--sanctuary-ink);
+  background: var(--sanctuary-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -177,7 +177,7 @@ body {
   align-items: center;
   text-align: center;
   text-decoration: none;
-  color: var(--ink);
+  color: var(--sanctuary-ink);
   transition: .25s;
   cursor: pointer;
 }
@@ -252,7 +252,7 @@ body {
 .btn-secondary {
   padding: 12px 24px;
   background: #fff;
-  color: var(--ink);
+  color: var(--sanctuary-ink);
   border: 1.5px solid var(--border);
   border-radius: 12px;
   font-size: 14px;
@@ -269,10 +269,10 @@ body {
   display: block;
   font-size: 11px;
   font-weight: 700;
-  color: var(--ink-l);
+  color: var(--sanctuary-ink-l);
   text-transform: uppercase;
   letter-spacing: .6px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 .field input,
 .field select,
@@ -283,7 +283,7 @@ body {
   border-radius: 10px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
-  color: var(--ink);
+  color: var(--sanctuary-ink);
   background: #f8fafc;
   transition: .2s;
   outline: none;
