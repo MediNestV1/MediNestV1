@@ -42,7 +42,7 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
 
 
   const quickActions = [
-    { label: 'Add a New Patient', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>, href: `/portal/digital-prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
+    { label: 'Add a New Patient', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>, href: '/portal/front-desk/register-patient' },
     { label: 'Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor-dashboard/patients' },
     { label: 'Digital Prescription', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>, href: `/portal/digital-prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
     { label: 'Discharge Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>, href: '/portal/discharge-summary' },
@@ -81,7 +81,7 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
 
         <nav className={styles.nav}>
           {/* --- Doctor's Desk Section --- */}
-          <div className={styles.clinicalDesk} style={{ borderTop: isReceptionist ? 'none' : '1px solid rgba(23, 3, 55, 0.05)', marginTop: isReceptionist ? 0 : '32px' }}>
+          <div className={styles.clinicalDesk} style={{ borderTop: isReceptionist ? 'none' : '1px solid rgba(23, 3, 55, 0.05)', marginTop: isReceptionist ? 0 : '12px' }}>
             <div className={styles.deskHeader}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
               <span>{isReceptionist ? 'Front Office' : 'Doctors Desk'}</span>

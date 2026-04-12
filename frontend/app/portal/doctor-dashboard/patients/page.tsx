@@ -20,6 +20,8 @@ interface Patient {
   contact?: string;
   age?: number;
   gender?: string;
+  address?: string;
+  blood_pressure?: string;
   created_at: string;
 }
 
@@ -109,7 +111,7 @@ function PatientHistoryContent() {
             <p>Access patient hubs and complete clinical records.</p>
           </div>
           <div className={styles.headerActions}>
-             <button className={styles.registerBtn} onClick={() => router.push('/portal/digital-prescription')}>
+             <button className={styles.registerBtn} onClick={() => router.push('/portal/front-desk/register-patient')}>
                Register New Patient
              </button>
           </div>
