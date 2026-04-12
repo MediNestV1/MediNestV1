@@ -563,9 +563,9 @@ export default function PrescriptionPage() {
                   <div className="field">
                     <label>Chief Complaints</label>
                     <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
-                    <textarea rows={3} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
+                    <textarea rows={4} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
                   </div>
-                  <div className="field"><label>Diagnosis</label><textarea rows={3} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Findings..." /></div>
+                  <div className="field"><label>Diagnosis</label><textarea rows={4} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Findings..." /></div>
                 </div>
                 <button className="btn-primary" onClick={() => setActiveTab('rx')} style={{ width: '100%', justifyContent: 'center' }}>Next: Medicines →</button>
               </div>
@@ -724,7 +724,7 @@ export default function PrescriptionPage() {
                   </div>
                   <div className="field">
                     <textarea 
-                      rows={2} 
+                      rows={5} 
                       value={advice} 
                       onChange={e => {
                         setAdvice(e.target.value);
