@@ -89,7 +89,7 @@ body {
 
 /* ── Topbar ── */
 .ssk-topbar {
-  background: linear-gradient(135deg, var(--teal-d) 0%, var(--teal) 100%);
+  background: var(--sanctuary-primary);
   color: #fff;
   padding: 0 20px;
   height: 54px;
@@ -99,7 +99,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 3px 16px rgba(10,124,110,.25);
+  box-shadow: 0 3px 16px rgba(23, 3, 55, 0.2);
 }
 
 .topbar-back {
@@ -230,7 +230,7 @@ body {
 /* ── Buttons ── */
 .btn-primary {
   padding: 13px 28px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-mid));
+  background: var(--sanctuary-primary);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -245,7 +245,7 @@ body {
 }
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(10,124,110,.3);
+  box-shadow: 0 8px 20px rgba(23, 3, 55, 0.3);
 }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
@@ -261,7 +261,7 @@ body {
   cursor: pointer;
   transition: .2s;
 }
-.btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+.btn-secondary:hover { border-color: var(--sanctuary-primary); color: var(--sanctuary-primary); }
 
 /* ── Form Fields ── */
 .field { margin-bottom: 16px; }
@@ -291,9 +291,9 @@ body {
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--teal);
+  border-color: var(--sanctuary-primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(10,124,110,.1);
+  box-shadow: 0 0 0 3px rgba(23, 3, 55, 0.08);
 }
 
 /* ── Error / Success Boxes ── */

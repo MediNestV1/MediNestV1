@@ -1,0 +1,142 @@
+.page {
+  min-height: 100vh;
+  background: var(--sanctuary-gray-low, #f9f9f5);
+}
+
+.main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Avatar row */
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid rgba(23, 3, 55, 0.06);
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--sanctuary-lavender, #ebdcff);
+  color: var(--sanctuary-primary, #170337);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.doctorName {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sanctuary-primary, #170337);
+  line-height: 1.2;
+}
+
+.doctorRole {
+  font-size: 13px;
+  color: var(--sanctuary-ink-l, #7a7a9a);
+  margin-top: 4px;
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 24px;
+  border: 1px solid rgba(23, 3, 55, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--sanctuary-ink-l, #7a7a9a);
+  margin-bottom: 4px;
+}
+
+/* Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l, #7a7a9a);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(23, 3, 55, 0.1);
+  background: #fafaf9;
+  font-size: 14px;
+  color: var(--sanctuary-primary, #170337);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.field input:focus {
+  border-color: var(--sanctuary-primary, #170337);
+  background: #fff;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Save button */
+.saveBtn {
+  width: 100%;
+  padding: 16px;
+  background: var(--sanctuary-primary, #170337);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+  box-shadow: 0 8px 20px rgba(23, 3, 55, 0.15);
+}
+
+.saveBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(23, 3, 55, 0.22);
+}
+
+.saveBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.saveBtnSuccess {
+  background: #10b981;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+}
+
+@media (max-width: 560px) {
+  .twoCol { grid-template-columns: 1fr; }
+}
