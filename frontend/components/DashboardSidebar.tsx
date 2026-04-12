@@ -5,22 +5,13 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
 import styles from './DashboardSidebar.module.css';
+import SidebarAnalytics from './SidebarAnalytics';
 
 const navItems = [
   { 
     label: 'Dashboard', 
     href: '/portal/doctor-dashboard', 
     icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> 
-  },
-  { 
-    label: 'Patients', 
-    href: '/portal/doctor-dashboard/patients', 
-    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> 
-  },
-  { 
-    label: 'Prescriptions', 
-    href: '/portal/digital-prescription', 
-    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> 
   },
 ];
 
@@ -31,7 +22,7 @@ interface DashboardSidebarProps {
 
 export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const { doctors } = useClinic();
+  const { doctors, clinic } = useClinic();
   const supabase = createClient();
   
   const isReceptionist = pathname ? (
@@ -49,36 +40,12 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
   
   const activeDoctorName = doctors && doctors.length > 0 ? doctors[0].name : 'Doctor';
 
-  // --- Search Logic ---
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    const debounce = setTimeout(async () => {
-      if (!searchTerm || searchTerm.length < 2) {
-        setSearchResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      const { data } = await supabase
-        .from('patients')
-        .select('*')
-        .or(`name.ilike.%${searchTerm}%,contact.ilike.%${searchTerm}%`)
-        .limit(5);
-      
-      if (data) setSearchResults(data);
-      setIsSearching(false);
-    }, 300);
-    return () => clearTimeout(debounce);
-  }, [searchTerm, supabase]);
 
   const quickActions = [
-    { label: 'Register New Patient', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>, href: `/portal/digital-prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
+    { label: 'Add a New Patient', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>, href: `/portal/digital-prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
+    { label: 'Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor-dashboard/patients' },
     { label: 'Digital Prescription', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>, href: `/portal/digital-prescription?doctorName=${encodeURIComponent(activeDoctorName)}` },
     { label: 'Discharge Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>, href: '/portal/discharge-summary' },
-    { label: 'View Patients Hub', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>, href: '/portal/doctor-dashboard/patients' },
   ];
 
   const frontDeskActions = [
@@ -113,64 +80,29 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
         </div>
 
         <nav className={styles.nav}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <a 
-                key={item.label} 
-                href={item.href}
-                onClick={handleNavClick}
-                className={`${styles.navLink} ${isActive ? styles.activeLink : ''}`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </a>
-            );
-          })}
-
-          {/* --- Doctor's Clinical Desk Section --- */}
-          <div className={styles.clinicalDesk}>
+          {/* --- Doctor's Desk Section --- */}
+          <div className={styles.clinicalDesk} style={{ borderTop: isReceptionist ? 'none' : '1px solid rgba(23, 3, 55, 0.05)', marginTop: isReceptionist ? 0 : '32px' }}>
             <div className={styles.deskHeader}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h6"/></svg>
-              <span>Clinical Desk</span>
+              <span>{isReceptionist ? 'Front Office' : 'Doctors Desk'}</span>
             </div>
 
-            <div className={styles.searchContainer}>
-              <div className={styles.searchInputWrapper}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={styles.searchIcon}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input 
-                  type="text" 
-                  placeholder="Find Patient..."
-                  className={styles.searchField}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+            {/* Dashboard Link directly under Doctors Desk header */}
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <a 
+                  key={item.label} 
+                  href={item.href}
+                  onClick={handleNavClick}
+                  className={`${styles.navLink} ${isActive ? styles.activeLink : ''}`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
 
-              {searchTerm.length >= 2 && (
-                <div className={styles.searchResults}>
-                  {isSearching ? (
-                    <div className={styles.searchMsg}>Searching...</div>
-                  ) : searchResults.length > 0 ? (
-                    <>
-                      {searchResults.map(p => (
-                        <div 
-                          key={p.id} 
-                          className={styles.searchItem} 
-                          onMouseDown={(e) => { e.preventDefault(); }}
-                          onClick={() => { window.location.href = `/portal/doctor-dashboard/patients/${p.id}`; handleNavClick(); }}
-                        >
-                          <p className={styles.searchItemName}>{p.name}</p>
-                          <p className={styles.searchItemInfo}>{p.contact}</p>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div className={styles.searchMsg}>No results found</div>
-                  )}
-                </div>
-              )}
-            </div>
 
             <div className={styles.deskActions}>
               {quickActions.map((action) => (
@@ -181,8 +113,16 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
               ))}
             </div>
 
-            <a href="/auth/logout" onClick={handleNavClick} className={styles.deskAction}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            {!isReceptionist && (
+              <SidebarAnalytics 
+                doctorId={doctors && doctors.length > 0 ? doctors[0].id : null}
+                doctorName={activeDoctorName}
+                clinicId={clinic?.id || null}
+              />
+            )}
+
+            <a href="/portal" onClick={handleNavClick} className={styles.portalButton}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               <span>Back to Portal</span>
             </a>
           </div>

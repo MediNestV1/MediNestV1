@@ -62,6 +62,18 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [history, setHistory] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // --- TTS STATE ---
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showSpeechPopup, setShowSpeechPopup] = useState(false);
+
+  // Show popup after a delay when AI Summary is active
+  useEffect(() => {
+    if (activeTab === 'AI Summary' && activeSummary && !isSpeaking) {
+      const timer = setTimeout(() => setShowSpeechPopup(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, !!activeSummary]);
+
   async function fetchHistory(pId: string) {
     if (!pId) return;
     setLoadingHistory(true);
@@ -200,6 +212,59 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   const followUpDate = rx?.valid_till;
   const meds = rx?.medicines ? (typeof rx.medicines === 'string' ? JSON.parse(rx.medicines) : rx.medicines) : [];
+
+  // --- TTS HANDLER ---
+  const handleToggleSpeech = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    if (!activeSummary) return;
+
+    const isHindi = activeSummary?.greeting && /[\u0900-\u097F]/.test(activeSummary.greeting);
+    
+    // Construct the script
+    let script = "";
+    if (isHindi) {
+       script = `${activeSummary.greeting}. आपकी स्थिति के बारे में: ${activeSummary.condition}. `;
+       if (activeSummary.medicines?.length > 0) {
+         script += "आपकी दवाइयाँ हैं: ";
+         activeSummary.medicines.forEach((m: any) => {
+           script += `${m.name}, ${m.purpose}. `;
+         });
+       }
+       script += `रिकवरी के बारे में: ${activeSummary.expectations}. मुख्य सलाह: ${activeSummary.care}.`;
+    } else {
+       script = `${activeSummary.greeting}. Regarding your condition: ${activeSummary.condition}. `;
+       if (activeSummary.medicines?.length > 0) {
+         script += "Your prescribed medicines are: ";
+         activeSummary.medicines.forEach((m: any) => {
+           script += `${m.name}, which is for ${m.purpose}. `;
+         });
+       }
+       script += `What to expect: ${activeSummary.expectations}. General care advice: ${activeSummary.care}.`;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(script);
+    utterance.lang = isHindi ? 'hi-IN' : 'en-US';
+    utterance.rate = 0.9; // Slightly slower for clarity
+    
+    // Find Hindi voice if available
+    if (isHindi) {
+      const voices = window.speechSynthesis.getVoices();
+      const hiVoice = voices.find(v => v.lang.startsWith('hi') || v.name.toLowerCase().includes('hindi'));
+      if (hiVoice) utterance.voice = hiVoice;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+    setShowSpeechPopup(false);
+  };
 
   if (!mounted) return null;
 
@@ -761,6 +826,31 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             )}
           </div>
         </main>
+
+        {/* --- BROWSER TTS CONTROLS --- */}
+        {activeTab === 'AI Summary' && activeSummary && (
+          <div className={styles.ttsControls}>
+            {showSpeechPopup && !isSpeaking && (
+              <div className={styles.speechPopup}>
+                <span onClick={handleToggleSpeech} style={{ cursor: 'pointer' }}>
+                   🔊 {activeSummary?.greeting && /[\u0900-\u097F]/.test(activeSummary.greeting) ? 'सुनने के लिए टैप करें' : 'Tap to Listen'}
+                </span>
+                <button className={styles.closePopup} onClick={() => setShowSpeechPopup(false)}>×</button>
+              </div>
+            )}
+            <button 
+              className={`${styles.listenButton} ${isSpeaking ? styles.listenButtonActive : ''}`}
+              onClick={handleToggleSpeech}
+              title={isSpeaking ? "Stop Listening" : "Listen to Summary"}
+            >
+              {isSpeaking ? (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+              ) : (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

@@ -111,12 +111,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
+  padding: 8px 16px;
   color: var(--sanctuary-primary);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
+  border-bottom: 2px solid rgba(23, 3, 55, 0.05);
+  margin-bottom: 8px;
 }
 
 .searchContainer {
@@ -220,6 +222,33 @@
   transform: translateX(4px);
 }
 
+.portalButton {
+  margin-top: 24px;
+  background-color: #1a1a1a;
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.portalButton:hover {
+  background-color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.portalButton svg {
+  color: #fff;
+}
+
 .sidebarFooter {
   margin-top: auto;
   border-top: 1px solid rgba(23, 3, 55, 0.05);
@@ -247,6 +276,110 @@
 .actionBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(23, 3, 55, 0.25);
+}
+
+/* --- Analytics Styles --- */
+.analyticsSection {
+  margin-top: 24px;
+  padding: 0 8px;
+}
+
+.analyticsTitle {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--sanctuary-ink-l);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-left: 8px;
+}
+
+.statsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analyticsCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s;
+}
+
+.analyticsCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+  border-color: rgba(23, 3, 55, 0.1);
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValLarge {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.statSub {
+  font-size: 10px;
+  color: var(--sanctuary-ink-l);
+  opacity: 0.8;
+}
+
+.multiStats {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.statVal {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.cardIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blueIcon { background-color: #e0f2fe; color: #0369a1; }
+.orangeIcon { background-color: #fff7ed; color: #c2410c; }
+.purpleIcon { background-color: #f5f3ff; color: #6d28d9; }
+
+.analyticsSkeleton {
+  padding: 20px;
+  font-size: 12px;
+  color: var(--sanctuary-ink-l);
+  text-align: center;
+  font-style: italic;
 }
 
 .footerLink {
