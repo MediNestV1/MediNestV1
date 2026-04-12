@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { createClient } from '@/lib/supabase/client';
+import { API_BASE_URL } from '@/lib/api';
 import styles from './page.module.css';
 import docStyles from '../doctor-dashboard/page.module.css'; // Reusing bento/queue styles
 

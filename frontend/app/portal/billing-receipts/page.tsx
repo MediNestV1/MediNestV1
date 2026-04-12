@@ -4,6 +4,7 @@ import { useState } from 'react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
+import { API_BASE_URL } from '@/lib/api';
 import styles from './page.module.css';
 
 interface ServiceItem {
