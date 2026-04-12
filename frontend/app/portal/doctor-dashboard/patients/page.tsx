@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useClinic } from '@/context/ClinicContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import styles from './page.module.css';
 import Link from 'next/link';
