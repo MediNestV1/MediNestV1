@@ -1,199 +1,544 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { createClient } from '@/lib/supabase/client';
-import { API_BASE_URL } from '@/lib/api';
+import { useClinic } from '@/context/ClinicContext';
 import styles from './page.module.css';
-import docStyles from '../doctor-dashboard/page.module.css'; // Reusing bento/queue styles
+import docStyles from '../doctor-dashboard/page.module.css';
 
-export default function ReceptionistPage() {
-  const [todayCounts, setTodayCounts] = useState({ patients: 0, revenue: 0 });
-  const [recentPatients, setRecentPatients] = useState<any[]>([]);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenu(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
+  urgent:  { label: '🔴 Urgent',  color: '#ef4444', bg: '#fff1f2' },
+  elderly: { label: '🟡 Elderly', color: '#f59e0b', bg: '#fffbeb' },
+  normal:  { label: '⚪ Normal',  color: '#94a3b8', bg: '#f8fafc' },
+};
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!clinic?.id) return;
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/analytics/stats/today?clinic_id=${clinic.id}`);
-        const result = await response.json();
-        
-        if (result.success) {
-          setTodayCounts({
-            patients: result.patients,
-            revenue: result.revenue
-          });
-        }
+interface QueueEntry {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  token_number: number;
+  status: 'waiting' | 'serving' | 'done' | 'skipped';
+  priority: 'normal' | 'urgent' | 'elderly';
+  created_at: string;
+  completed_at: string | null;
+  notes: string | null;
+  patients?: { name?: string; age?: number; gender?: string; contact?: string };
+}
 
-        // Keep fetching recent patients separately as it needs full object data
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const { data: recentData } = await supabase
-          .from('prescriptions')
-          .select('*, patients(name, gender, age)')
-          .eq('clinic_id', clinic.id)
-          .gte('created_at', today.toISOString())
-          .order('created_at', { ascending: false })
-          .limit(5);
+export default function FrontDeskPage() {
+  const { clinic, doctors } = useClinic();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
-        if (recentData) {
-          setRecentPatients(recentData);
-        }
-      } catch (err) {
-        console.error('❌ Stats Sync Failure:', err);
-      }
-    };
-    fetchStats();
+  // ── Queue state ──────────────────────────────────────────────────────
+  const [queue, setQueue]         = useState<QueueEntry[]>([]);
+  const [doneQueue, setDoneQueue] = useState<QueueEntry[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [actionId, setActionId]   = useState<string | null>(null);
+  const [showDone, setShowDone]   = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  // ── Drag-and-drop state ──────────────────────────────────────────────
+  const dragItem     = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
+  // ── Check-in modal state ─────────────────────────────────────────────
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [ptPhone, setPtPhone]     = useState('');
+  const [ptName, setPtName]       = useState('');
+  const [ptAge, setPtAge]         = useState('');
+  const [ptSex, setPtSex]         = useState('Male');
+  const [ptWeight, setPtWeight]   = useState('');
+  const [ptBloodGroup, setPtBloodGroup] = useState('');
+  const [ptAddress, setPtAddress] = useState('');
+  const [checkInPriority, setCheckInPriority] = useState<'normal' | 'urgent' | 'elderly'>('normal');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // ── Fetch queue (two-step: queue rows + patient data) ────────────────
+  const fetchQueue = useCallback(async () => {
+    if (!clinic?.id) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      // Active
+      const { data: active } = await supabase
+        .from('doctor_queue').select('*')
+        .eq('clinic_id', clinic.id)
+        .eq('queue_date', todayStr)
+        .in('status', ['waiting', 'serving'])
+        .order('token_number', { ascending: true });
+
+      // Done
+      const { data: done } = await supabase
+        .from('doctor_queue').select('*')
+        .eq('clinic_id', clinic.id)
+        .eq('queue_date', todayStr)
+        .in('status', ['done', 'skipped'])
+        .order('completed_at', { ascending: false })
+        .limit(30);
+
+      // Fetch patient details separately
+      const allRows = [...(active || []), ...(done || [])];
+      const ids = [...new Set(allRows.map((r: any) => r.patient_id).filter(Boolean))];
+      const { data: ptRows } = ids.length
+        ? await supabase.from('patients').select('id, name, gender, age, contact').in('id', ids)
+        : { data: [] };
+      const ptMap: Record<string, any> = {};
+      ptRows?.forEach((p: any) => { ptMap[p.id] = p; });
+
+      const merge = (rows: any[]) => rows.map((r: any) => ({
+        ...r,
+        patients: ptMap[r.patient_id] ?? { name: r.patient_name ?? 'Unknown' }
+      }));
+
+      setQueue(merge(active || []));
+      setDoneQueue(merge(done || []));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [supabase, clinic?.id]);
 
-  const metrics = [
-    { label: 'Daily Clinical Check-ins', value: todayCounts.patients.toString(), trend: '+5% from avg', trendColor: '#10b981', icon: 'person_add', bg: '#ebdcff' },
-    { label: 'Lobby Revenue', value: `₹${todayCounts.revenue.toLocaleString()}`, trend: 'Assessment Live', trendColor: '#ffdeaa', icon: 'payments', bg: '#eaddf9' },
-    { label: 'System Response', value: '5m', trend: '2m under goal', trendColor: '#10b981', icon: 'timer', bg: '#ffdeaa' },
-  ];
+  // ── Realtime + polling ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!clinic?.id) return;
+    fetchQueue();
+    const channel = supabase
+      .channel('front-desk-live-queue')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'doctor_queue',
+        filter: `clinic_id=eq.${clinic.id}`
+      }, fetchQueue)
+      .subscribe();
+    const poll = setInterval(fetchQueue, 10000);
+    return () => { supabase.removeChannel(channel); clearInterval(poll); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinic?.id]);
 
-  const quickActions = [
-    { label: 'Create New Bill', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 3v5h5"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>, href: '/portal/billing-receipts' },
-    { label: 'Search Patients', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, href: '/portal/record-search' },
-    { label: 'Register Patient', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>, href: '/portal/front-desk/register-patient' },
-  ];
+  // ── Phone search for check-in ───────────────────────────────────────
+  useEffect(() => {
+    if (ptPhone.length < 3) { setSearchResults([]); return; }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      const { data } = await supabase.from('patients').select('*')
+        .eq('clinic_id', clinic?.id || '')
+        .ilike('contact', `%${ptPhone}%`)
+        .limit(5);
+      setSearchResults(data || []);
+      setIsSearching(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [ptPhone, supabase, clinic?.id]);
+
+  const resetCheckIn = () => {
+    setPtPhone(''); setPtName(''); setPtAge(''); setPtSex('Male');
+    setPtWeight(''); setPtBloodGroup(''); setPtAddress('');
+    setCheckInPriority('normal'); setSearchResults([]); setShowDropdown(false);
+  };
+
+  const handleSelectPatient = (p: any) => {
+    setPtName(p.name || ''); setPtPhone(p.contact || '');
+    setPtAge(p.age || ''); setPtSex(p.gender || 'Male');
+    setPtWeight(p.weight || ''); setPtBloodGroup(p.blood_group || '');
+    setPtAddress(p.address || ''); setSearchResults([]);
+  };
+
+  const handleCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ptName || !ptPhone || !clinic?.id) return;
+    setIsSubmitting(true);
+    try {
+      const normalizedName = ptName.trim().toUpperCase();
+      const cleanPhone = ptPhone.replace(/\D/g, '').slice(-10);
+
+      const { data: existing } = await supabase.from('patients').select('id')
+        .eq('name', normalizedName).eq('contact', cleanPhone).limit(1);
+
+      let patientId: string;
+      if (existing && existing.length > 0) {
+        patientId = existing[0].id;
+        await supabase.from('patients').update({
+          age: ptAge, gender: ptSex,
+          weight: ptWeight || null, blood_group: ptBloodGroup.toUpperCase() || null,
+          address: ptAddress || null, clinic_id: clinic.id,
+        }).eq('id', patientId);
+      } else {
+        const { data: neu, error: cErr } = await supabase.from('patients').insert([{
+          name: normalizedName, contact: cleanPhone, age: ptAge, gender: ptSex,
+          weight: ptWeight || null, blood_group: ptBloodGroup.toUpperCase() || null,
+          address: ptAddress || null, clinic_id: clinic.id,
+        }]).select().single();
+        if (cErr) throw cErr;
+        patientId = neu.id;
+      }
+
+      // Get next token number for today
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: maxTok } = await supabase.from('doctor_queue')
+        .select('token_number').eq('queue_date', todayStr).eq('clinic_id', clinic.id)
+        .order('token_number', { ascending: false }).limit(1);
+      const nextToken = (maxTok?.[0]?.token_number ?? 0) + 1;
+
+      const { error: qErr } = await supabase.from('doctor_queue').insert({
+        patient_id: patientId,
+        patient_name: normalizedName,
+        token_number: nextToken,
+        priority: checkInPriority,
+        status: 'waiting',
+        queue_date: todayStr,
+        clinic_id: clinic.id,
+      });
+      if (qErr) throw qErr;
+
+      setIsCheckInOpen(false);
+      resetCheckIn();
+    } catch (err) {
+      console.error('Check-in error:', err);
+      alert('Failed to check-in. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Queue actions ───────────────────────────────────────────────────
+  const updateStatus = async (id: string, status: string) => {
+    setActionId(id);
+    try {
+      await supabase.from('doctor_queue')
+        .update({ status, completed_at: ['done', 'skipped'].includes(status) ? new Date().toISOString() : null })
+        .eq('id', id);
+    } finally { setActionId(null); }
+  };
+
+  const updatePriority = async (id: string, p: string) => {
+    setActionId(id);
+    try {
+      await supabase.from('doctor_queue').update({ priority: p }).eq('id', id);
+    } finally { setActionId(null); }
+  };
+
+  const removeEntry = async (id: string) => {
+    setActionId(id);
+    try { await supabase.from('doctor_queue').delete().eq('id', id); }
+    finally { setActionId(null); }
+  };
+
+  // ── Drag-and-drop reorder ───────────────────────────────────────────
+  const waiting = queue.filter(q => q.status === 'waiting');
+  const serving = queue.find(q => q.status === 'serving');
+
+  const handleDragStart = (idx: number, id: string) => { dragItem.current = idx; setDragging(id); };
+  const handleDragEnter = (idx: number, id: string) => { dragOverItem.current = idx; setDragOver(id); };
+  const handleDragEnd   = () => { setDragging(null); setDragOver(null); };
+
+  const handleDrop = async () => {
+    const from = dragItem.current, to = dragOverItem.current;
+    if (from === null || to === null || from === to) { handleDragEnd(); return; }
+    const reordered = [...waiting];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    const baseToken = serving ? 2 : 1;
+    const updated = reordered.map((e, i) => ({ ...e, token_number: baseToken + i }));
+    setQueue([...(serving ? [serving] : []), ...updated]);
+    handleDragEnd();
+    try {
+      await Promise.all(updated.map(e =>
+        supabase.from('doctor_queue').update({ token_number: e.token_number }).eq('id', e.id)
+      ));
+    } catch { fetchQueue(); }
+  };
+
+  // ── Metrics ─────────────────────────────────────────────────────────
+  const urgentCount = queue.filter(q => q.priority === 'urgent' && q.status === 'waiting').length;
 
   return (
     <DashboardLayout>
       <div className={styles.dashboardHeader}>
-        <h2>Front Office Hub</h2>
-        <p style={{ color: 'var(--sanctuary-ink-l)', marginTop: 8 }}>Managing clinical operations and patient flow.</p>
+        <div>
+          <h2>Live Queue</h2>
+          <p style={{ color: 'var(--sanctuary-ink-l)', marginTop: 6 }}>
+            Real-time patient flow · {waiting.length} waiting · {doneQueue.length} completed today
+          </p>
+        </div>
+        <button onClick={() => setIsCheckInOpen(true)} className={styles.checkInBtn}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+          Check-in Patient
+        </button>
       </div>
 
-      <div className={docStyles.bentoGrid}>
-        <div className={docStyles.mainCol}>
-          {/* Metrics Row */}
-          <div className={styles.metricsRow}>
-            {metrics.map((m) => (
-              <div key={m.label} className={docStyles.metricCard}>
-                <div className={docStyles.metricIcon} style={{ backgroundColor: m.bg }}>
-                   <div style={{ color: 'var(--sanctuary-primary)' }}>
-                      {m.label === 'Daily Clinical Check-ins' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>}
-                      {m.label === 'Lobby Revenue' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>}
-                      {m.label === 'System Response' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
-                   </div>
-                </div>
-                <div>
-                  <p className={docStyles.metricLabel}>{m.label}</p>
-                  <h3 className={docStyles.metricValue}>{m.value}</h3>
-                  <p className={docStyles.metricTrend} style={{ color: m.trendColor }}>{m.trend}</p>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        {[
+          { label: 'Waiting', val: waiting.length, color: '#f59e0b', bg: '#fffbeb' },
+          { label: 'Urgent', val: urgentCount, color: '#ef4444', bg: '#fff1f2' },
+          { label: 'Serving', val: serving ? 1 : 0, color: '#10b981', bg: '#ecfdf5' },
+          { label: 'Done Today', val: doneQueue.length, color: '#64748b', bg: '#f1f5f9' },
+        ].map(s => (
+          <div key={s.label} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: s.bg, borderRadius: 30, padding: '7px 16px',
+            fontWeight: 800, fontSize: 13, color: s.color,
+          }}>
+            <span style={{ fontSize: 18, fontWeight: 900 }}>{s.val}</span>
+            <span style={{ fontWeight: 600, opacity: 0.8 }}>{s.label}</span>
+          </div>
+        ))}
+        <button
+          onClick={() => setShowDone(p => !p)}
+          style={{
+            marginLeft: 'auto', background: showDone ? 'var(--sanctuary-primary)' : 'transparent',
+            color: showDone ? '#fff' : 'var(--sanctuary-ink-l)',
+            border: '1.5px solid rgba(23,3,55,0.1)', borderRadius: 30,
+            padding: '7px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          {showDone ? 'Hide' : 'Show'} Completed
+        </button>
+      </div>
+
+      {error && <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: 12, color: '#dc2626', marginBottom: 16, fontSize: 13 }}>⚠️ {error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+
+        {serving && (
+          <div style={{
+            background: 'linear-gradient(135deg,#ebdcff 0%,#f3f0ff 100%)',
+            borderRadius: 18, padding: '18px 22px',
+            border: '2px solid rgba(139,92,246,0.2)',
+            display: 'flex', alignItems: 'center', gap: 16,
+          }}>
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, padding: '0 8px 0 0', opacity: 0.3 }}>
+              {[0,1,2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: '#8b5cf6', borderRadius: 2 }} />)}
+            </div>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 900, fontSize: 18, flexShrink: 0,
+            }}>
+              {serving.patients?.name?.[0] ?? '?'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: '#7c3aed', textTransform: 'uppercase' }}>Now Serving</span>
+                <span style={{ background: '#7c3aed', color: '#fff', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 800 }}>#{serving.token_number}</span>
+              </div>
+              <p style={{ fontWeight: 800, fontSize: 16, color: '#4c1d95', margin: 0 }}>{serving.patients?.name ?? 'Unknown'}</p>
+              <p style={{ fontSize: 12, color: '#6d28d9', margin: 0 }}>
+                {serving.patients?.age}Y · {serving.patients?.gender} · {priorityConfig[serving.priority]?.label}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button onClick={() => updateStatus(serving.id, 'done')} disabled={actionId === serving.id}
+                style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                Done
+              </button>
+              <button onClick={() => removeEntry(serving.id)} disabled={!!actionId}
+                style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 10, padding: '8px 13px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>✕</button>
+            </div>
+          </div>
+        )}
+
+        {waiting.length === 0 && !serving && !loading && (
+          <div style={{ padding: '48px', textAlign: 'center', background: '#fff', borderRadius: 18, border: '1px solid rgba(23,3,55,0.05)' }}>
+            <p style={{ color: 'var(--sanctuary-ink-l)', fontSize: 15 }}>Queue is empty. Ready for patient check-ins.</p>
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--sanctuary-ink-l)' }}>Loading queue…</div>
+        )}
+
+        {waiting.map((entry, idx) => (
+          <div
+            key={entry.id}
+            draggable
+            onDragStart={() => handleDragStart(idx, entry.id)}
+            onDragEnter={() => handleDragEnter(idx, entry.id)}
+            onDragOver={e => e.preventDefault()}
+            onDragEnd={handleDragEnd}
+            onDrop={handleDrop}
+            style={{
+              background: '#fff', borderRadius: 16, padding: '14px 18px',
+              borderTop: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
+              borderRight: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
+              borderBottom: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
+              borderLeft: `4px solid ${priorityConfig[entry.priority]?.color ?? '#94a3b8'}`,
+              opacity: dragging === entry.id ? 0.4 : 1,
+              display: 'flex', alignItems: 'center', gap: 12,
+              cursor: 'grab', transition: 'all 0.15s',
+              boxShadow: '0 1px 6px rgba(23,3,55,0.04)',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.3, flexShrink: 0 }}>
+              {[0,1,2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: 'var(--sanctuary-primary)', borderRadius: 2 }} />)}
+            </div>
+            <div style={{
+              width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+              background: priorityConfig[entry.priority]?.bg ?? '#f8fafc',
+              color: priorityConfig[entry.priority]?.color ?? '#94a3b8',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 900, fontSize: 13, border: `1.5px solid ${priorityConfig[entry.priority]?.color ?? '#e2e8f0'}22`,
+            }}>
+              #{entry.token_number}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--sanctuary-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {entry.patients?.name ?? entry.patient_name ?? 'Unknown'}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--sanctuary-ink-l)', margin: 0 }}>
+                <span style={{ color: priorityConfig[entry.priority]?.color }}>{priorityConfig[entry.priority]?.label}</span>
+                {' · '}Pos. {idx + 1}
+                {' · '}{new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+              <select
+                value={entry.priority}
+                onChange={e => updatePriority(entry.id, e.target.value)}
+                disabled={!!actionId}
+                style={{ fontSize: 12, borderRadius: 8, border: '1.5px solid rgba(23,3,55,0.1)', padding: '5px 8px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <option value="normal">Normal</option><option value="elderly">Elderly</option><option value="urgent">Urgent</option>
+              </select>
+              <button onClick={() => updateStatus(entry.id, 'serving')} disabled={!!actionId || !!serving}
+                style={{ background: '#ebdcff', color: '#7c3aed', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Call</button>
+              <button onClick={() => removeEntry(entry.id)} disabled={!!actionId}
+                style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 8, padding: '6px 10px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕</button>
+            </div>
+          </div>
+        ))}
+
+        {showDone && doneQueue.length > 0 && (
+          <div style={{ background: '#fff', borderRadius: 18, border: '1px solid rgba(23,3,55,0.05)', overflow: 'hidden', marginTop: 8 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(23,3,55,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--sanctuary-primary)' }}>✅ Completed Today</span>
+              <span style={{ fontSize: 12, color: 'var(--sanctuary-ink-l)' }}>{doneQueue.length} patients</span>
+            </div>
+            {doneQueue.map((p, idx) => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
+                borderBottom: idx < doneQueue.length - 1 ? '1px solid rgba(23,3,55,0.04)' : 'none'
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  background: p.status === 'done' ? '#ecfdf5' : '#f1f5f9',
+                  color: p.status === 'done' ? '#10b981' : '#94a3b8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 800, fontSize: 11
+                }}>#{p.token_number}</div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--sanctuary-primary)', margin: 0 }}>{p.patients?.name ?? p.patient_name ?? 'Unknown'}</p>
+                  <p style={{ fontSize: 11, color: 'var(--sanctuary-ink-l)', margin: 0 }}>
+                    {p.status === 'done' ? '✅ Done' : '⏭ Skipped'}
+                    {p.completed_at ? ` · ${new Date(p.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
+        )}
+      </div>
 
-          {/* Activity Queue */}
-          <div className={docStyles.sectionBox}>
-             <div className={docStyles.sectionHeader}>
-                <h4>Patient Lobby</h4>
-                <div style={{ display: 'flex', gap: 12 }}>
-                   <Link href="/portal/doctor-dashboard/patients" style={{ padding: '8px 20px', borderRadius: 30, border: 'none', background: 'var(--sanctuary-primary)', fontSize: 12, fontWeight: 800, color: '#fff', cursor: 'pointer', textDecoration: 'none' }}>Manage All</Link>
-                </div>
-             </div>
+      <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link href="/portal/billing-receipts" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
+          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          Billing & Collections
+        </Link>
+        <Link href="/portal/record-search" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
+          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Find Clinical Record
+        </Link>
+      </div>
 
-             <div className={docStyles.queueList}>
-                {recentPatients.map((p) => (
-                  <div key={p.id} className={docStyles.queueItem}>
-                    <div className={docStyles.patientInfo}>
-                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--sanctuary-lavender)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'var(--sanctuary-primary)' }}>
-                        {p.patients?.name?.[0]}
+      {isCheckInOpen && (
+        <div className={styles.modalOverlay} onClick={() => { setIsCheckInOpen(false); resetCheckIn(); }}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Check-in Patient</h3>
+              <button className={styles.closeModalBtn} onClick={() => { setIsCheckInOpen(false); resetCheckIn(); }}>✕</button>
+            </div>
+            <form className={styles.modalBody} onSubmit={handleCheckIn}>
+              <div className={styles.formSection}>
+                <label className={styles.formLabel}>Contact Number</label>
+                <div style={{ position: 'relative' }}>
+                  <input type="text" className={styles.formInput} placeholder="10-digit mobile number"
+                    value={ptPhone} 
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPtPhone(val);
+                      setShowDropdown(val.length >= 3);
+                    }} required />
+                  {ptPhone.length >= 3 && showDropdown && (
+                    <div className={styles.searchDropdown}>
+                      <div className={styles.searchItem}
+                        style={{ background: 'rgba(23,3,55,0.02)', borderBottom: '1px solid rgba(23,3,55,0.06)' }}
+                        onClick={() => { const ph = ptPhone; resetCheckIn(); setPtPhone(ph); setShowDropdown(false); }}>
+                        <div style={{ fontWeight: 800, color: 'var(--sanctuary-primary)' }}>✨ Add as New Patient (+)</div>
                       </div>
-                      <div>
-                        <p className={docStyles.patientName}>{p.patients?.name}</p>
-                        <p className={docStyles.patientType}>{p.patients?.age}Y • {p.patients?.gender}</p>
-                      </div>
-                    </div>
-                    <div className={docStyles.timeCol}>
-                      <p>Time</p>
-                      <p>{new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                    <div>
-                      <span className={docStyles.statusBadge} style={{ backgroundColor: 'var(--sanctuary-primary)', color: '#fff' }}>
-                        REGISTERED
-                      </span>
-                    </div>
-                    <div className={styles.menuContainer}>
-                      <button 
-                        className={styles.dotsBtn}
-                        onClick={() => setActiveMenu(activeMenu === p.id ? null : p.id)}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1.5"></circle><circle cx="12" cy="5" r="1.5"></circle><circle cx="12" cy="19" r="1.5"></circle></svg>
-                      </button>
-
-                      {activeMenu === p.id && (
-                        <div className={styles.dropdownMenu} ref={menuRef}>
-                          <Link href={`/portal/doctor-dashboard/patients/${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            View Profile
-                          </Link>
-                          <Link href={`/portal/billing-receipts?patientId=${p.patients?.id || p.patient_id}`} className={styles.menuItem}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
-                            Generate Bill
-                          </Link>
-                          <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={() => { /* Implement removal logic */ setActiveMenu(null); }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            Remove from Lobby
-                          </button>
+                      {searchResults.map(p => (
+                        <div key={p.id} className={styles.searchItem} onClick={() => handleSelectPatient(p)}>
+                          <div><p style={{ fontWeight: 800, margin: 0 }}>{p.name}</p><p style={{ fontSize: 12, color: 'var(--sanctuary-ink-l)', margin: 0 }}>{p.age} yrs · {p.gender}</p></div>
+                          <div className={styles.phoneBadge}>{p.contact}</div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                ))}
-                {recentPatients.length === 0 && (
-                  <p style={{ textAlign: 'center', color: 'var(--sanctuary-ink-l)', padding: '20px' }}>No activity in the lobby today.</p>
-                )}
-             </div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.formSection}>
+                <label className={styles.formLabel}>Full Name (Uppercase)</label>
+                <input type="text" className={styles.formInput} value={ptName} onChange={e => setPtName(e.target.value.toUpperCase())} required />
+              </div>
+              <div className={styles.vitalsGrid}>
+                <div className={styles.formSection}><label className={styles.formLabel}>Age</label><input type="number" className={styles.formInput} value={ptAge} onChange={e => setPtAge(e.target.value)} required /></div>
+                <div className={styles.formSection}><label className={styles.formLabel}>Gender</label><select className={styles.formInput} value={ptSex} onChange={e => setPtSex(e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+              </div>
+              <div className={styles.vitalsGrid}>
+                <div className={styles.formSection}><label className={styles.formLabel}>Weight (kg)</label><input type="number" step="0.1" className={styles.formInput} value={ptWeight} onChange={e => setPtWeight(e.target.value)} /></div>
+                <div className={styles.formSection}><label className={styles.formLabel}>Blood Group</label><input type="text" className={styles.formInput} value={ptBloodGroup} onChange={e => setPtBloodGroup(e.target.value.toUpperCase())} placeholder="O+" /></div>
+              </div>
+              <div className={styles.formSection}><label className={styles.formLabel}>Home Address</label><textarea className={styles.formInput} style={{ height: 72 }} value={ptAddress} onChange={e => setPtAddress(e.target.value)} /></div>
+              <div className={styles.formSection}>
+                <label className={styles.formLabel}>Priority Level</label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {(['normal', 'elderly', 'urgent'] as const).map(p => (
+                    <button key={p} type="button" onClick={() => setCheckInPriority(p)}
+                      style={{ flex: 1, border: `1.5px solid ${checkInPriority === p ? priorityConfig[p].color : 'rgba(23,3,55,0.1)'}`, background: checkInPriority === p ? priorityConfig[p].bg : '#fff', color: checkInPriority === p ? priorityConfig[p].color : 'var(--sanctuary-ink-l)', borderRadius: 10, padding: '8px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                      {priorityConfig[p].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" className={styles.confirmBtn} disabled={isSubmitting}>
+                {isSubmitting ? 'Adding...' : 'Confirm & Add to Queue'}
+              </button>
+            </form>
           </div>
         </div>
-
-        <div className={docStyles.sideCol}>
-           <div className={docStyles.quickActions}>
-              <h4 style={{ fontSize: 18, fontWeight: 800, color: 'var(--sanctuary-primary)', marginBottom: 16 }}>Office Actions</h4>
-              {quickActions.map((action) => (
-                <Link key={action.label} href={action.href} className={docStyles.actionButton}>
-                  <div className={docStyles.actionButtonIcon}>
-                     {action.icon}
-                  </div>
-                  <span>{action.label}</span>
-                </Link>
-              ))}
-           </div>
-
-           <div style={{ marginTop: 24, padding: 32, borderRadius: 24, background: 'var(--sanctuary-gray-low)', border: '1px solid rgba(23,3,55,0.05)' }}>
-              <h4 style={{ fontSize: 18, fontWeight: 800, color: 'var(--sanctuary-primary)', marginBottom: 16 }}>Duty Roster</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                   <span style={{ color: 'var(--sanctuary-ink-l)' }}>On Duty</span>
-                   <span style={{ fontWeight: 800 }}>Reception Team</span>
-                 </div>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                   <span style={{ color: 'var(--sanctuary-ink-l)' }}>Shift</span>
-                   <span style={{ fontWeight: 800 }}>09:00 - 21:00</span>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </div>
+      )}
     </DashboardLayout>
   );
 }
