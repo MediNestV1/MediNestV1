@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -13,16 +13,55 @@ export default function RegisterPatientPage() {
   // Form State
   const [ptName, setPtName] = useState('');
   const [ptPhone, setPtPhone] = useState('');
-  const [ptAge, setPtAge] = useState('');
-  const [ptSex, setPtSex] = useState('Male');
-  const [ptWeight, setPtWeight] = useState('');
-  const [ptAddress, setPtAddress] = useState('');
-  const [ptBloodGroup, setPtBloodGroup] = useState('');
+
   
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Auto-fetch State
+  const [foundPatients, setFoundPatients] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Auto-fetch logic
+  useEffect(() => {
+    const cleanPhone = ptPhone.replace(/\D/g, '');
+    
+    // Only search if we have at least 3 digits
+    if (cleanPhone.length < 3 || !clinic) {
+      setFoundPatients([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { data, error: searchError } = await supabase
+          .from('patients')
+          .select('*')
+          .ilike('contact', `%${cleanPhone}%`)
+          .eq('clinic_id', clinic.id)
+          .limit(5);
+
+        if (searchError) throw searchError;
+        setFoundPatients(data || []);
+      } catch (err) {
+        console.error('Auto-fetch error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [ptPhone, clinic, supabase]);
+
+  const handleSelectPatient = (patient: any) => {
+    setPtName(patient.name || '');
+    setPtPhone(patient.contact || patient.mobile || '');
+    setFoundPatients([]); // Hide the list after selection
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +93,8 @@ export default function RegisterPatientPage() {
       const existing = existingRecords?.[0];
       if (searchError) throw searchError;
 
-      if (existing) {
-        setError(`Patient with this phone number is already registered as "${existing.name}".`);
+      if (existing && existing.length > 0) {
+        setError(`Patient "${ptName}" with this phone number is already registered.`);
         setIsSubmitting(false);
         return;
       }
@@ -66,11 +105,7 @@ export default function RegisterPatientPage() {
         .insert([{
           name: normalizedName,
           contact: cleanPhone,
-          age: ptAge ? parseInt(ptAge) : null,
-          gender: ptSex,
-          weight: ptWeight ? parseFloat(ptWeight) : null,
-          address: ptAddress.trim(),
-          blood_group: ptBloodGroup.trim().toUpperCase(),
+
           clinic_id: clinic.id
         }]);
 
@@ -79,14 +114,10 @@ export default function RegisterPatientPage() {
       // 3. Success
       setSuccess(`Success! ${ptName} has been registered.`);
       
-      // Clear form for next registration (Continuous Intake)
+      // Clear form
       setPtName('');
       setPtPhone('');
-      setPtAge('');
-      setPtSex('Male');
-      setPtWeight('');
-      setPtAddress('');
-      setPtBloodGroup('');
+
       
       // Clear success message after 5 seconds
       setTimeout(() => setSuccess(null), 5000);
@@ -138,7 +169,7 @@ export default function RegisterPatientPage() {
                 </div>
 
                 {/* Phone Number */}
-                <div className={styles.formField}>
+                <div className={styles.formField} style={{ position: 'relative' }}>
                   <label htmlFor="ptPhone">Contact Number</label>
                   <input 
                     id="ptPhone"
@@ -151,80 +182,34 @@ export default function RegisterPatientPage() {
                     }}
                     placeholder="10-digit mobile number"
                     maxLength={10}
+                    autoComplete="off"
                   />
-                </div>
-
-                {/* Age */}
-                <div className={styles.formField}>
-                  <label htmlFor="ptAge">Age (Years)</label>
-                  <input 
-                    id="ptAge"
-                    type="number" 
-                    className={styles.inputBox} 
-                    value={ptAge} 
-                    onChange={e => setPtAge(e.target.value)}
-                    placeholder="e.g. 28"
-                  />
-                </div>
-
-                {/* Gender */}
-                <div className={styles.formField}>
-                  <label htmlFor="ptSex">Gender</label>
-                  <div style={{ position: 'relative' }}>
-                    <select 
-                      id="ptSex"
-                      className={styles.selectBox} 
-                      value={ptSex} 
-                      onChange={e => setPtSex(e.target.value)}
-                    >
-                      <option>Male</option>
-                      <option>Female</option>
-                      <option>Other</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--sanctuary-primary)' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  
+                  {/* Dynamic Search Results */}
+                  {(isSearching || foundPatients.length > 0) && (
+                    <div className={styles.searchResults}>
+                      {isSearching && <div className={styles.searchingLoader}>Searching database...</div>}
+                      {!isSearching && foundPatients.map(patient => (
+                        <div 
+                          key={patient.id} 
+                          className={styles.resultItem}
+                          onClick={() => handleSelectPatient(patient)}
+                        >
+                          <div className={styles.resultIcon}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                          </div>
+                          <div className={styles.resultInfo}>
+                            <div className={styles.resultName}>{patient.name}</div>
+                            <div className={styles.resultMeta}>
+                              <span>{patient.gender}, {patient.age}y</span>
+                              <span>•</span>
+                              <span>{patient.contact}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                </div>
-
-                {/* Weight */}
-                <div className={styles.formField}>
-                  <label htmlFor="ptWeight">Weight (Kg)</label>
-                  <input 
-                    id="ptWeight"
-                    type="number" 
-                    step="0.1"
-                    className={styles.inputBox} 
-                    value={ptWeight} 
-                    onChange={e => setPtWeight(e.target.value)}
-                    placeholder="e.g. 65.5"
-                  />
-                </div>
-
-                {/* Blood Group */}
-                <div className={styles.formField}>
-                  <label htmlFor="ptBloodGroup">Blood Group (Optional)</label>
-                  <input 
-                    id="ptBloodGroup"
-                    type="text" 
-                    className={styles.inputBox} 
-                    value={ptBloodGroup} 
-                    onChange={e => setPtBloodGroup(e.target.value.toUpperCase())}
-                    placeholder="e.g. O+, B-, AB+"
-                  />
-                </div>
-
-                {/* Address */}
-                <div className={`${styles.formField} ${styles.formFieldFull}`}>
-                  <label htmlFor="ptAddress">Residential Address</label>
-                  <textarea 
-                    id="ptAddress"
-                    className={styles.inputBox} 
-                    style={{ minHeight: '100px', resize: 'vertical' }}
-                    value={ptAddress} 
-                    onChange={e => setPtAddress(e.target.value)}
-                    placeholder="Enter full address..."
-                  />
+                  )}
                 </div>
               </div>
 

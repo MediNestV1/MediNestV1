@@ -448,3 +448,338 @@
     margin-bottom: 10px;
   }
 }
+
+/* ─────────────────────────────────────────
+   ACTIVE QUEUE — Premium Live Queue Panel
+───────────────────────────────────────── */
+
+/* LIVE pill in section header */
+.livePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #dc2626;
+  text-transform: uppercase;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-red 1.4s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+
+/* Outer wrapper for all queue tiers */
+.activeQueue {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Tier badge row (dot + label) */
+.queueBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.queueTierLabel {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--sanctuary-ink-l);
+}
+
+/* Status dots */
+.dotRed {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dotYellow {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dotGray {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─── 🔴 Now Serving Card ─── */
+.nowServingCard {
+  background: linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%);
+  border: 1.5px solid rgba(239, 68, 68, 0.15);
+  border-radius: 18px;
+  padding: 20px 24px;
+  transition: box-shadow 0.2s;
+}
+
+.nowServingCard:hover {
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.08);
+}
+
+.nowServingBody {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nowServingAvatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.nowServingInfo {
+  flex: 1;
+}
+
+.nowServingName {
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--sanctuary-primary);
+  margin-bottom: 3px;
+}
+
+.nowServingMeta {
+  font-size: 12px;
+  color: var(--sanctuary-ink-l);
+}
+
+.timerBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #dc2626;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 🟡 Waiting Section ─── */
+.waitingSection {
+  background: #fffbeb;
+  border: 1.5px solid rgba(245, 158, 11, 0.15);
+  border-radius: 18px;
+  padding: 20px 24px;
+}
+
+.waitingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.waitingItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.1);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.waitingItem:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+}
+
+.waitingToken {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.waitingInfo {
+  flex: 1;
+}
+
+.waitingName {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--sanctuary-primary);
+  margin-bottom: 2px;
+}
+
+.waitingMeta {
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+}
+
+.waitEstimate {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.waitingViewBtn {
+  color: var(--sanctuary-ink-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.waitingViewBtn:hover {
+  background: var(--sanctuary-lavender);
+  color: var(--sanctuary-primary);
+}
+
+/* ─── ⚪ Remaining Section ─── */
+.remainingSection {
+  background: var(--sanctuary-gray-low, #f8f9fa);
+  border: 1.5px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.remainingToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.remainingToggle:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.remainingList {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.remainingItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  transition: background 0.15s;
+}
+
+.remainingItem:last-child {
+  border-bottom: none;
+}
+
+.remainingItem:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.remainingToken {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.remainingName {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sanctuary-primary);
+}
+
+.remainingTime {
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  font-weight: 600;
+}
+
+/* Mobile tweaks for Active Queue */
+@media (max-width: 640px) {
+  .nowServingCard, .waitingSection, .remainingSection {
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .nowServingAvatar {
+    width: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
+
+  .nowServingName {
+    font-size: 15px;
+  }
+
+  .waitingItem {
+    padding: 10px 12px;
+  }
+
+  .remainingToggle {
+    padding: 14px 16px;
+  }
+
+  .remainingItem {
+    padding: 10px 16px;
+  }
+}

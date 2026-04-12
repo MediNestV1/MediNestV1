@@ -20,6 +20,8 @@ export default function DoctorPage() {
   const { doctors, clinic } = useClinic();
   const [metricsData, setMetricsData] = useState({ todayCount: 0, trend: 0, revenue: 0, waiting: 0 });
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [remainingExpanded, setRemainingExpanded] = useState(false);
   const supabase = createClient();
   
   const activeDoctorName = doctorNameParam || (doctors && doctors.length > 0 ? doctors[0].name : 'Doctor');
@@ -83,6 +85,32 @@ export default function DoctorPage() {
     fetchStats();
   }, [clinic, doctorId, activeDoctorName, supabase]);
 
+  // Live elapsed timer for the current patient
+  useEffect(() => {
+    const nowServing = recentPatients[0];
+    if (!nowServing) return;
+    const startTime = new Date(nowServing.created_at).getTime();
+    const tick = () => setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [recentPatients]);
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
+  const estimateWait = (index: number) => {
+    // Each patient approx 10 min, index = position in waiting list (0-based)
+    const mins = (index + 1) * 10 - Math.floor((elapsedSeconds % 600) / 60);
+    return `~${Math.max(1, mins)} min`;
+  };
+
   const metrics = [
     { label: "Today's Revenue", value: `₹${metricsData.revenue.toLocaleString()}`, trend: 'Live Assessment', trendColor: '#64748b', icon: IconRevenue, bg: '#ebdcff' },
     { label: 'Waiting', value: `${metricsData.waiting} Patients`, trend: 'Queue Status', trendColor: '#10b981', icon: IconWait, bg: '#ffdeaa' },
@@ -113,47 +141,121 @@ export default function DoctorPage() {
             ))}
           </div>
 
-          {/* Patient Queue */}
+          {/* Active Queue */}
           <div className={styles.sectionBox}>
             <div className={styles.sectionHeader}>
               <div>
-                <h4>Today's Patients</h4>
-                <p style={{ fontSize: 13, color: 'var(--sanctuary-ink-l)', marginTop: 4 }}>Recent Patient Visits</p>
+                <h4>Active Queue</h4>
+                <p style={{ fontSize: 13, color: 'var(--sanctuary-ink-l)', marginTop: 4 }}>
+                  {recentPatients.length} patient{recentPatients.length !== 1 ? 's' : ''} in session today
+                </p>
               </div>
+              <span className={styles.livePill}>
+                <span className={styles.liveDot} />
+                LIVE
+              </span>
             </div>
 
-            <div className={styles.queueList}>
-              {recentPatients.map((p) => (
-                <div key={p.id} className={styles.queueItem}>
-                  <div className={styles.patientInfo}>
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--sanctuary-lavender)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'var(--sanctuary-primary)' }}>
-                      {p.patients?.name?.[0]}
+            {recentPatients.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--sanctuary-ink-l)' }}>
+                <p>No patients in queue yet today.</p>
+              </div>
+            ) : (
+              <div className={styles.activeQueue}>
+
+                {/* 🔴 Now Serving */}
+                {recentPatients[0] && (
+                  <div className={styles.nowServingCard}>
+                    <div className={styles.queueBadgeRow}>
+                      <span className={styles.dotRed} />
+                      <span className={styles.queueTierLabel}>Now Serving</span>
                     </div>
-                    <div>
-                      <p className={styles.patientName}>{p.patients?.name}</p>
-                      <p className={styles.patientType}>{p.patients?.age}Y • {p.patients?.gender}</p>
+                    <div className={styles.nowServingBody}>
+                      <div className={styles.nowServingAvatar}>
+                        {recentPatients[0].patients?.name?.[0] ?? '?'}
+                      </div>
+                      <div className={styles.nowServingInfo}>
+                        <p className={styles.nowServingName}>{recentPatients[0].patients?.name ?? 'Unknown'}</p>
+                        <p className={styles.nowServingMeta}>
+                          Token #1 &nbsp;•&nbsp; {recentPatients[0].patients?.age}Y&nbsp;{recentPatients[0].patients?.gender}
+                        </p>
+                      </div>
+                      <div className={styles.timerBadge}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        {formatElapsed(elapsedSeconds)}
+                      </div>
                     </div>
                   </div>
-                  <div className={styles.timeCol}>
-                    <p>Visit Type</p>
-                    <p>{new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                )}
+
+                {/* 🟡 Waiting – Next 3 */}
+                {recentPatients.slice(1, 4).length > 0 && (
+                  <div className={styles.waitingSection}>
+                    <div className={styles.queueBadgeRow}>
+                      <span className={styles.dotYellow} />
+                      <span className={styles.queueTierLabel}>Waiting — Next {recentPatients.slice(1, 4).length}</span>
+                    </div>
+                    <div className={styles.waitingList}>
+                      {recentPatients.slice(1, 4).map((p, idx) => (
+                        <div key={p.id} className={styles.waitingItem}>
+                          <div className={styles.waitingToken}>#{idx + 2}</div>
+                          <div className={styles.waitingInfo}>
+                            <p className={styles.waitingName}>{p.patients?.name ?? 'Unknown'}</p>
+                            <p className={styles.waitingMeta}>{p.patients?.age}Y&nbsp;•&nbsp;{p.patients?.gender}</p>
+                          </div>
+                          <div className={styles.waitEstimate}>{estimateWait(idx)}</div>
+                          <Link href={`/portal/doctor-dashboard/patients/${p.patient_id}`} className={styles.waitingViewBtn}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <span className={styles.statusBadge} style={{ backgroundColor: 'var(--sanctuary-primary)', color: '#fff' }}>
-                      COMPLETED
-                    </span>
+                )}
+
+                {/* ⚪ Remaining Queue */}
+                {recentPatients.slice(4).length > 0 && (
+                  <div className={styles.remainingSection}>
+                    <button
+                      className={styles.remainingToggle}
+                      onClick={() => setRemainingExpanded(prev => !prev)}
+                    >
+                      <div className={styles.queueBadgeRow} style={{ margin: 0 }}>
+                        <span className={styles.dotGray} />
+                        <span className={styles.queueTierLabel}>
+                          Remaining Queue ({recentPatients.slice(4).length})
+                        </span>
+                      </div>
+                      <svg
+                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2.5"
+                        style={{ transform: remainingExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}
+                      >
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {remainingExpanded && (
+                      <div className={styles.remainingList}>
+                        {recentPatients.slice(4).map((p, idx) => (
+                          <div key={p.id} className={styles.remainingItem}>
+                            <span className={styles.remainingToken}>#{idx + 5}</span>
+                            <span className={styles.remainingName}>{p.patients?.name ?? 'Unknown'}</span>
+                            <span className={styles.remainingTime}>
+                              {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Link href={`/portal/doctor-dashboard/patients/${p.patient_id}`} style={{ color: 'var(--sanctuary-ink-l)', textDecoration: 'none' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                  </Link>
-                </div>
-              ))}
-              {recentPatients.length === 0 && (
-                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--sanctuary-ink-l)' }}>
-                  <p>No patients recorded yet today.</p>
-                </div>
-              )}
-            </div>
+                )}
+
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -14,6 +14,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
 const recommendationsRouter = require('./routes/recommendations');
+const queueRouter = require('./routes/queue');
+const analyticsRouter = require('./routes/analytics');
 
 // Validation Helpers
 function isValidHindi(text) {
@@ -33,6 +35,8 @@ app.use(cors({
 app.use(express.json());
 app.use('/api/patient-history', patientHistoryRouter);
 app.use('/api/recommendations', recommendationsRouter);
+app.use('/api/queue', queueRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {
