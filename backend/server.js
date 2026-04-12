@@ -144,8 +144,9 @@ JSON OUTPUT FORMAT:
         const userPrompt = `
 INPUT DATA:
 - Patient: ${patientName}
-- Diagnosis: ${rx.findings}
-- Symptoms: ${rx.complaints}
+- Diagnosis: ${rx.diagnosis || 'N/A'}
+- Findings (O/E): ${rx.findings || 'N/A'}
+- Symptoms: ${rx.complaints || 'N/A'}
 - Medicines: ${JSON.stringify(medicines)}
 - Advice: ${rx.advice}
 - Follow-up Date: ${rx.followUp || rx.valid_till || 'N/A'}

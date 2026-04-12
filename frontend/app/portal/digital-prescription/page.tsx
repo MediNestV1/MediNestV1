@@ -45,6 +45,7 @@ export default function PrescriptionPage() {
 
   const [cc, setCc] = useState('');
   const [findings, setFindings] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
 
   const [meds, setMeds] = useState<Medicine[]>([]);
   const [advice, setAdvice] = useState('');
@@ -414,6 +415,7 @@ export default function PrescriptionPage() {
         doctor_id: selectedDoctorObj.id,
         complaints: cc,
         findings: findings,
+        diagnosis: diagnosis,
         medicines: JSON.stringify(meds.map(m => ({
           type: m.type,
           name: m.name,
@@ -584,14 +586,21 @@ export default function PrescriptionPage() {
                     <div className="field" style={{ flex: 1 }}><label>Weight (Kg)</label><input type="text" value={ptWeight} onChange={e => setPtWeight(e.target.value)} placeholder="Weight" /></div>
                   </div>
                 </div>
-                <div className={styles.panelBlock}>
+                 <div className={styles.panelBlock}>
                   <h3 className={styles.blockTitle}>Clinical Notes</h3>
                   <div className="field">
-                    <label>Chief Complaints</label>
+                    <label>Chief Complaints (CC)</label>
                     <div className={styles.quickTags}>{commonCC.map(t => <button key={t} className={styles.tag} onClick={() => quickAdd(setCc, t)}>{t}</button>)}</div>
-                    <textarea rows={4} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
+                    <textarea rows={2} value={cc} onChange={e => setCc(e.target.value)} placeholder="Symptoms..." />
                   </div>
-                  <div className="field"><label>Diagnosis</label><textarea rows={4} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Findings..." /></div>
+                  <div className="field">
+                    <label>Findings (O/E)</label>
+                    <textarea rows={2} value={findings} onChange={e => setFindings(e.target.value)} placeholder="Clinical observations..." />
+                  </div>
+                  <div className="field">
+                    <label>Diagnosis</label>
+                    <textarea rows={2} value={diagnosis} onChange={e => setDiagnosis(e.target.value)} placeholder="Official diagnosis..." />
+                  </div>
                 </div>
                 <button className="btn-primary" onClick={() => setActiveTab('rx')} style={{ width: '100%', justifyContent: 'center' }}>Next: Medicines →</button>
               </div>
@@ -880,7 +889,22 @@ export default function PrescriptionPage() {
                   <div className={styles.bodyLeftColumn}>
                     <div className={styles.vitalsSection}>
                       {cc && <div className={styles.notesBlock}><b>C/C (Chief Complaints):</b><br />{cc}</div>}
-                      {findings && <div className={styles.notesBlock}><b>O/E & Findings:</b><br />{findings}</div>}
+                      {findings && <div className={styles.notesBlock}><b>Findings (O/E):</b><br />{findings}</div>}
+                      {diagnosis && (
+                        <div 
+                           className={styles.notesBlock} 
+                           style={{ 
+                             background: '#f8fafc', 
+                             borderLeft: '3px solid #0d6e56', 
+                             padding: '12px', 
+                             borderRadius: '0 8px 8px 0',
+                             marginTop: '12px'
+                           }}
+                        >
+                          <b style={{ color: '#0d6e56' }}>DIAGNOSIS:</b><br />
+                          <span style={{ fontWeight: 800 }}>{diagnosis}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={styles.bodyRightColumn}>

@@ -59,7 +59,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const activeSummary = rx?.ai_summary;
 
   // --- TABS & HISTORY ---
-  const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('AI Summary');
+  const [activeTab, setActiveTab] = useState<'Patient Profile' | 'Current Script' | 'AI Summary' | 'Patient History' | 'Drug Interaction' | 'Clinic Notes'>('Current Script');
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // --- TTS & LANGUAGE STATE ---
@@ -653,8 +653,14 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                             )}
                             {rx.findings && (
                               <div className={styles.section}>
-                                <h3 className={styles.sectionTitle}>O/E & FINDINGS</h3>
+                                <h3 className={styles.sectionTitle}>FINDINGS (O/E)</h3>
                                 <p className={styles.text}>{rx.findings}</p>
+                              </div>
+                            )}
+                            {rx.diagnosis && (
+                              <div className={styles.section} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #0d6e56', marginTop: '20px' }}>
+                                <h3 className={styles.sectionTitle} style={{ color: '#0d6e56', marginBottom: '8px' }}>DIAGNOSIS</h3>
+                                <p className={styles.text} style={{ fontWeight: 800 }}>{rx.diagnosis}</p>
                               </div>
                             )}
                           </div>
