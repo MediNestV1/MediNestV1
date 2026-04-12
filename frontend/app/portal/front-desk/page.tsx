@@ -26,37 +26,39 @@ export default function ReceptionistPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const start = today.toISOString();
-      const end = new Date().toISOString(); // Now
+      if (!clinic?.id) return;
       
-      // 1. Fetch Prescriptions (Clinical Count)
-      const { data, count, error } = await supabase
-        .from('prescriptions')
-        .select('*, patients(name, gender, age)', { count: 'exact' })
-        .gte('created_at', start)
-        .lte('created_at', end);
-      
-      // 2. Fetch Actual Receipts (Financial Truth)
-      const { data: recData, error: recError } = await supabase
-        .from('receipts')
-        .select('total_amount')
-        .gte('printed_at', start)
-        .lte('printed_at', end);
-
-      if (!error && data) {
-        const actualRevenue = (recData || []).reduce((sum, r) => sum + (r.total_amount || 0), 0);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/analytics/stats/today?clinic_id=${clinic.id}`);
+        const result = await response.json();
         
-        setTodayCounts({
-          patients: count || data.length,
-          revenue: actualRevenue
-        });
-        setRecentPatients(data);
+        if (result.success) {
+          setTodayCounts({
+            patients: result.patients,
+            revenue: result.revenue
+          });
+        }
+
+        // Keep fetching recent patients separately as it needs full object data
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const { data: recentData } = await supabase
+          .from('prescriptions')
+          .select('*, patients(name, gender, age)')
+          .eq('clinic_id', clinic.id)
+          .gte('created_at', today.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (recentData) {
+          setRecentPatients(recentData);
+        }
+      } catch (err) {
+        console.error('❌ Stats Sync Failure:', err);
       }
     };
     fetchStats();
-  }, [supabase]);
+  }, [supabase, clinic?.id]);
 
   const metrics = [
     { label: 'Daily Clinical Check-ins', value: todayCounts.patients.toString(), trend: '+5% from avg', trendColor: '#10b981', icon: 'person_add', bg: '#ebdcff' },

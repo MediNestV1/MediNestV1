@@ -231,4 +231,65 @@ router.get('/patients', async (req, res) => {
    }
 });
 
+// ─── Post New Receipt (RLS Bypass) ───
+router.post('/receipts', async (req, res) => {
+    const { receiptData } = req.body;
+    
+    if (!receiptData || !receiptData.clinic_id) {
+        return res.status(400).json({ success: false, error: 'Missing receipt data or clinic_id' });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('receipts')
+            .insert([receiptData])
+            .select();
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error('❌ Receipt Save Failure:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ─── Today's Quick Stats (Clinical + Financial) ───
+router.get('/stats/today', async (req, res) => {
+    const { clinic_id } = req.query;
+    if (!clinic_id) return res.status(400).json({ success: false, error: 'clinic_id required' });
+
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = today.toISOString();
+        const end = new Date().toISOString();
+
+        // 1. Patient Count (Prescriptions)
+        const { count: patientCount, error: pError } = await supabase
+            .from('prescriptions')
+            .select('*', { count: 'exact', head: true })
+            .eq('clinic_id', clinic_id)
+            .gte('created_at', start);
+
+        // 2. Revenue (Receipts)
+        const { data: receipts, error: rError } = await supabase
+            .from('receipts')
+            .select('total_amount')
+            .eq('clinic_id', clinic_id)
+            .gte('printed_at', start);
+
+        if (pError || rError) throw (pError || rError);
+
+        const revenue = (receipts || []).reduce((sum, r) => sum + (r.total_amount || 0), 0);
+
+        res.json({
+            success: true,
+            patients: patientCount || 0,
+            revenue: revenue || 0
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;

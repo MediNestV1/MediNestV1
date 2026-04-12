@@ -60,7 +60,7 @@ export default function BillingPage() {
     
     try {
       const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
-      const { error } = await supabase.from('receipts').insert([{
+      const receiptData = {
         receipt_number: receiptNo,
         patient_name: name,
         patient_phone: phone,
@@ -72,18 +72,22 @@ export default function BillingPage() {
         items_json: JSON.stringify(items.map(it => ({ desc: it.name, qty: it.qty, amt: it.price }))),
         printed_at: new Date().toISOString(),
         clinic_id: clinic.id
-      }]);
+      };
 
-      if (error) {
-        console.error('❌ Database Save Error:', error);
-        throw error;
-      }
+      const response = await fetch(`${API_BASE_URL}/api/analytics/receipts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiptData })
+      });
+
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
       
       alert(`Receipt ${receiptNo} saved successfully!`);
       window.print();
     } catch (err: any) {
-      console.error('Save error detail:', err);
-      alert('Failed to save receipt: ' + (err.message || 'Unknown database error. Check your network or permissions.'));
+      console.error('❌ Secure Save Failure:', err);
+      alert('Failed to save receipt: ' + (err.message || 'Check backend connection.'));
     } finally {
       setIsSaving(false);
     }
