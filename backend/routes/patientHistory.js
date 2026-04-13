@@ -36,7 +36,7 @@ async function generatePatientSummary(patient, prescriptions) {
     const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+        Authorization: `Bearer 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`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

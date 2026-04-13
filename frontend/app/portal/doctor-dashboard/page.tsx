@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
+import { getLocalTodayStr } from '@/lib/utils';
 import styles from './page.module.css';
 
 const IconPatientHistory = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
@@ -37,12 +38,14 @@ export default function DoctorPage() {
 
   // ── Fetch live queue from doctor_queue ──────────────────────────────
   const fetchQueue = useCallback(async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    if (!clinic?.id) return;
+    const todayStr = getLocalTodayStr();
 
-    // Step 1: Get all active queue rows for today
+    // Step 1: Get all active queue rows for today scoped to clinic
     const { data: qRows, error: qErr } = await supabase
       .from('doctor_queue')
       .select('*')
+      .eq('clinic_id', clinic.id)
       .eq('queue_date', todayStr)
       .in('status', ['waiting', 'serving'])
       .order('token_number', { ascending: true });
@@ -70,13 +73,13 @@ export default function DoctorPage() {
 
     setLiveQueue(merged);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // stable — supabase ref never changes
+  }, [clinic?.id]); // re-run when clinic loads
 
   // ── Fetch stats ──────────────────────────────────────────────────────
   useEffect(() => {
     const fetchStats = async () => {
       if (!clinic?.id) return;
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalTodayStr();
 
       let patientQuery = supabase.from('prescriptions').select('*', { count: 'exact', head: true }).eq('date', todayStr).eq('clinic_id', clinic.id);
       if (doctorId) patientQuery = patientQuery.eq('doctor_id', doctorId);
@@ -94,21 +97,24 @@ export default function DoctorPage() {
 
   // ── Fetch today's completed patients ──────────────────────────────
   const fetchTodayPatients = useCallback(async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    if (!clinic?.id) return;
+    const todayStr = getLocalTodayStr();
     const { data } = await supabase
       .from('doctor_queue')
       .select('*')
+      .eq('clinic_id', clinic.id)
       .eq('queue_date', todayStr)
       .in('status', ['done', 'skipped'])
       .order('completed_at', { ascending: false });
     if (data) setTodayPatients(data);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clinic?.id]);
 
   // ── Fetch clinical analytics ─────────────────────────────────────────
   const fetchAnalytics = useCallback(async () => {
+    if (!clinic?.id) return;
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     const startOfWeek = new Date(); startOfWeek.setDate(today.getDate() - today.getDay());
     const weekStr = startOfWeek.toISOString().split('T')[0];
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -141,22 +147,27 @@ export default function DoctorPage() {
     setAnalytics({ today: cToday || 0, week: cWeek || 0, month: cMonth || 0,
       waitingTotal: qData?.length || 0, waitingEmergency: emergency, waitingGeneral: general, avgTime });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clinic?.id]);
 
   useEffect(() => {
+    if (!clinic?.id) return;
     fetchQueue();
     fetchTodayPatients();
     fetchAnalytics();
 
     const channel = supabase
-      .channel('doctor-dash-queue-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'doctor_queue' },
-        () => { fetchQueue(); fetchTodayPatients(); fetchAnalytics(); })
+      .channel(`doctor-dash-queue-${clinic.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'doctor_queue',
+        filter: `clinic_id=eq.${clinic.id}`,
+      }, () => { fetchQueue(); fetchTodayPatients(); fetchAnalytics(); })
       .subscribe();
     const poll = setInterval(() => { fetchQueue(); fetchTodayPatients(); fetchAnalytics(); }, 8000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clinic?.id]);
 
   // ── Elapsed timer for current patient ───────────────────────────────
   useEffect(() => {

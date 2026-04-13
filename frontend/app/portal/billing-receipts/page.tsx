@@ -4,7 +4,7 @@ import { useState } from 'react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
-import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api';
 import styles from './page.module.css';
 
 interface ServiceItem {
@@ -75,13 +75,9 @@ export default function BillingPage() {
         clinic_id: clinic.id
       };
 
-      const authHeaders = await getAuthHeaders(supabase);
       const response = await fetch(`${API_BASE_URL}/api/analytics/receipts`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...authHeaders
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ receiptData })
       });
 

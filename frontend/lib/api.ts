@@ -23,12 +23,4 @@ const getApiBaseUrl = () => {
   return 'http://localhost:4001'; // Default fallback
 };
 
-export const getAuthHeaders = async (supabase: any) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return {};
-  return {
-    'Authorization': `Bearer ${session.access_token}`
-  };
-};
-
 export const API_BASE_URL = getApiBaseUrl();

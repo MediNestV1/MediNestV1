@@ -5,15 +5,16 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
+import { getLocalTodayStr } from '@/lib/utils';
 import styles from './page.module.css';
 import docStyles from '../doctor-dashboard/page.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
-  urgent:  { label: '🔴 Urgent',  color: '#ef4444', bg: '#fff1f2' },
+  urgent: { label: '🔴 Urgent', color: '#ef4444', bg: '#fff1f2' },
   elderly: { label: '🟡 Elderly', color: '#f59e0b', bg: '#fffbeb' },
-  normal:  { label: '⚪ Normal',  color: '#94a3b8', bg: '#f8fafc' },
+  normal: { label: '⚪ Normal', color: '#94a3b8', bg: '#f8fafc' },
 };
 
 interface QueueEntry {
@@ -35,26 +36,26 @@ export default function FrontDeskPage() {
   const supabase = supabaseRef.current;
 
   // ── Queue state ──────────────────────────────────────────────────────
-  const [queue, setQueue]         = useState<QueueEntry[]>([]);
+  const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [doneQueue, setDoneQueue] = useState<QueueEntry[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [actionId, setActionId]   = useState<string | null>(null);
-  const [showDone, setShowDone]   = useState(false);
-  const [error, setError]         = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [showDone, setShowDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Drag-and-drop state ──────────────────────────────────────────────
-  const dragItem     = useRef<number | null>(null);
+  const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
   // ── Check-in modal state ─────────────────────────────────────────────
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
-  const [ptPhone, setPtPhone]     = useState('');
-  const [ptName, setPtName]       = useState('');
-  const [ptAge, setPtAge]         = useState('');
-  const [ptSex, setPtSex]         = useState('Male');
-  const [ptWeight, setPtWeight]   = useState('');
+  const [ptPhone, setPtPhone] = useState('');
+  const [ptName, setPtName] = useState('');
+  const [ptAge, setPtAge] = useState('');
+  const [ptSex, setPtSex] = useState('Male');
+  const [ptWeight, setPtWeight] = useState('');
   const [ptBloodGroup, setPtBloodGroup] = useState('');
   const [ptAddress, setPtAddress] = useState('');
   const [checkInPriority, setCheckInPriority] = useState<'normal' | 'urgent' | 'elderly'>('normal');
@@ -66,7 +67,7 @@ export default function FrontDeskPage() {
   // ── Fetch queue (two-step: queue rows + patient data) ────────────────
   const fetchQueue = useCallback(async () => {
     if (!clinic?.id) return;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalTodayStr();
     try {
       // Active
       const { data: active } = await supabase
@@ -114,16 +115,16 @@ export default function FrontDeskPage() {
     fetchQueue();
     const channel = supabase
       .channel('front-desk-live-queue')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
         table: 'doctor_queue',
         filter: `clinic_id=eq.${clinic.id}`
       }, fetchQueue)
       .subscribe();
     const poll = setInterval(fetchQueue, 10000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinic?.id]);
 
   // ── Phone search for check-in ───────────────────────────────────────
@@ -184,7 +185,7 @@ export default function FrontDeskPage() {
       }
 
       // Get next token number for today
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalTodayStr();
       const { data: maxTok } = await supabase.from('doctor_queue')
         .select('token_number').eq('queue_date', todayStr).eq('clinic_id', clinic.id)
         .order('token_number', { ascending: false }).limit(1);
@@ -241,24 +242,24 @@ export default function FrontDeskPage() {
 
   const handleDragStart = (idx: number, id: string) => { dragItem.current = idx; setDragging(id); };
   const handleDragEnter = (idx: number, id: string) => { dragOverItem.current = idx; setDragOver(id); };
-  const handleDragEnd   = () => { setDragging(null); setDragOver(null); };
+  const handleDragEnd = () => { setDragging(null); setDragOver(null); };
 
   const handleDrop = async () => {
     const from = dragItem.current, to = dragOverItem.current;
     if (from === null || to === null || from === to) { handleDragEnd(); return; }
-    
+
     // 1. Reorder the waiting list
     const reordered = [...waiting];
     const [moved] = reordered.splice(from, 1);
     reordered.splice(to, 0, moved);
-    
+
     // 2. Extract and sort existing token numbers to maintain the same sequence
     // This prevents tokens from resetting to 1/2 when rearranging.
     const tokens = waiting.map(q => q.token_number).sort((a, b) => a - b);
-    
+
     // 3. Map tokens back to the new order
     const updated = reordered.map((e, i) => ({ ...e, token_number: tokens[i] }));
-    
+
     setQueue([...(serving ? [serving] : []), ...updated]);
     handleDragEnd();
     try {
@@ -282,8 +283,8 @@ export default function FrontDeskPage() {
         </div>
         <button onClick={() => setIsCheckInOpen(true)} className={styles.checkInBtn}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+            <line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
           </svg>
           Check-in Patient
         </button>
@@ -330,7 +331,7 @@ export default function FrontDeskPage() {
             display: 'flex', alignItems: 'center', gap: 16,
           }}>
             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, padding: '0 8px 0 0', opacity: 0.3 }}>
-              {[0,1,2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: '#8b5cf6', borderRadius: 2 }} />)}
+              {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: '#8b5cf6', borderRadius: 2 }} />)}
             </div>
             <div style={{
               width: 44, height: 44, borderRadius: '50%',
@@ -353,7 +354,7 @@ export default function FrontDeskPage() {
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button onClick={() => updateStatus(serving.id, 'done')} disabled={actionId === serving.id}
                 style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                 Done
               </button>
               <button onClick={() => removeEntry(serving.id)} disabled={!!actionId}
@@ -394,7 +395,7 @@ export default function FrontDeskPage() {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.3, flexShrink: 0 }}>
-              {[0,1,2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: 'var(--sanctuary-primary)', borderRadius: 2 }} />)}
+              {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: 'var(--sanctuary-primary)', borderRadius: 2 }} />)}
             </div>
             <div style={{
               width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
@@ -464,12 +465,20 @@ export default function FrontDeskPage() {
       </div>
 
       <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link href="/portal/front-desk/patients" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
+          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Patient Lobby
+        </Link>
         <Link href="/portal/billing-receipts" style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
           padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
           Billing & Collections
         </Link>
         <Link href="/portal/record-search" style={{
@@ -477,7 +486,7 @@ export default function FrontDeskPage() {
           background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
           padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           Find Clinical Record
         </Link>
       </div>
@@ -494,7 +503,7 @@ export default function FrontDeskPage() {
                 <label className={styles.formLabel}>Contact Number</label>
                 <div style={{ position: 'relative' }}>
                   <input type="text" className={styles.formInput} placeholder="10-digit mobile number"
-                    value={ptPhone} 
+                    value={ptPhone}
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                       setPtPhone(val);

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { getLocalTodayStr, getLocalWeekStartStr, getLocalMonthStartStr } from '@/lib/utils';
 import styles from './DashboardSidebar.module.css';
 
 interface SidebarAnalyticsProps {
@@ -22,23 +23,14 @@ export default function SidebarAnalytics({ doctorId, doctorName, clinicId }: Sid
     avgTime: 0
   });
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
-  useEffect(() => {
-    if (!clinicId) return;
-
-    const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
       setLoading(true);
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      
-      // Calculate date ranges
-      const startOfWeek = new Date();
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const weekStr = startOfWeek.toISOString().split('T')[0];
-
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const monthStr = startOfMonth.toISOString().split('T')[0];
+      const todayStr = getLocalTodayStr();
+      const weekStr = getLocalWeekStartStr();
+      const monthStr = getLocalMonthStartStr();
 
       try {
         // 1. Patient Census Today/Week/Month
@@ -54,14 +46,13 @@ export default function SidebarAnalytics({ doctorId, doctorName, clinicId }: Sid
         if (doctorId) monthQuery = monthQuery.eq('doctor_id', doctorId);
         const { count: countMonth } = await monthQuery;
 
-        // 2. LIVE Active Queue (Direct from doctor_queue)
+        // 2. LIVE Active Queue (Clinic-wide for situational awareness)
         let queueQuery = supabase.from('doctor_queue')
           .select('priority')
           .eq('queue_date', todayStr)
           .eq('clinic_id', clinicId)
-          .eq('status', 'waiting');
+          .in('status', ['waiting', 'serving']); // Count both waiting and serving as "Pending" or "Active"
         
-        if (doctorId) queueQuery = queueQuery.eq('doctor_id', doctorId);
         const { data: queueData } = await queueQuery;
 
         const emergency = queueData?.filter(q => q.priority === 'urgent').length || 0;
@@ -108,15 +99,32 @@ export default function SidebarAnalytics({ doctorId, doctorName, clinicId }: Sid
       } finally {
         setLoading(false);
       }
-    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinicId, doctorId]);
+
+  useEffect(() => {
+    if (!clinicId) return;
 
     fetchAnalytics();
     
-    // Refresh every 2 minutes for a more "Live" feel
-    const interval = setInterval(fetchAnalytics, 2 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Live realtime subscription — updates sidebar instantly on any queue change
+    const channel = supabase
+      .channel(`sidebar-analytics-${clinicId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'doctor_queue',
+        filter: `clinic_id=eq.${clinicId}`,
+      }, () => {
+        fetchAnalytics();
+      })
+      .subscribe();
 
-  }, [clinicId, doctorId, doctorName, supabase]);
+    // Fallback poll every 60 seconds (realtime is primary)
+    const interval = setInterval(() => fetchAnalytics(), 60 * 1000);
+    return () => { supabase.removeChannel(channel); clearInterval(interval); };
+
+  }, [clinicId, doctorId, fetchAnalytics]);
 
   if (loading && !stats.today) return <div className={styles.analyticsSkeleton}>Loading intelligence...</div>;
 

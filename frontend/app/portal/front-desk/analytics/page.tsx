@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useClinic } from '@/context/ClinicContext';
-import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
-import { createClient } from '@/lib/supabase/client';
+import { API_BASE_URL } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -145,10 +144,7 @@ export default function AnalyticsDashboardPage() {
            queryParams.append('compareEnd', computedRanges.compare.end);
         }
 
-        const authHeaders = await getAuthHeaders(createClient());
-        const response = await fetch(`${API_BASE_URL}/api/analytics/dashboard?${queryParams.toString()}`, {
-          headers: { ...authHeaders }
-        });
+        const response = await fetch(`${API_BASE_URL}/api/analytics/dashboard?${queryParams.toString()}`);
         const result = await response.json();
 
         if (result.success) {
@@ -180,10 +176,7 @@ export default function AnalyticsDashboardPage() {
              queryParams.append('baseEnd', computedRanges.base.end);
           }
 
-          const authHeaders = await getAuthHeaders(createClient());
-          const res = await fetch(`${API_BASE_URL}/api/analytics/patients?${queryParams.toString()}`, {
-             headers: { ...authHeaders }
-          });
+          const res = await fetch(`${API_BASE_URL}/api/analytics/patients?${queryParams.toString()}`);
           const result = await res.json();
           if (result.success) setModalPatients(result.data);
       } catch(err) {

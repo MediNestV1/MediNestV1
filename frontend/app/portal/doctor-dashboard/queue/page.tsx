@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
@@ -68,8 +68,6 @@ export default function DoctorQueuePage() {
   const searchParams = useSearchParams();
   const doctorIdParam = searchParams?.get('doctorId');
   const { clinic, doctors } = useClinic();
-  const supabase = createClient();
-
   const [queue, setQueue]         = useState<QueueEntry[]>([]);
   const [doneCount, setDoneCount] = useState(0);
   const [loading, setLoading]     = useState(true);
@@ -78,6 +76,10 @@ export default function DoctorQueuePage() {
 
   const activeDoctorId = doctorIdParam || (doctors?.[0]?.id ?? null);
   const activeDoctorName = doctors?.find(d => d.id === activeDoctorId)?.name ?? doctors?.[0]?.name ?? 'Doctor';
+
+  // Stable Supabase client — never recreated between renders
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   // ── Fetch queue ──────────────────────────────────────────────────────
   const fetchQueue = useCallback(async () => {
@@ -105,7 +107,7 @@ export default function DoctorQueuePage() {
   useEffect(() => {
     if (!clinic?.id) return;
     const channel = supabase
-      .channel('doctor-queue-live')
+      .channel(`doctor-queue-live-${clinic.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'doctor_queue', filter: `clinic_id=eq.${clinic.id}` },
@@ -113,7 +115,7 @@ export default function DoctorQueuePage() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [clinic?.id, supabase, fetchQueue]);
+  }, [clinic?.id, fetchQueue]);
 
   // ── Queue Actions ─────────────────────────────────────────────────────
   const updateStatus = async (id: string, status: string) => {

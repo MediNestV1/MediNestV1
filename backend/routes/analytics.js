@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
-const supabaseServiceRole = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MjgwNzgsImV4cCI6MjA5MTEwNDA3OH0.4gYcjTwRU9sqQc_XmFtUy0DSQLn2Qrx2fu27snHda5w';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 
 const calcTrend = (curr, prev) => {
@@ -40,35 +40,43 @@ router.get('/dashboard', async (req, res) => {
         let prevData = [];
         let currReceipts = [];
         let prevReceipts = [];
+        let currQueue = [];
+        let prevQueue = [];
 
         // Promises builder
         let promises = [];
         
         let currPresQuery = supabase.from('prescriptions').select('*, patients(*)').eq('clinic_id', clinic_id);
         let currRecQuery = supabase.from('receipts').select('total_amount, printed_at').eq('clinic_id', clinic_id);
+        let currQueueQuery = supabase.from('doctor_queue').select('serving_started_at, completed_at').eq('clinic_id', clinic_id).eq('status', 'done');
         
         if (hasBase) {
             currPresQuery = currPresQuery.gte('created_at', baseStart).lte('created_at', baseEnd);
             currRecQuery = currRecQuery.gte('printed_at', baseStart).lte('printed_at', baseEnd);
+            currQueueQuery = currQueueQuery.gte('completed_at', baseStart).lte('completed_at', baseEnd);
         }
-        promises.push(currPresQuery, currRecQuery);
+        promises.push(currPresQuery, currRecQuery, currQueueQuery);
         
         if (doCompare) {
             let prevPresQuery = supabase.from('prescriptions').select('*, patients(*)').eq('clinic_id', clinic_id)
                                         .gte('created_at', compareStart).lte('created_at', compareEnd);
             let prevRecQuery = supabase.from('receipts').select('total_amount, printed_at').eq('clinic_id', clinic_id)
                                         .gte('printed_at', compareStart).lte('printed_at', compareEnd);
-            promises.push(prevPresQuery, prevRecQuery);
+            let prevQueueQuery = supabase.from('doctor_queue').select('serving_started_at, completed_at').eq('clinic_id', clinic_id).eq('status', 'done')
+                                         .gte('completed_at', compareStart).lte('completed_at', compareEnd);
+            promises.push(prevPresQuery, prevRecQuery, prevQueueQuery);
         }
 
         const results = await Promise.all(promises);
         
         currData = results[0].data || [];
         currReceipts = results[1].data || [];
+        currQueue = results[2].data || [];
         
         if (doCompare) {
-            prevData = results[2].data || [];
-            prevReceipts = results[3].data || [];
+            prevData = results[3].data || [];
+            prevReceipts = results[4].data || [];
+            prevQueue = results[5].data || [];
         }
 
         // --- Aggregation logic ---
@@ -160,6 +168,21 @@ router.get('/dashboard', async (req, res) => {
             amount: revDateMap[d] 
         }));
 
+        // --- Avg Consult Time Calculation ---
+        const calcAvgTime = (queueArr) => {
+            const valid = queueArr.filter(q => q.serving_started_at && q.completed_at);
+            if (valid.length === 0) return 0;
+            const totalMins = valid.reduce((sum, q) => {
+                const s = new Date(q.serving_started_at).getTime();
+                const e = new Date(q.completed_at).getTime();
+                return sum + ((e - s) / (1000 * 60));
+            }, 0);
+            return Math.round(totalMins / valid.length);
+        };
+
+        const currAvgTime = calcAvgTime(currQueue);
+        const prevAvgTime = calcAvgTime(prevQueue);
+
         const summaryData = {
             totalPatients: currData.length,
             prevTotalPatients: prevData.length,
@@ -167,9 +190,9 @@ router.get('/dashboard', async (req, res) => {
             revenue: currRevenue,
             prevRevenue: prevRevenue,
             revenueTrend: doCompare ? calcTrend(currRevenue, prevRevenue) : null,
-            avgConsultTime: '12m',
-            prevConsultTime: '14m',
-            consultTrend: doCompare ? -14 : null
+            avgConsultTime: currAvgTime > 0 ? `${currAvgTime}m` : 'N/A',
+            prevConsultTime: prevAvgTime > 0 ? `${prevAvgTime}m` : 'N/A',
+            consultTrend: (doCompare && currAvgTime > 0 && prevAvgTime > 0) ? calcTrend(currAvgTime, prevAvgTime) : null
         };
 
         const top3Names = finalDiagnoses.slice(0, 3).map(x => x.diagnosis);
