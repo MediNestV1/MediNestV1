@@ -10,16 +10,34 @@
 }
 
 .dashboardHeader {
-  margin-bottom: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  gap: 24px;
 }
 
 .dashboardHeader h2 {
   font-family: var(--font-headline);
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 800;
   color: var(--sanctuary-primary);
-  letter-spacing: -1.5px;
-  margin-bottom: 8px;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.headerTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.headerSubtext {
+  color: var(--sanctuary-ink-l);
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.8;
 }
 
 .metricsRow {
@@ -217,19 +235,26 @@
   background: var(--sanctuary-primary);
   color: #fff;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 30px;
   font-weight: 800;
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: transform 0.2s;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(23, 3, 55, 0.15);
 }
 
 .checkInBtn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(23, 3, 55, 0.2);
+  background: #1e0544;
+}
+
+.checkInBtn:active {
+  transform: translateY(0);
 }
 
 .formSection {
@@ -343,4 +368,83 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.nowServingCard {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 2px solid rgba(139, 92, 246, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.08);
+  margin-bottom: 24px;
+}
+
+.queueCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(23, 3, 55, 0.03);
+  margin-bottom: 12px;
+}
+
+.queueCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(23, 3, 55, 0.06);
+  border-color: rgba(23, 3, 55, 0.1);
+}
+
+.queueCard:active {
+  cursor: grabbing;
+}
+
+.tokenBadge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.cardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardName {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--sanctuary-primary);
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  font-size: 12px;
+  color: var(--sanctuary-ink-l);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }

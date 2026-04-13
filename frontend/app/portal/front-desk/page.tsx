@@ -275,9 +275,9 @@ export default function FrontDeskPage() {
   return (
     <DashboardLayout>
       <div className={styles.dashboardHeader}>
-        <div>
+        <div className={styles.headerTitleGroup}>
           <h2>Live Queue</h2>
-          <p style={{ color: 'var(--sanctuary-ink-l)', marginTop: 6 }}>
+          <p className={styles.headerSubtext}>
             Real-time patient flow · {waiting.length} waiting · {doneQueue.length} completed today
           </p>
         </div>
@@ -322,43 +322,35 @@ export default function FrontDeskPage() {
       {error && <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: 12, color: '#dc2626', marginBottom: 16, fontSize: 13 }}>⚠️ {error}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-
         {serving && (
-          <div style={{
-            background: 'linear-gradient(135deg,#ebdcff 0%,#f3f0ff 100%)',
-            borderRadius: 18, padding: '18px 22px',
-            border: '2px solid rgba(139,92,246,0.2)',
-            display: 'flex', alignItems: 'center', gap: 16,
-          }}>
-            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, padding: '0 8px 0 0', opacity: 0.3 }}>
-              {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: '#8b5cf6', borderRadius: 2 }} />)}
-            </div>
+          <div className={styles.nowServingCard}>
             <div style={{
-              width: 44, height: 44, borderRadius: '50%',
+              width: 52, height: 52, borderRadius: '50%',
               background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: 18, flexShrink: 0,
+              fontWeight: 900, fontSize: 20, flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(139,92,246,0.3)'
             }}>
               {serving.patients?.name?.[0] ?? '?'}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <div className={styles.cardContent}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: '#7c3aed', textTransform: 'uppercase' }}>Now Serving</span>
-                <span style={{ background: '#7c3aed', color: '#fff', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 800 }}>#{serving.token_number}</span>
+                <span style={{ background: '#7c3aed', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 900 }}>#{serving.token_number}</span>
               </div>
-              <p style={{ fontWeight: 800, fontSize: 16, color: '#4c1d95', margin: 0 }}>{serving.patients?.name ?? 'Unknown'}</p>
-              <p style={{ fontSize: 12, color: '#6d28d9', margin: 0 }}>
+              <p className={styles.cardName} style={{ fontSize: 18 }}>{serving.patients?.name ?? 'Unknown'}</p>
+              <p className={styles.cardMeta} style={{ color: '#6d28d9', fontWeight: 600 }}>
                 {serving.patients?.age}Y · {serving.patients?.gender} · {priorityConfig[serving.priority]?.label}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <div className={styles.cardActions}>
               <button onClick={() => updateStatus(serving.id, 'done')} disabled={actionId === serving.id}
-                style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 18px', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                Done
+                style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 10px rgba(16,185,129,0.2)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                Complete
               </button>
               <button onClick={() => removeEntry(serving.id)} disabled={!!actionId}
-                style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 10, padding: '8px 13px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>✕</button>
+                style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 12, padding: '10px 14px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>✕</button>
             </div>
           </div>
         )}
@@ -382,53 +374,45 @@ export default function FrontDeskPage() {
             onDragOver={e => e.preventDefault()}
             onDragEnd={handleDragEnd}
             onDrop={handleDrop}
+            className={styles.queueCard}
             style={{
-              background: '#fff', borderRadius: 16, padding: '14px 18px',
               borderTop: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
               borderRight: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
               borderBottom: `1px solid ${dragOver === entry.id && dragging !== entry.id ? 'var(--sanctuary-primary)' : 'rgba(23,3,55,0.06)'}`,
               borderLeft: `4px solid ${priorityConfig[entry.priority]?.color ?? '#94a3b8'}`,
               opacity: dragging === entry.id ? 0.4 : 1,
-              display: 'flex', alignItems: 'center', gap: 12,
-              cursor: 'grab', transition: 'all 0.15s',
-              boxShadow: '0 1px 6px rgba(23,3,55,0.04)',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.3, flexShrink: 0 }}>
-              {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: 16, height: 2, background: 'var(--sanctuary-primary)', borderRadius: 2 }} />)}
-            </div>
-            <div style={{
-              width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+            <div className={styles.tokenBadge} style={{
               background: priorityConfig[entry.priority]?.bg ?? '#f8fafc',
               color: priorityConfig[entry.priority]?.color ?? '#94a3b8',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: 13, border: `1.5px solid ${priorityConfig[entry.priority]?.color ?? '#e2e8f0'}22`,
+              border: `1.5px solid ${priorityConfig[entry.priority]?.color ?? '#e2e8f0'}22`,
             }}>
               #{entry.token_number}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--sanctuary-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className={styles.cardContent}>
+              <p className={styles.cardName}>
                 {entry.patients?.name ?? entry.patient_name ?? 'Unknown'}
               </p>
-              <p style={{ fontSize: 12, color: 'var(--sanctuary-ink-l)', margin: 0 }}>
-                <span style={{ color: priorityConfig[entry.priority]?.color }}>{priorityConfig[entry.priority]?.label}</span>
+              <p className={styles.cardMeta}>
+                <span style={{ color: priorityConfig[entry.priority]?.color, fontWeight: 700 }}>{priorityConfig[entry.priority]?.label}</span>
                 {' · '}Pos. {idx + 1}
                 {' · '}{new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+            <div className={styles.cardActions}>
               <select
                 value={entry.priority}
                 onChange={e => updatePriority(entry.id, e.target.value)}
                 disabled={!!actionId}
-                style={{ fontSize: 12, borderRadius: 8, border: '1.5px solid rgba(23,3,55,0.1)', padding: '5px 8px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ fontSize: 12, borderRadius: 8, border: '1.5px solid rgba(23,3,55,0.1)', padding: '6px 10px', fontWeight: 600, cursor: 'pointer', background: '#fff' }}
               >
                 <option value="normal">Normal</option><option value="elderly">Elderly</option><option value="urgent">Urgent</option>
               </select>
               <button onClick={() => updateStatus(entry.id, 'serving')} disabled={!!actionId || !!serving}
-                style={{ background: '#ebdcff', color: '#7c3aed', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Call</button>
+                style={{ background: '#f5f3ff', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.1)', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12, cursor: 'pointer', transition: 'all 0.2s' }}>Call</button>
               <button onClick={() => removeEntry(entry.id)} disabled={!!actionId}
-                style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 8, padding: '6px 10px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕</button>
+                style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid rgba(225,29,72,0.1)', borderRadius: 10, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕</button>
             </div>
           </div>
         ))}
