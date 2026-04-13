@@ -203,9 +203,10 @@ export default function FrontDeskPage() {
 
       setIsCheckInOpen(false);
       resetCheckIn();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Check-in error:', err);
-      alert('Failed to check-in. Please try again.');
+      const errMsg = err.message || err.details || 'Check-in failed';
+      alert(`Failed to check-in: ${errMsg}. Please check if you have permissions.`);
     } finally {
       setIsSubmitting(false);
     }
