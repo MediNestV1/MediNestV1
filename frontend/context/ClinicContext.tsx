@@ -110,7 +110,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         if (docError) console.error('❌ ClinicContext: Doctors fetch error:', docError);
         
         // Flatten the joined data for easier frontend consumption
-        const flattenedDoctors = (doctorData || []).map(entry => ({
+        const flattenedDoctors = (doctorData || []).map((entry: any) => ({
           ...entry,
           ...(entry.doctors || {}),
           id: entry.id, // Keep the clinic_doctor record ID as the primary reference

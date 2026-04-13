@@ -45,8 +45,8 @@ export default function DoctorProfilePage() {
       setName(doc.name || '');
       setQualification(doc.qualification || '');
       setSpecialty(doc.specialty || '');
-      setPhone(doc.phone || doc.contact || '');
-      setEmail(doc.email || '');
+      setPhone(doc.contact || '');
+      setEmail(doc.contact_email || '');
       setGender(doc.gender || '');
       setDob(doc.dob || '');
       setRegNumber(doc.registration_number || '');
@@ -71,11 +71,13 @@ export default function DoctorProfilePage() {
           name, 
           qualification, 
           specialty, 
-          contact: phone, // Sync renamed contact field
-          email,
-          registration_number: regNumber,
+          contact: phone || null, 
+          contact_email: email || null,
+          dob: dob || null,
+          gender: gender || null,
+          registration_number: regNumber || null,
           license_expiry_date: expiry || null,
-          profile_photo_url: photoUrl,
+          profile_photo_url: photoUrl || null,
           experience_years: parseInt(experience) || 0
         })
         .eq('id', activeDoc.doctor_id);

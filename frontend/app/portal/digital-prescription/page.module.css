@@ -173,6 +173,8 @@
   border-right: 2px solid #0d6e56;
   padding: 0 48px;
   margin-right: 20px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .bodyRightColumn {

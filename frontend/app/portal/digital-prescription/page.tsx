@@ -29,6 +29,7 @@ export default function PrescriptionPage() {
   const { clinic, doctors } = useClinic();
   const [activeTab, setActiveTab] = useState<'info' | 'rx'>('info');
   const [isSaving, setIsSaving] = useState(false);
+  const [savedRxId, setSavedRxId] = useState<string | null>(null);
   const rxPaperRef = useRef<HTMLDivElement>(null);
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -85,7 +86,9 @@ export default function PrescriptionPage() {
 
   // 💾 Draft Persistence (Cache) Logic
   useEffect(() => {
-    const savedDraft = localStorage.getItem('medinest_rx_draft');
+    const pId = searchParams.get('patientId') || 'unlinked';
+    const draftKey = `medinest_rx_draft_${pId}`;
+    const savedDraft = localStorage.getItem(draftKey);
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
@@ -94,7 +97,18 @@ export default function PrescriptionPage() {
         if (draft.ptAge) setPtAge(draft.ptAge);
         if (draft.ptSex) setPtSex(draft.ptSex);
         if (draft.ptWeight) setPtWeight(draft.ptWeight);
+        if (draft.ptBloodGroup) setPtBloodGroup(draft.ptBloodGroup);
+        if (draft.cc) setCc(draft.cc);
+        if (draft.findings) setFindings(draft.findings);
+        if (draft.diagnosis) setDiagnosis(draft.diagnosis);
         if (draft.meds) setMeds(draft.meds);
+        if (draft.mName) setMName(draft.mName);
+        if (draft.mType) setMType(draft.mType);
+        if (draft.mDose) setMDose(draft.mDose);
+        if (draft.mFreq) setMFreq(draft.mFreq);
+        if (draft.mDur) setMDur(draft.mDur);
+        if (draft.mInst) setMInst(draft.mInst);
+        if (draft.mNote) setMNote(draft.mNote);
         if (draft.advice) setAdvice(draft.advice);
         if (draft.followUp) setFollowUp(draft.followUp);
         if (draft.pendingAiMeds) setPendingAiMeds(draft.pendingAiMeds);
@@ -181,19 +195,26 @@ export default function PrescriptionPage() {
   }, [activeTab, isAutoAiEnabled, cc, findings]);
 
   useEffect(() => {
+    // If we've already officially saved this prescription to the DB, stop updating the draft.
+    if (savedRxId) return;
+
     const draft = { 
-      ptName, ptPhone, ptAge, ptSex, ptWeight, cc, findings, 
-      meds, advice, followUp, pendingAiMeds, adviceApproved 
+      ptName, ptPhone, ptAge, ptSex, ptWeight, ptBloodGroup, cc, findings, diagnosis,
+      meds, mName, mType, mDose, mFreq, mDur, mInst, mNote, 
+      advice, followUp, pendingAiMeds, adviceApproved 
     };
-    localStorage.setItem('medinest_rx_draft', JSON.stringify(draft));
-  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, cc, findings, meds, advice, followUp, pendingAiMeds, adviceApproved]);
+    const pId = searchParams.get('patientId') || 'unlinked';
+    const draftKey = `medinest_rx_draft_${pId}`;
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [ptName, ptPhone, ptAge, ptSex, ptWeight, ptBloodGroup, cc, findings, diagnosis, meds, mName, mType, mDose, mFreq, mDur, mInst, mNote, advice, followUp, pendingAiMeds, adviceApproved, savedRxId, searchParams]);
 
   // 🩺 Auto-Select Doctor (Backend logic remains for database attribution)
   const selectedDoctorObj = doctors.length === 1 ? doctors[0] : doctors.find(d => d.name === searchParams.get('doctorName'));
 
   const handleNewRecord = () => {
     if (window.confirm('Clear current draft and start a new record?')) {
-      localStorage.removeItem('medinest_rx_draft');
+      const pId = searchParams.get('patientId') || 'unlinked';
+      localStorage.removeItem(`medinest_rx_draft_${pId}`);
       setPtName('');
       setPtPhone('');
       setPtAge('');
@@ -504,7 +525,7 @@ export default function PrescriptionPage() {
       // Insert prescription and return share_id
       const { data: pData, error } = await supabase.from('prescriptions').insert([{
         patient_id: patientId,
-        doctor_id: selectedDoctorObj.id,
+        doctor_id: selectedDoctorObj.doctor_id || selectedDoctorObj.id,
         complaints: cc,
         findings: findings,
         diagnosis: diagnosis,
@@ -547,7 +568,11 @@ export default function PrescriptionPage() {
         setSavedRxId(pData.id);
       }
 
-      alert('Prescription saved successfully! Patient marked as completed.');
+      // 3. RESET DRAFT (Clear the auto-save cache for this patient so it starts fresh next time)
+      const thisPatientId = searchParams.get('patientId') || 'unlinked';
+      localStorage.removeItem(`medinest_rx_draft_${thisPatientId}`);
+
+      alert('Prescription saved successfully! Patient marked as completed.\n\nYou can now Download PDF or share via WhatsApp.');
     } catch (err: any) {
       console.error('Save error:', err);
       alert('Error: ' + (err.message || 'Check database permissions.'));
@@ -555,8 +580,6 @@ export default function PrescriptionPage() {
       setIsSaving(false);
     }
   };
-
-  const [savedRxId, setSavedRxId] = useState<string | null>(null);
 
   const shareWhatsApp = () => {
     if (!savedRxId && !ptName) {

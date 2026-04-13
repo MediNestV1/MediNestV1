@@ -34,7 +34,7 @@ export default function DoctorPage() {
   const supabase = supabaseRef.current;
 
   const activeDoctorName = doctorNameParam || (doctors && doctors.length > 0 ? doctors[0].name : 'Doctor');
-  const doctorFirstName = activeDoctorName.split(' ')[0];
+  const doctorFirstName = activeDoctorName?.split(' ')[0] || 'Doctor';
 
   // ── Fetch live queue from doctor_queue ──────────────────────────────
   const fetchQueue = useCallback(async () => {

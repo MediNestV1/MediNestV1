@@ -124,6 +124,7 @@ router.get('/:patientId', async (req, res) => {
 
     const visits = (rawPrescriptions || []).map(p => ({
       visit_date: p.date || p.created_at,
+      created_at: p.created_at,
       doctor: p.doctor_name,
       complaints: p.complaints,
       findings: p.findings,

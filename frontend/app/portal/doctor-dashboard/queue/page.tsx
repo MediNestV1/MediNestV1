@@ -212,7 +212,7 @@ export default function DoctorQueuePage() {
                 <div className={styles.tierHeader}>
                   <span className={styles.dot} style={{ background: '#ef4444' }}/>
                   <span className={styles.tierLabel}>Now Serving</span>
-                  {serving && <ConsultTimer startedAt={serving.serving_started_at} />}
+                  {serving && <ConsultTimer startedAt={serving.check_in_time} />}
                 </div>
 
                 {serving ? (

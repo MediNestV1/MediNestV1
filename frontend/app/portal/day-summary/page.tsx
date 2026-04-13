@@ -49,11 +49,15 @@ export default function DaySummaryPage() {
       const todayStr = new Date().toISOString().split('T')[0];
       const { data: rxData, error: rxErr } = await supabase
         .from('prescriptions')
-        .select('*, patients(name)')
+        .select('*, patients!patient_id(name)')
         .eq('clinic_id', clinic.id)
         .eq('date', todayStr);
       
-      if (rxErr) console.error('RX Error:', rxErr);
+      if (rxErr) {
+        console.error('RX Error Full:', rxErr);
+        console.error('RX Message:', rxErr.message);
+        console.error('RX Code:', rxErr.code);
+      }
 
       // 2. Fetch Today's Receipts (Revenue)
       const { data: billData, error: billErr } = await supabase
@@ -63,7 +67,10 @@ export default function DaySummaryPage() {
         .gte('printed_at', startOfDay.toISOString())
         .lte('printed_at', endOfDay.toISOString());
 
-      if (billErr) console.error('Bill Error:', billErr);
+      if (billErr) {
+        console.error('Bill Error Full:', billErr);
+        console.error('Bill Message:', billErr.message);
+      }
 
       const receipts = billData || [];
       const totalRevenue = receipts.reduce((sum, r) => sum + r.total_amount, 0);

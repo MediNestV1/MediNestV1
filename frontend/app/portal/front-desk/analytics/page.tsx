@@ -621,7 +621,7 @@ export default function AnalyticsDashboardPage() {
              
              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <select 
                           className={styles.timeSelect} 
                           value={baseFilter} 
@@ -634,32 +634,32 @@ export default function AnalyticsDashboardPage() {
                            <option value="Custom...">Custom Dates...</option>
                         </select>
 
-                        <button 
-                          className={styles.refreshBtn} 
-                          onClick={fetchAnalytics}
-                          disabled={isLoading}
-                          title="Refresh Analytics"
-                        >
-                           <svg 
-                            className={isLoading ? styles.spinning : ''} 
-                            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-                           >
-                             <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-                             <polyline points="22 4 22 10 16 10"></polyline>
-                           </svg>
-                           <span>Refresh</span>
-                        </button>
+                        <label className={styles.compareToggle}>
+                           <input 
+                             type="checkbox" 
+                             checked={isComparisonMode} 
+                             onChange={(e) => setIsComparisonMode(e.target.checked)} 
+                             style={{ width: '16px', height: '16px', accentColor: 'var(--sanctuary-primary)' }}
+                           />
+                           Compare Mode
+                        </label>
                     </div>
 
-                    <label className={styles.compareToggle}>
-                       <input 
-                         type="checkbox" 
-                         checked={isComparisonMode} 
-                         onChange={(e) => setIsComparisonMode(e.target.checked)} 
-                         style={{ width: '16px', height: '16px', accentColor: 'var(--sanctuary-primary)' }}
-                       />
-                       Compare Mode
-                    </label>
+                    <button 
+                      className={styles.refreshBtn} 
+                      onClick={fetchAnalytics}
+                      disabled={isLoading}
+                      title="Refresh Analytics"
+                    >
+                       <svg 
+                        className={isLoading ? styles.spinning : ''} 
+                        width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                       >
+                         <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                         <polyline points="22 4 22 10 16 10"></polyline>
+                       </svg>
+                       <span>Refresh</span>
+                    </button>
                 </div>
 
                 {baseFilter === 'Custom...' && (

@@ -19,6 +19,7 @@ interface Patient {
 
 interface Visit {
   visit_date: string;
+  created_at?: string;
   doctor: string;
   complaints: string;
   findings: string;
@@ -145,7 +146,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                   <div className={styles.timelineHeader}>
                      <div className={styles.visitMeta}>
                         <h3>Consultation - {visit.doctor}</h3>
-                        <p>{new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} • {new Date(visit.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p>{new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} • {new Date(visit.created_at || visit.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                      </div>
                      <span className={`${styles.badge} ${styles.badgeFollowUp}`}>COMPLETED Visit</span>
                   </div>
@@ -251,7 +252,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
              {visits.map((v, i) => (
                <tr key={i}>
                   <td>{new Date(v.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                  <td>{new Date(v.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td>{new Date(v.created_at || v.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                   <td>General Practice</td>
                   <td>{v.doctor}</td>
                   <td><span className={styles.badge} style={{ background: '#e0f2fe', color: '#0369a1' }}>COMPLETED</span></td>
