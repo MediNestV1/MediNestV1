@@ -525,13 +525,29 @@ export default function PrescriptionPage() {
       }]).select('id').single();
 
       if (error) throw error;
+      
+      // 2. MARK AS DONE IN QUEUE (Operational Sync)
+      // If we launched from the dashboard/queue, mark the entry as complete
+      if (patientId) {
+        const { error: queueError } = await supabase
+          .from('doctor_queue')
+          .update({ 
+            status: 'done', 
+            completed_at: new Date().toISOString() 
+          })
+          .eq('patient_id', patientId)
+          .eq('queue_date', date)
+          .eq('clinic_id', clinic?.id);
+        
+        if (queueError) console.warn('Queue Sync Warning:', queueError.message);
+      }
 
       // Update local ID for use in sharing
       if (pData?.id) {
         setSavedRxId(pData.id);
       }
 
-      alert('Prescription saved successfully!');
+      alert('Prescription saved successfully! Patient marked as completed.');
     } catch (err: any) {
       console.error('Save error:', err);
       alert('Error: ' + (err.message || 'Check database permissions.'));

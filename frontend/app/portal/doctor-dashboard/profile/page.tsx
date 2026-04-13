@@ -62,25 +62,36 @@ export default function DoctorProfilePage() {
     if (!doctors || doctors.length === 0) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('clinic_doctors')
+      const activeDoc = doctors[0];
+      
+      // 1. Update Global Profile (doctors table)
+      const { error: globalErr } = await supabase
+        .from('doctors')
         .update({ 
           name, 
           qualification, 
           specialty, 
-          phone,
+          contact: phone, // Sync renamed contact field
           email,
-          gender,
-          dob: dob || null,
           registration_number: regNumber,
           license_expiry_date: expiry || null,
           profile_photo_url: photoUrl,
-          experience_years: parseInt(experience) || 0,
+          experience_years: parseInt(experience) || 0
+        })
+        .eq('id', activeDoc.doctor_id);
+
+      if (globalErr) throw globalErr;
+
+      // 2. Update Clinic Context (clinic_doctors table)
+      const { error: clinicErr } = await supabase
+        .from('clinic_doctors')
+        .update({ 
           timings,
           fees: parseInt(fees) || 0
         })
-        .eq('id', doctors[0].id);
-      if (error) throw error;
+        .eq('id', activeDoc.id);
+
+      if (clinicErr) throw clinicErr;
       refresh();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);

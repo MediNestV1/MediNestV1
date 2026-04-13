@@ -102,13 +102,22 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
         const { data: doctorData, error: docError } = await supabase
           .from('clinic_doctors')
-          .select('*')
+          .select('*, doctors(*)')
           .eq('clinic_id', clinicData.id)
           .eq('is_active', true)
           .order('display_order');
         
         if (docError) console.error('❌ ClinicContext: Doctors fetch error:', docError);
-        setDoctors(doctorData || []);
+        
+        // Flatten the joined data for easier frontend consumption
+        const flattenedDoctors = (doctorData || []).map(entry => ({
+          ...entry,
+          ...(entry.doctors || {}),
+          id: entry.id, // Keep the clinic_doctor record ID as the primary reference
+          doctor_id: entry.doctor_id // Explicitly keep the global doctor ID
+        }));
+        
+        setDoctors(flattenedDoctors);
       }
     } catch (e: any) {
       console.error('🔥 ClinicContext: Critical error in refresh:', e);

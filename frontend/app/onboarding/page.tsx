@@ -142,8 +142,30 @@ export default function OnboardingPage() {
       if (clinicErr) throw clinicErr;
 
       if (doctors.length > 0) {
-        const docsWithClinic = doctors.map(d => ({ ...d, clinic_id: clinic.id }));
-        await supabase.from('clinic_doctors').insert(docsWithClinic);
+        for (const d of doctors) {
+          // 1. Insert into global doctors registry
+          const { data: docRecord, error: docErr } = await supabase.from('doctors').insert({
+            name: d.name,
+            qualification: d.qualification,
+            contact: d.contact,
+            specialty: d.specialty,
+            registration_number: d.registration_number,
+            license_expiry_date: d.license_expiry_date,
+            profile_photo_url: d.profile_photo_url
+          }).select().single();
+          
+          if (docErr) throw docErr;
+
+          // 2. Map doctor to this specific clinic context
+          const { error: assocErr } = await supabase.from('clinic_doctors').insert({
+            clinic_id: clinic.id,
+            doctor_id: docRecord.id,
+            display_order: d.display_order,
+            is_active: d.is_active
+          });
+          
+          if (assocErr) throw assocErr;
+        }
       }
 
       setStep(3);
