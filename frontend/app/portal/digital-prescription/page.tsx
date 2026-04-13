@@ -7,7 +7,7 @@ import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 import styles from './page.module.css';
 
 interface Medicine {
@@ -152,7 +152,10 @@ export default function PrescriptionPage() {
           setPtWeight(data.weight || '');
           
           // Also fetch AI summary if available
-          const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
+          const authHeaders = await getAuthHeaders(supabase);
+          const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`, {
+            headers: { ...authHeaders }
+          });
           const historyData = await res.json();
           if (historyData && historyData.summary) {
             setPtSnapshot(historyData.summary);
@@ -220,9 +223,13 @@ export default function PrescriptionPage() {
     setAiValidationFlags([]);
     try {
         console.log('[AI] Analyzing clinical case data...');
+        const authHeaders = await getAuthHeaders(supabase);
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...authHeaders
+            },
             body: JSON.stringify({ cc, findings })
         });
         
@@ -364,7 +371,10 @@ export default function PrescriptionPage() {
 
     // Fetch AI Snapshot for selected patient
     try {
-        const res = await fetch(`${API_BASE_URL}/api/patient-history/${p.id}`);
+        const authHeaders = await getAuthHeaders(supabase);
+        const res = await fetch(`${API_BASE_URL}/api/patient-history/${p.id}`, {
+            headers: { ...authHeaders }
+        });
         const data = await res.json();
         if (data && data.summary) {
             setPtSnapshot(data.summary);
