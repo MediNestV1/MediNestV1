@@ -246,6 +246,90 @@ INPUT DATA:
 });
 
 
+// ─── PUBLIC DOCTOR PROFILE (Patient-Facing, No Private Info) ─────────
+app.get('/api/doctor-profile/:doctorId', async (req, res) => {
+    const { doctorId } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('doctors')
+            .select('name, qualification, specialty, registration_number, profile_photo_url')
+            .eq('id', doctorId)
+            .single();
+
+        if (error || !data) {
+            return res.status(404).json({ success: false, error: 'Doctor not found' });
+        }
+
+        res.json({
+            success: true,
+            doctor: {
+                name: data.name,
+                qualification: data.qualification || 'MBBS',
+                specialty: data.specialty || 'General Consultant',
+                registration_number: data.registration_number || 'N/A',
+                profile_photo_url: data.profile_photo_url || null
+            }
+        });
+    } catch (err) {
+        console.error('❌ Doctor Profile Error:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ─── PUBLIC DOCTOR PROFILE BY PRESCRIPTION ID ─────────
+app.get('/api/doctor-profile-by-rx/:rxId', async (req, res) => {
+    const { rxId } = req.params;
+    try {
+        // Step 1: Get doctor_id from prescription
+        const { data: rx, error: rxErr } = await supabase
+            .from('prescriptions')
+            .select('doctor_id, doctor_name')
+            .eq('id', rxId)
+            .single();
+
+        if (rxErr || !rx) {
+            return res.status(404).json({ success: false, error: 'Prescription not found' });
+        }
+
+        // Step 2: Fetch doctor details
+        if (rx.doctor_id) {
+            const { data, error } = await supabase
+                .from('doctors')
+                .select('name, qualification, specialty, registration_number, profile_photo_url')
+                .eq('id', rx.doctor_id)
+                .single();
+
+            if (!error && data) {
+                return res.json({
+                    success: true,
+                    doctor: {
+                        name: data.name,
+                        qualification: data.qualification || 'MBBS',
+                        specialty: data.specialty || 'General Consultant',
+                        registration_number: data.registration_number || 'N/A',
+                        profile_photo_url: data.profile_photo_url || null
+                    }
+                });
+            }
+        }
+
+        // Fallback: use doctor_name from prescription
+        res.json({
+            success: true,
+            doctor: {
+                name: rx.doctor_name || 'Consulting Doctor',
+                qualification: 'MBBS',
+                specialty: 'General Consultant',
+                registration_number: 'N/A',
+                profile_photo_url: null
+            }
+        });
+    } catch (err) {
+        console.error('❌ Doctor Profile by Rx Error:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // --- GLOBAL JSON ERROR HANDLER ---
 app.use((req, res, next) => {
     res.status(404).json({ success: false, error: 'Route not found' });

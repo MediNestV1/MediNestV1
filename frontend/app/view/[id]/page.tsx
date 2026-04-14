@@ -19,8 +19,10 @@ interface Prescription {
   advice: string;
   valid_till: string;
   doctor_name: string;
+  doctor_id?: string;
   patient_id: string;
   clinic_id: string;
+  diagnosis?: string;
   ai_summary: any;
 }
 
@@ -50,6 +52,8 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
+  const [doctor, setDoctor] = useState<any>(null);
+  const [showDocProfile, setShowDocProfile] = useState(false);
   
   const hospitalName = clinic?.name || 'MediNest Partner Clinic';
   const hospitalLocation = clinic?.address || 'Location not set';
@@ -234,6 +238,16 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         const { data: cData } = await supabase.from('clinics').select('*').eq('id', rxData.clinic_id).single();
         if (cData) setClinic(cData);
       }
+      // Fetch doctor profile via backend API (bypasses RLS)
+      try {
+        const docRes = await fetch(`${API_BASE_URL}/api/doctor-profile-by-rx/${id}`);
+        if (docRes.ok) {
+          const docJson = await docRes.json();
+          if (docJson.success && docJson.doctor) setDoctor(docJson.doctor);
+        }
+      } catch (docErr) {
+        console.warn('⚠️ Could not fetch doctor profile:', docErr);
+      }
     } catch (err: any) {
       console.error('Fetch error:', err);
       setError(err.message || 'Prescription not found');
@@ -317,7 +331,9 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
        script += `What to expect: ${activeSummary.expectations}. General care advice: ${activeSummary.care}.`;
     }
 
-    const utterance = new SpeechSynthesisUtterance(script);
+    // Remove emojis to prevent TTS from reading them literally (e.g., "haath hilana")
+    const cleanScript = script.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
+    const utterance = new SpeechSynthesisUtterance(cleanScript);
     
     // Find matching voice for selected language
     const langConfig = languages.find(l => l.name === selectedLang) || languages[0];
@@ -388,18 +404,30 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
           </div>
         </div>
         <div className={styles.navRight}>
-           {user && (
-             <>
-               <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-               <button className={styles.navIconBtn}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-               <button className={styles.userProfileBtn}>
-                  <img src="https://api.uifaces.co/our-content/donated/vY_H35O_.jpg" alt="Doctor" />
-               </button>
-             </>
-           )}
-           {!user && (
-             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-soft)', background: '#f1f5f9', padding: '6px 14px', borderRadius: 100 }}>Patient Access</span>
-           )}
+           <button className={styles.navIconBtn} onClick={() => alert('No new notifications')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+           <button className={styles.navIconBtn} onClick={() => setShowLangModal(true)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+           
+           <button
+             onClick={() => setShowDocProfile(true)}
+             style={{
+               display: 'flex', alignItems: 'center', gap: 8,
+               background: '#4f46e5', color: 'white', border: 'none',
+               padding: '6px 16px 6px 8px', borderRadius: 100,
+               cursor: 'pointer', fontWeight: 700, fontSize: 13,
+               marginLeft: 8, transition: 'opacity 0.2s'
+             }}
+             title="View Doctor Profile"
+           >
+             <span style={{
+               width: 28, height: 28, borderRadius: 14,
+               background: 'rgba(255,255,255,0.2)', display: 'flex',
+               alignItems: 'center', justifyContent: 'center',
+               fontSize: 13, fontWeight: 800
+             }}>
+               {(doctor?.name || rx?.doctor_name || 'D')?.[0]?.toUpperCase() || 'D'}
+             </span>
+             Doctor Info
+           </button>
         </div>
       </nav>
 
@@ -468,12 +496,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                     </div>
                    <div className={styles.headerActions}>
                       <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>Export PDF</button>
-                       {user && (
-                          <button className={`${styles.headerBtn} ${styles.solidBtn}`}>
-                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                             Edit Profile
-                          </button>
-                       )}
+
                    </div>
                 </header>
 
@@ -874,7 +897,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                         <span key={mi} className={styles.miniMedTag}>{typeof m === 'string' ? m : m.name}</span>
                                       ))
                                     ) : (
-                                      <span style={{ fontSize: 12, fontStyle: italic, color: 'var(--text-soft)' }}>No medication prescribed</span>
+                                      <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-soft)' }}>No medication prescribed</span>
                                     )}
                                   </div>
                                 </div>
@@ -938,6 +961,49 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               >
                 Continue in English
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- DOCTOR PROFILE MODAL --- */}
+        {showDocProfile && (
+          <div className={styles.modalOverlay} onClick={() => setShowDocProfile(false)}>
+            <div className={styles.langModal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, textAlign: 'left', padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: '#4f46e5' }}>
+                  {(doctor?.name || rx?.doctor_name || 'Dr')?.[0]?.toUpperCase() || 'D'}
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>{doctor?.name || rx?.doctor_name || 'Consulting Doctor'}</h2>
+                  <p style={{ margin: 0, color: 'var(--text-soft)', fontWeight: 500 }}>{doctor?.specialty || 'General Consultant'}</p>
+                </div>
+              </div>
+              
+              <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 20 }}>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Qualification</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>{doctor?.qualification || 'MBBS, MD'}</div>
+                </div>
+                
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Registration No.</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>{doctor?.registration_number || 'N/A'}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Standard Consultation Fee</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#059669' }}>{doctor?.consultation_fee ? `₹${doctor.consultation_fee}` : '₹ 500'}</div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <button 
+                  style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', width: '100%' }}
+                  onClick={() => setShowDocProfile(false)}
+                >
+                  Close Profile
+                </button>
+              </div>
             </div>
           </div>
         )}
