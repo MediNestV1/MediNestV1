@@ -73,11 +73,16 @@ export default function PrescriptionPage() {
   const [pendingAiMeds, setPendingAiMeds] = useState<Medicine[]>([]);
   const [aiValidationFlags, setAiValidationFlags] = useState<string[]>([]);
   const [aiDiagnosis, setAiDiagnosis] = useState('');
-  const [severity, setSeverity] = useState(''); // 'mild', 'moderate', 'red_flag'
+  const [aiDifferentials, setAiDifferentials] = useState<string[]>([]);
+  const [primaryInvestigations, setPrimaryInvestigations] = useState<string[]>([]);
+  const [secondaryInvestigations, setSecondaryInvestigations] = useState<string[]>([]);
+  const [aiConfidence, setAiConfidence] = useState(0);
+  const [aiSeverity, setAiSeverity] = useState(''); // 'mild', 'moderate', 'emergency'
   const [aiIntent, setAiIntent] = useState('');
   const [aiStage, setAiStage] = useState('');
   const [aiStatus, setAiStatus] = useState(''); // 'analyzing', 'ready', 'error', or ''
   const [aiError, setAiError] = useState('');
+  const [aiWarnings, setAiWarnings] = useState<string[]>([]);
   const [isAutoAiEnabled, setIsAutoAiEnabled] = useState(true);
   const [adviceApproved, setAdviceApproved] = useState(true);
 
@@ -166,10 +171,16 @@ export default function PrescriptionPage() {
           setPtWeight(data.weight || '');
           
           // Also fetch AI summary if available
-          const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
-          const historyData = await res.json();
-          if (historyData && historyData.summary) {
-            setPtSnapshot(historyData.summary);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
+            if (res.ok) {
+              const historyData = await res.json();
+              if (historyData && historyData.summary) {
+                setPtSnapshot(historyData.summary);
+              }
+            }
+          } catch (historyErr) {
+            console.warn('Clinical history snapshot busy or unavailable.');
           }
         }
       } catch (err) {
@@ -233,45 +244,56 @@ export default function PrescriptionPage() {
   };
 
   const handleAiSuggest = async () => {
-    if (!cc && !findings) return; // Silent return for automation
+    if (!cc && !findings) return; 
     const currentHash = `${cc}|${findings}`;
     setIsAiLoading(true);
     setAiStatus('analyzing');
     setAiError('');
+    setAiDiagnosis('');
+    setAiDifferentials([]);
+    setPrimaryInvestigations([]);
+    setSecondaryInvestigations([]);
+    setAiConfidence(0);
+    setAiSeverity('');
     setAiValidationFlags([]);
     try {
-        console.log('[AI] Analyzing clinical case data...');
+        console.log('[Clinical AI Engine] Running production inference...');
         const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cc, findings })
+            body: JSON.stringify({ 
+                cc, 
+                findings,
+                age: ptAge,
+                gender: ptSex.toLowerCase(),
+                specialty: doctors?.[0]?.specialty || 'General Practitioner'
+            })
         });
         
         const data = await res.json();
         
         if (data.success && data.suggestions && !data.suggestions.error) {
-            const { suggestedMeds, suggestedAdvice } = data.suggestions;
+            const { recommendations, advice: suggestedAdvice, probable_diagnosis } = data.suggestions;
             
-            if (suggestedMeds && Array.isArray(suggestedMeds)) {
-              setPendingAiMeds(suggestedMeds.map((med: any) => ({
-                  id: Math.random().toString(36).substr(2, 9),
-                  name: med.name,
-                  type: med.category || 'Tab',
-                  dose: med.strength || '',
-                  freq: '',
-                  duration: '',
-                  instructions: '',
-                  fromInventory: true,
-                  emoji: med.emoji || '💊',
-                  note: ''
-              })));
-              if (suggestedMeds.length === 0) setAiStatus('no_suggestions');
+            // Set recommendations for the Guidance Cards
+            if (recommendations && Array.isArray(recommendations)) {
+              setPendingAiMeds(recommendations);
+              if (recommendations.length === 0 && !probable_diagnosis) setAiStatus('no_suggestions');
               else setAiStatus('ready');
             }
 
+            if (probable_diagnosis) setAiDiagnosis(probable_diagnosis);
+            if (data.suggestions.differentials) setAiDifferentials(data.suggestions.differentials);
+            if (data.suggestions.investigations) {
+              setPrimaryInvestigations(data.suggestions.investigations.primary || []);
+              setSecondaryInvestigations(data.suggestions.investigations.secondary || []);
+            }
+            if (data.suggestions.severity) setAiSeverity(data.suggestions.severity);
+            if (data.suggestions.confidence) setAiConfidence(data.suggestions.confidence);
+
             if (suggestedAdvice) {
               setAdvice(suggestedAdvice);
-              setAdviceApproved(false); // Mark as draft
+              setAdviceApproved(false); 
             }
             
             lastAiHashRef.current = currentHash;
@@ -292,8 +314,8 @@ export default function PrescriptionPage() {
     // 1. Fill manual writing section
     skipSearchRef.current = true; // Prevent DB search from triggering on auto-fill
     setMName(med.name);
-    setMType(med.type);
-    setMDose(med.dose);
+    setMType(med.type || med.dosage_form || 'Tab');
+    setMDose(med.dose || med.pack_size || '');
     setMNote('');
     
     // Remaining details left for doctor
@@ -301,7 +323,8 @@ export default function PrescriptionPage() {
     setMDur('');
     setMInst('');
     
-    setPendingAiMeds(prev => prev.filter(p => p.id !== med.id));
+    // UI Feedback: Focus on Frequency for faster typing
+    console.log('[UI] Auto-filled brand:', med.name);
   };
 
   // 🚀 Real-time Patient Lookup
@@ -949,33 +972,140 @@ export default function PrescriptionPage() {
                 {(isAiLoading || pendingAiMeds.length > 0 || (advice && !adviceApproved)) && isAutoAiEnabled && (
                   <div className={styles.auditContainer} style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', padding: '16px', borderRadius: '12px' }}>
                     
-                    {pendingAiMeds.length > 0 && (
-                      <div className={styles.suggestedMedsArea} style={{ marginBottom: advice ? '20px' : 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Matched Inventory</p>
-                          <button onClick={() => setPendingAiMeds([])} className={styles.btnClearAudit} style={{ fontSize: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>Clear</button>
+                    {aiDiagnosis && (
+                      <div className={styles.diagnosisArea} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <p style={{ margin: 0, fontSize: '11px', color: '#1d4ed8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔍 Probable Diagnosis</p>
+                            {aiSeverity && (
+                              <span style={{ 
+                                fontSize: '9px', 
+                                background: aiSeverity === 'emergency' ? '#fee2e2' : aiSeverity === 'moderate' ? '#fef9c3' : '#dcfce7', 
+                                color: aiSeverity === 'emergency' ? '#991b1b' : aiSeverity === 'moderate' ? '#854d0e' : '#166534', 
+                                padding: '2px 6px', 
+                                borderRadius: '4px', 
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                border: '1px solid'
+                              }}>
+                                {aiSeverity}
+                              </span>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => setDiagnosis(aiDiagnosis)} 
+                            style={{ fontSize: '10px', background: '#3b82f6', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontWeight: 800, cursor: 'pointer' }}
+                          >
+                            Apply
+                          </button>
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {pendingAiMeds.map((med) => (
-                            <button 
-                              key={med.id} 
-                              onClick={() => handleApproveSuggestedMed(med)}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#f0fdf4',
-                                border: '1px solid #bbf7d0',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                color: '#166534',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <span style={{ fontSize: '14px' }}>{(med as any).emoji || '✅'}</span> {med.name} {med.dose && <small>[{med.dose}]</small>}
-                            </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: '#1e3a8a', fontWeight: 700 }}>{aiDiagnosis}</p>
+                          {aiConfidence > 0 && (
+                             <p style={{ margin: 0, fontSize: '10px', color: '#60a5fa', fontWeight: 600 }}>{Math.round(aiConfidence * 100)}% Confidence</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiDifferentials.length > 0 && (
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚖️ Differential Diagnoses</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {aiDifferentials.map((diff, idx) => (
+                            <span key={idx} style={{ fontSize: '11px', background: '#f8fafc', color: '#475569', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 600 }}>
+                              {diff}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(primaryInvestigations.length > 0 || secondaryInvestigations.length > 0) && (
+                      <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                        <p style={{ margin: '0 0 12px 0', fontSize: '11px', color: '#6d28d9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🧪 Suggested Investigations</p>
+                        
+                        {primaryInvestigations.length > 0 && (
+                          <div style={{ marginBottom: secondaryInvestigations.length > 0 ? '12px' : 0 }}>
+                            <p style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase' }}>Essential (Primary)</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {primaryInvestigations.map((test, idx) => (
+                                <div key={idx} style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ color: '#a78bfa' }}>•</span> {test}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {secondaryInvestigations.length > 0 && (
+                          <div>
+                            <p style={{ margin: '0 0 6px 0', fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Further Workup (Secondary)</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {secondaryInvestigations.map((test, idx) => (
+                                <div key={idx} style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ color: '#cbd5e1' }}>•</span> {test}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {pendingAiMeds.length > 0 && (
+                      <div className={styles.suggestedMedsArea} style={{ marginBottom: advice ? '24px' : 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#6366f1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>✨ Clinical Guidance Cards</p>
+                          <button onClick={() => setPendingAiMeds([])} className={styles.btnClearAudit} style={{ fontSize: '10px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>Clear All</button>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {pendingAiMeds.map((rec) => (
+                            <div key={rec.drug} className={styles.guidanceCard} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>{rec.drug}</span>
+                                  <span style={{ fontSize: '9px', background: '#e0e7ff', color: '#4338ca', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>GENERIC</span>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: 1.4 }}>{rec.reason}</p>
+                              </div>
+                              
+                              {rec.brands && rec.brands.length > 0 ? (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {rec.brands.map((brand: any) => (
+                                    <button 
+                                      key={brand.id} 
+                                      onClick={() => handleApproveSuggestedMed({
+                                        ...brand,
+                                        type: brand.dosage_form || 'Tab',
+                                        dose: brand.pack_size || ''
+                                      })}
+                                      style={{
+                                        padding: '5px 10px',
+                                        background: '#ffffff',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#334155',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: '0.2s'
+                                      }}
+                                      onMouseOver={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; }}
+                                      onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#334155'; }}
+                                    >
+                                      <span>{brand.emoji || '💊'}</span> {brand.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>No matches in inventory.</div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>

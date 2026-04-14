@@ -183,7 +183,7 @@ export default function SettingsPage() {
 
 
         {/* Services List */}
-        <div className={styles.sectionLabel} style={{ marginTop: 32 }}>Clinical Services & Fees</div>
+        <div className={styles.sectionLabel} style={{ marginTop: 32 }}>Clinical Services</div>
         <div className={styles.box}>
           {services.length === 0 ? (
             <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No services added yet.</div>

@@ -5,13 +5,13 @@ import {
   User, 
   Briefcase, 
   Calendar, 
-  Mail, 
   Phone, 
   Award, 
   Stethoscope, 
   Clock, 
-  IndianRupee,
-  BadgeCheck
+  BadgeCheck,
+  Building,
+  Home
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
@@ -19,44 +19,48 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function DoctorProfilePage() {
-  const { doctors, refresh } = useClinic();
+  const { doctors, clinic, refresh } = useClinic();
   const supabase = createClient();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'professional'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'professional' | 'clinic'>('general');
   const [name, setName] = useState('');
   const [qualification, setQualification] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [gender, setGender] = useState('');
   const [dob, setDob] = useState('');
+  const [gender, setGender] = useState('');
   const [regNumber, setRegNumber] = useState('');
   const [experience, setExperience] = useState('');
   const [timings, setTimings] = useState('');
-  const [fees, setFees] = useState('');
   const [expiry, setExpiry] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [clinicName, setClinicName] = useState('');
+  const [clinicAddress, setClinicAddress] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    if (clinic) {
+      setClinicName(clinic.name || '');
+      setClinicAddress(clinic.address || '');
+    }
     if (doctors && doctors.length > 0) {
       const doc = doctors[0];
       setName(doc.name || '');
       setQualification(doc.qualification || '');
       setSpecialty(doc.specialty || '');
-      setPhone(doc.contact || '');
+      setPhone(doc.phone || doc.contact || '');
       setEmail(doc.contact_email || '');
-      setGender(doc.gender || '');
       setDob(doc.dob || '');
+      setGender(doc.gender || '');
       setRegNumber(doc.registration_number || '');
       setExperience(doc.experience_years?.toString() || '');
       setTimings(doc.timings || '');
-      setFees(doc.fees?.toString() || '');
       setExpiry(doc.license_expiry_date || '');
       setPhotoUrl(doc.profile_photo_url || '');
     }
-  }, [doctors]);
+  }, [doctors, clinic]);
 
   const handleSave = async () => {
     if (!doctors || doctors.length === 0) return;
@@ -72,6 +76,7 @@ export default function DoctorProfilePage() {
           qualification, 
           specialty, 
           contact: phone || null, 
+          phone: phone || null, // Sync both fields for safety
           contact_email: email || null,
           dob: dob || null,
           gender: gender || null,
@@ -88,12 +93,24 @@ export default function DoctorProfilePage() {
       const { error: clinicErr } = await supabase
         .from('clinic_doctors')
         .update({ 
-          timings,
-          fees: parseInt(fees) || 0
+          timings
         })
         .eq('id', activeDoc.id);
 
       if (clinicErr) throw clinicErr;
+
+      // 3. Update Clinic Profile
+      if (clinic) {
+        const { error: clinicUpdErr } = await supabase
+          .from('clinics')
+          .update({ 
+            name: clinicName,
+            address: clinicAddress
+          })
+          .eq('id', clinic.id);
+        if (clinicUpdErr) throw clinicUpdErr;
+      }
+
       refresh();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -145,6 +162,13 @@ export default function DoctorProfilePage() {
               <Briefcase size={18} />
               <span>Professional Details</span>
             </button>
+            <button 
+              className={`${styles.tabBtn} ${activeTab === 'clinic' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('clinic')}
+            >
+              <Building size={18} />
+              <span>Clinic Settings</span>
+            </button>
           </div>
         </div>
 
@@ -164,40 +188,40 @@ export default function DoctorProfilePage() {
                 />
               </div>
 
-              <div className={styles.twoCol}>
                 <div className={styles.field}>
-                  <label><User size={14} /> Gender</label>
-                  <select 
-                    value={gender} 
-                    onChange={(e) => setGender(e.target.value)}
-                    className={styles.select}
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className={styles.field}>
-                  <label><Calendar size={14} /> Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.twoCol}>
-                <div className={styles.field}>
-                  <label><Mail size={14} /> Email Address</label>
+                  <label><Briefcase size={14} /> Contact Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. pradeep@example.com"
+                    placeholder="e.g. doctor@medinest.ai"
                   />
                 </div>
+
+                <div className={styles.twoCol}>
+                  <div className={styles.field}>
+                    <label><Calendar size={14} /> Date of Birth</label>
+                    <input
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label><User size={14} /> Gender</label>
+                    <select 
+                      value={gender} 
+                      onChange={(e) => setGender(e.target.value)}
+                      className={styles.select}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className={styles.field}>
                   <label><Phone size={14} /> Contact Phone</label>
                   <input
@@ -207,9 +231,8 @@ export default function DoctorProfilePage() {
                     placeholder="e.g. 9876543210"
                   />
                 </div>
-              </div>
             </div>
-          ) : (
+          ) : activeTab === 'professional' ? (
             <div className={styles.card}>
               <h3 className={styles.cardTitle}>Professional Details</h3>
 
@@ -254,15 +277,6 @@ export default function DoctorProfilePage() {
                     placeholder="e.g. 15"
                   />
                 </div>
-                <div className={styles.field}>
-                  <label><IndianRupee size={14} /> Consultation Fees</label>
-                  <input
-                    type="number"
-                    value={fees}
-                    onChange={(e) => setFees(e.target.value)}
-                    placeholder="e.g. 500"
-                  />
-                </div>
               </div>
 
               <div className={styles.field}>
@@ -293,6 +307,32 @@ export default function DoctorProfilePage() {
                     placeholder="https://example.com/photo.jpg"
                   />
                 </div>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.card}>
+              <h3 className={styles.cardTitle}>Clinic Details</h3>
+              <p className={styles.cardSubtitle}>Update your hospital or clinic branding information.</p>
+              
+              <div className={styles.field}>
+                <label><Building size={14} /> Hospital / Clinic Name</label>
+                <input
+                  type="text"
+                  value={clinicName}
+                  onChange={(e) => setClinicName(e.target.value)}
+                  placeholder="e.g. City Care Hospital"
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label><Home size={14} /> Clinic Address</label>
+                <textarea
+                  value={clinicAddress}
+                  onChange={(e) => setClinicAddress(e.target.value)}
+                  placeholder="e.g. 123 Medical Avenue, Healthcare City"
+                  rows={3}
+                  className={styles.textarea}
+                />
               </div>
             </div>
           )}

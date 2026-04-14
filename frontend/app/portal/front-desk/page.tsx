@@ -448,30 +448,42 @@ export default function FrontDeskPage() {
         )}
       </div>
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         <Link href="/portal/front-desk/patients" style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
-          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+          padding: '16px 20px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 800, fontSize: 13,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <div style={{ background: '#ecfdf5', color: '#10b981', padding: 8, borderRadius: 10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
           Patient Lobby
         </Link>
+        <button onClick={() => setIsCheckInOpen(true)} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
+          padding: '16px 20px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 800, fontSize: 13,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'left'
+        }}>
+          <div style={{ background: '#fff1f2', color: '#e11d48', padding: 8, borderRadius: 10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg></div>
+          Register Patient
+        </button>
         <Link href="/portal/billing-receipts" style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
-          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+          padding: '16px 20px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 800, fontSize: 13,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
-          Billing & Collections
+          <div style={{ background: '#eff6ff', color: '#3b82f6', padding: 8, borderRadius: 10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg></div>
+          Billing & Payments
         </Link>
-        <Link href="/portal/record-search" style={{
+        <Link href="/portal/front-desk/clinic-settings" style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#fff', border: '1.5px solid rgba(23,3,55,0.06)', borderRadius: 14,
-          padding: '12px 18px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 700, fontSize: 13
+          padding: '16px 20px', textDecoration: 'none', color: 'var(--sanctuary-primary)', fontWeight: 800, fontSize: 13,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          Find Clinical Record
+          <div style={{ background: '#f5f3ff', color: '#8b5cf6', padding: 8, borderRadius: 10 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.80.31l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .31-1.80 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.31-1.8l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.8.31 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.8-.31l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.31 1.80 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          Clinic Settings
         </Link>
       </div>
 

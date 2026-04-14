@@ -139,6 +139,20 @@
   margin-bottom: 4px;
 }
 
+.cardSubtitle {
+  font-size: 13px;
+  color: var(--sanctuary-ink-l, #7a7a9a);
+  margin-top: -16px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
 /* Fields & Inputs */
 .field {
   display: flex;

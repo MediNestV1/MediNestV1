@@ -148,10 +148,40 @@ export default function PortalPage() {
                </div>
             </div>
             <div className={styles.cardBody}>
-               <h2>Front Desk Operations</h2>
-               <p>Manage appointments, billing, and patient flow without chaos.</p>
+               <h2>Front Desk</h2>
+               <p>Manage appointments, check-ins, and patient flow without chaos.</p>
                <div className={styles.ctaAction}>
                  MANAGE DESK <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+               </div>
+            </div>
+          </Link>
+
+          <Link href="/portal/billing-receipts" className={styles.portalCardSecondary}>
+            <div className={styles.cardHeader}>
+               <div className={styles.iconBoxSecondary} style={{ background: '#ecfdf5', color: '#10b981' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
+               </div>
+            </div>
+            <div className={styles.cardBody}>
+               <h2>Billing & Payments</h2>
+               <p>Collect payments, print professional receipts, and track clinic revenue.</p>
+               <div className={styles.ctaAction}>
+                 OPEN BILLING <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+               </div>
+            </div>
+          </Link>
+
+          <Link href="/portal/front-desk/clinic-settings" className={styles.portalCardSecondary}>
+            <div className={styles.cardHeader}>
+               <div className={styles.iconBoxSecondary} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.80.31l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .31-1.80 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.31-1.8l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.8.31 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.8-.31l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.31 1.80 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+               </div>
+            </div>
+            <div className={styles.cardBody}>
+               <h2>Clinic Settings</h2>
+               <p>Update clinic details, add doctors, and manage system preferences.</p>
+               <div className={styles.ctaAction}>
+                 EDIT SETTINGS <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                </div>
             </div>
           </Link>
