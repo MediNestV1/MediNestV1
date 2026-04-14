@@ -78,22 +78,169 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
   const translations: Record<string, any> = {
     'Hindi': {
+      // Navigation
+      hub: 'रोगी हब',
+      profile: 'रोगी प्रोफ़ाइल',
+      script: 'वर्तमान पर्चा',
+      summary: 'एआई सारांश',
+      history: 'रोगी का इतिहास',
+      timelineView: 'टाइमलाइन दृश्य',
+      
+      // Top Actions
+      exportPdf: 'पीडीएफ निर्यात करें',
+      doctorInfo: 'डॉक्टर की जानकारी',
+      printRecord: 'रिकॉर्ड प्रिंट करें',
+      digitalCopy: 'डिजिटल कॉपी',
+      
+      // Patient Profile
+      vitalBiometrics: 'महत्त्वपूर्ण बायोमेट्रिक्स',
+      age: 'आयु',
+      sex: 'लिंग',
+      weight: 'वजन',
+      height: 'ऊंचाई',
+      verifiedPatient: 'सत्यापित रोगी',
+      yrs: 'वर्ष',
+      keyConditions: 'प्रमुख नैदानिक स्थितियां',
+      assessmentPending: 'मूल्यांकन लंबित',
+      maintenanceMeds: 'वर्तमान दवाएं',
+      viewHistory: 'इतिहास देखें',
+      dosage: 'रखरखाव खुराक',
+      noMeds: 'नैदानिक इतिहास में कोई दवा सूचीबद्ध नहीं है।',
+      clinicalSnapshot: 'नैदानिक सारांश (एआई)',
+      noSnapshot: 'इस रोगी के लिए अभी तक कोई नैदानिक सारांश उपलब्ध नहीं है।',
+      quickDemo: 'त्वरित जनसांख्यिकी',
+      regDate: 'पंजीकरण तिथि',
+      prefLang: 'पसंद की भाषा',
+      resStatus: 'आवासीय स्थिति',
+      permanent: 'स्थायी',
+      
+      // Current Script
+      cc: 'मुख्य शिकायतें (C/C)',
+      findings: 'निष्कर्ष (O/E)',
+      diagnosis: 'निदान',
+      adv: 'सलाह/निर्देश (Adv.)',
+      noMedicines: 'कोई विशिष्ट दवाएं निर्धारित नहीं हैं।',
+      clinicalRecord: 'डिजिटल क्लिनिकल रिकॉर्ड',
+      
+      // History
+      consultation: 'परामर्श',
+      prescribed: 'निर्धारित दवाएं',
+      noMedsPrescribed: 'कोई दवा निर्धारित नहीं',
+      viewFullRx: 'पूरा पर्चा देखें',
+      retrieving: 'नैदानिक रिकॉर्ड प्राप्त किया जा रहा है...',
+      noPastVisits: 'कोई पिछला दौरा नहीं मिला।',
+      firstVisit: 'यह पहला दर्ज किया गया दौरा प्रतीत होता है।',
+      
+      // AI Section
       medicines: 'आपकी दवाएं',
       care: 'देखभाल और आहार निर्देश',
       expectations: 'क्या उम्मीद करें',
       warnings: 'चेतावनी के संकेत',
       condition: 'आपकी स्थिति',
       nextSteps: 'अगले कदम',
-      tagline: '✦ सुरक्षित AI एजेंट रिकॉर्ड'
+      tagline: '✦ सुरक्षित एआई एजेंट रिकॉर्ड',
+      
+      // Modals
+      selectLang: 'भाषा चुनें',
+      chooseLang: 'अपनी पसंदीदा भाषा चुनें',
+      continueEng: 'अंग्रेजी में जारी रखें',
+      docProfile: 'डॉक्टर की प्रोफ़ाइल',
+      qualification: 'योग्यता',
+      regNo: 'पंजीकरण संख्या',
+      consultFee: 'मानक परामर्श शुल्क',
+      closeProfile: 'प्रोफ़ाइल बंद करें',
+      loadingRecords: 'इलेक्ट्रॉनिक स्वास्थ्य रिकॉर्ड लोड हो रहा है...',
+      oops: 'क्षमा करें!',
+      accessDenied: 'पहुंच अस्वीकृत या रिकॉर्ड नहीं मिला।',
+      retry: 'पुनः प्रयास करें',
+      patientID: 'रोगी आईडी',
+      name: 'नाम',
+      ageSex: 'आयु/लिंग',
+      wt: 'वजन',
+      bGrp: 'रक्त समूह',
+      dateLabel: 'दिनांक',
+      by: 'द्वारा',
+      aiPreparing: 'एआई सहायक आपका गाइड तैयार कर रहा है...',
+      aiAnalyzing: 'पर्चे के डेटा का विश्लेषण और वास्तविक समय में आपका व्यक्तिगत देखभाल सारांश तैयार किया जा रहा है।',
+      tapToListen: 'सुनने के लिए टैप करें',
+      stopListen: 'सुनना बंद करें',
+      listenSummary: 'सारांश सुनें'
     },
     'English': {
+      hub: 'Patient Hub',
+      profile: 'Patient Profile',
+      script: 'Current Script',
+      summary: 'AI Summary',
+      history: 'Patient History',
+      timelineView: 'Timeline View',
+      exportPdf: 'Export PDF',
+      doctorInfo: 'Doctor Info',
+      printRecord: 'Print Record',
+      digitalCopy: 'Digital Copy',
+      vitalBiometrics: 'Vital Biometrics',
+      age: 'AGE',
+      sex: 'SEX',
+      weight: 'WEIGHT',
+      height: 'HEIGHT',
+      verifiedPatient: 'Verified Patient',
+      yrs: 'Yrs',
+      keyConditions: 'Key Clinical Conditions',
+      assessmentPending: 'Assessment Pending',
+      maintenanceMeds: 'Current Meds',
+      viewHistory: 'View History',
+      dosage: 'Maintenance Dosage',
+      noMeds: 'No maintenance medications listed in clinical history.',
+      clinicalSnapshot: 'Clinical Snapshot (AI)',
+      noSnapshot: 'No clinical snapshot available for this patient yet.',
+      quickDemo: 'Quick Demographics',
+      regDate: 'Registration Date',
+      prefLang: 'Preferred Language',
+      resStatus: 'Residential Status',
+      permanent: 'Permanent',
+      cc: 'C/C (CHIEF COMPLAINTS)',
+      findings: 'FINDINGS (O/E)',
+      diagnosis: 'DIAGNOSIS',
+      adv: 'Adv. (Advice/Instructions)',
+      noMedicines: 'No specific medicines prescribed.',
+      clinicalRecord: 'Digital Clinical Record',
+      consultation: 'Consultation',
+      prescribed: 'Medicines Prescribed',
+      noMedsPrescribed: 'No medication prescribed',
+      viewFullRx: 'View Full Prescription',
+      retrieving: 'Retrieving clinical records...',
+      noPastVisits: 'No past visits found.',
+      firstVisit: 'This appears to be the first recorded visit.',
       medicines: 'YOUR MEDICINES',
       care: 'CARE & DIET INSTRUCTIONS',
       expectations: 'WHAT TO EXPECT',
       warnings: 'WARNING SIGNS',
       condition: 'CONDITION INSIGHT',
       nextSteps: 'NEXT STEPS',
-      tagline: '✦ Secure AI Agent Record'
+      tagline: '✦ Secure AI Agent Record',
+      selectLang: 'Select Language',
+      chooseLang: 'Choose your preferred language',
+      continueEng: 'Continue in English',
+      docProfile: 'Doctor Profile',
+      qualification: 'Qualification',
+      regNo: 'Registration No.',
+      consultFee: 'Standard Consultation Fee',
+      closeProfile: 'Close Profile',
+      loadingRecords: 'Loading electronic health records...',
+      oops: 'Oops!',
+      accessDenied: 'Access denied or records not found.',
+      retry: 'Retry Access',
+      patientID: 'Patient ID',
+      name: 'NAME',
+      ageSex: 'AGE/SEX',
+      wt: 'WT',
+      bGrp: 'B.GRP',
+      dateLabel: 'DATE',
+      by: 'By',
+      aiPreparing: 'AI Assistant is preparing your guide...',
+      aiAnalyzing: 'Analyzing prescription data and crafting your personalized care summary in real-time.',
+      tapToListen: 'Tap to Listen',
+      stopListen: 'Stop Listening',
+      listenSummary: 'Listen to Summary'
     }
   };
 
@@ -375,33 +522,45 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
         <div className={styles.navLeft}>
            <div className={styles.brand}>MediNest</div>
         </div>
-        <div className={styles.navCenter}>
+        <div className={`${styles.navCenter} ${activeTab === 'AI Summary' ? styles.navCenterCentered : ''}`}>
           <div className={styles.breadcrumb}>
-            <span>Patient Hub</span>
-            <span className={styles.breadcrumbSep}>/</span>
-            <span className={styles.breadcrumbActive}>{activeTab}</span>
+            <span className={styles.breadcrumbActive}>{
+              activeTab === 'Patient Profile' ? t.profile :
+              activeTab === 'Current Script' ? t.script :
+              activeTab === 'AI Summary' ? t.summary :
+              activeTab === 'Patient History' ? t.history :
+              activeTab
+            }</span>
           </div>
 
-          <div className={styles.contextNav}>
-            {activeTab === 'Patient Profile' && (
-              <>
-                <a href="#biometrics" className={styles.contextNavLink}>Biometrics</a>
-                <a href="#meds" className={styles.contextNavLink}>Maintenance Meds</a>
-                <a href="#history" className={styles.contextNavLink}>Key History</a>
-              </>
-            )}
-            {activeTab === 'Current Script' && (
-              <>
-                <a href="#" className={styles.contextNavLink} onClick={(e) => { e.preventDefault(); window.print(); }}>Print Record</a>
-                <a href="#" className={styles.contextNavLink}>Digital Copy</a>
-              </>
-            )}
-            {activeTab === 'Patient History' && (
-              <>
-                <span className={styles.contextNavLink}>Timeline View</span>
-              </>
-            )}
-          </div>
+          {(activeTab === 'Patient Profile' || activeTab === 'Current Script' || activeTab === 'Patient History') && (
+            <div className={styles.contextNav}>
+              {activeTab === 'Patient Profile' && (
+                <>
+                  <a href="#biometrics" className={styles.contextNavLink}>{t.vitalBiometrics}</a>
+                  <a href="#meds" className={styles.contextNavLink}>{t.maintenanceMeds}</a>
+                  <button 
+                    onClick={() => setActiveTab('Patient History')}
+                    className={styles.contextNavLink}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    {t.history}
+                  </button>
+                </>
+              )}
+              {activeTab === 'Current Script' && (
+                <>
+                  <a href="#" className={styles.contextNavLink} onClick={(e) => { e.preventDefault(); window.print(); }}>{t.printRecord}</a>
+                  <a href="#" className={styles.contextNavLink}>{t.digitalCopy}</a>
+                </>
+              )}
+              {activeTab === 'Patient History' && (
+                <>
+                  <a href="#history" className={styles.contextNavLink}>{t.timelineView}</a>
+                </>
+              )}
+            </div>
+          )}
         </div>
         <div className={styles.navRight}>
            <button className={styles.navIconBtn} onClick={() => alert('No new notifications')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
@@ -416,7 +575,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                cursor: 'pointer', fontWeight: 700, fontSize: 13,
                marginLeft: 8, transition: 'opacity 0.2s'
              }}
-             title="View Doctor Profile"
+             title={t.doctorInfo}
            >
              <span style={{
                width: 28, height: 28, borderRadius: 14,
@@ -426,7 +585,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
              }}>
                {(doctor?.name || rx?.doctor_name || 'D')?.[0]?.toUpperCase() || 'D'}
              </span>
-             Doctor Info
+             {t.doctorInfo}
            </button>
         </div>
       </nav>
@@ -440,7 +599,13 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               onClick={() => setActiveTab(item.name as any)}
             >
               <span className={styles.sideIcon}>{item.icon}</span>
-              <span className={styles.sideLabel}>{item.name}</span>
+              <span className={styles.sideLabel}>{
+                item.name === 'Patient Profile' ? t.profile :
+                item.name === 'Current Script' ? t.script :
+                item.name === 'AI Summary' ? t.summary :
+                item.name === 'Patient History' ? t.history :
+                item.name
+              }</span>
              </button>
            ))}
          </div>
@@ -478,24 +643,24 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             {loading ? (
               <div className={styles.loadingContainer}>
                 <div className={styles.loader}></div>
-                <p>Loading electronic health records...</p>
+                <p>{t.loadingRecords}</p>
               </div>
             ) : (error || !rx) ? (
               <div className={styles.errorContainer}>
-                <h1>Oops!</h1>
-                <p>{error || 'Access denied or records not found.'}</p>
-                <button onClick={() => window.location.reload()}>Retry Access</button>
+                <h1>{t.oops}</h1>
+                <p>{error || t.accessDenied}</p>
+                <button onClick={() => window.location.reload()}>{t.retry}</button>
               </div>
             ) : (
               <>
                  <header className={styles.pageHeader}>
                     <div className={styles.clinicDetails}>
                        <div className={styles.clinicNameFinal}>{hospitalName}</div>
-                       <div className={styles.doctorNameTop}>By {rx?.doctor_name || 'Consulting Physician'}</div>
-                       <div className={styles.clinicSubFinal}>{user ? (clinic?.tagline || 'Advanced Clinical Hub') : 'Electronic Medical Record'}</div>
+                       <div className={styles.doctorNameTop}>{t.by} {rx?.doctor_name || 'Consulting Physician'}</div>
+                       <div className={styles.clinicSubFinal}>{user ? (clinic?.tagline || 'Advanced Clinical Hub') : t.clinicalRecord}</div>
                     </div>
                    <div className={styles.headerActions}>
-                      <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>Export PDF</button>
+                      <button className={styles.headerBtn + ' ' + styles.outlineBtn} onClick={() => window.print()}>{t.exportPdf}</button>
 
                    </div>
                 </header>
@@ -508,38 +673,38 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                              {patient?.name?.[0].toUpperCase()}
                           </div>
                           <div className={styles.heroInfo}>
-                             <div className={styles.heroBadge}>Verifed Patient</div>
+                             <div className={styles.heroBadge}>{t.verifiedPatient}</div>
                              <h1 className={styles.heroName}>{patient?.name}</h1>
                              <div style={{ display: 'flex', gap: 16, fontSize: 13, fontWeight: 650, color: 'var(--text-soft)' }}>
-                                <span>{patient?.age} Yrs</span>
+                                <span>{patient?.age} {t.yrs}</span>
                                 <span>•</span>
                                 <span>{patient?.gender}</span>
                                 <span>•</span>
-                                <span>ID: {rx.patient_id.slice(0, 8).toUpperCase()}</span>
+                                <span>{t.patientID}: {rx.patient_id.slice(0, 8).toUpperCase()}</span>
                              </div>
                           </div>
                        </header>
 
-                       <section className={styles.vitalCard}>
+                       <section id="biometrics" className={styles.vitalCard}>
                           <div className={styles.vitalHeader}>
                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                             Vital Biometrics
+                             {t.vitalBiometrics}
                           </div>
                           <div className={styles.vitalGrid}>
                              <div className={styles.vitalCircle}>
-                                <span className={styles.vitalLabel}>AGE</span>
+                                <span className={styles.vitalLabel}>{t.age}</span>
                                 <span className={styles.vitalValue}>{patient?.age || '—'}</span>
                              </div>
                              <div className={styles.vitalCircle}>
-                                <span className={styles.vitalLabel}>SEX</span>
+                                <span className={styles.vitalLabel}>{t.sex}</span>
                                 <span className={styles.vitalValue}>{patient?.gender || '—'}</span>
                              </div>
                              <div className={styles.vitalCircle}>
-                                <span className={styles.vitalLabel}>WEIGHT</span>
+                                <span className={styles.vitalLabel}>{t.weight}</span>
                                 <span className={styles.vitalValue}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
                              </div>
                              <div className={styles.vitalCircle}>
-                                <span className={styles.vitalLabel}>HEIGHT</span>
+                                <span className={styles.vitalLabel}>{t.height}</span>
                                 <span className={styles.vitalValue}>—</span>
                              </div>
                           </div>
@@ -554,7 +719,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                        <section className={styles.conditionsCard}>
                           <div className={styles.condHeader}>
                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/></svg>
-                             Key Clinical Conditions
+                             {t.keyConditions}
                           </div>
                           <div className={styles.tagsRow}>
                               {(history?.summary?.keyConditions && Array.isArray(history.summary.keyConditions)) ? (
@@ -564,15 +729,21 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                   </div>
                                 ))
                               ) : (
-                                <div className={`${styles.tag} ${styles.tagNormal}`}>Assessment Pending</div>
+                                <div className={`${styles.tag} ${styles.tagNormal}`}>{t.assessmentPending}</div>
                               )}
                            </div>
                        </section>
 
-                       <section className={styles.medsSection}>
+                       <section id="meds" className={styles.medsSection}>
                           <div className={styles.medsHeader}>
-                             <h3 style={{ margin: 0, fontWeight: 900 }}>Current Maintenance Meds</h3>
-                             <Link href="#" className={styles.viewHistory}>View History</Link>
+                             <h3 style={{ margin: 0, fontWeight: 900 }}>{t.maintenanceMeds}</h3>
+                             <button 
+                            onClick={() => setActiveTab('Patient History')} 
+                            className={styles.viewHistory}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            {t.viewHistory}
+                          </button>
                           </div>
                           <div className={styles.medsGrid}>
                               {history?.summary?.currentMedications && Array.isArray(history.summary.currentMedications) && history.summary.currentMedications.length > 0 ? (
@@ -587,13 +758,13 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                      </div>
                                      <div className={styles.medInfo}>
                                         <h4>{typeof m === 'object' ? m.name : m}</h4>
-                                        <div className={styles.medInstruction}>Maintenance Dosage</div>
+                                        <div className={styles.medInstruction}>{t.dosage}</div>
                                      </div>
                                   </div>
                                 ))
                               ) : (
                                 <div className={styles.emptyPrompt} style={{ padding: 20, textAlign: 'center', background: '#f8fafc', borderRadius: 12, border: '1px dashed #e2e8f0' }}>
-                                   <p style={{ margin: 0, fontSize: 13, color: 'var(--text-soft)' }}>No maintenance medications listed in clinical history.</p>
+                                   <p style={{ margin: 0, fontSize: 13, color: 'var(--text-soft)' }}>{t.noMeds}</p>
                                 </div>
                               )}
                            </div>
@@ -604,32 +775,32 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                        <aside className={styles.intelCard}>
                           <div className={styles.intelHeader}>
                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                             Clinical Snapshot (AI)
+                             {t.clinicalSnapshot}
                           </div>
                           <div className={styles.intelBody}>
-                            <p>{history?.summary?.recentVisitsSummary || 'No clinical snapshot available for this patient yet.'}</p>
+                            <p>{history?.summary?.recentVisitsSummary || t.noSnapshot}</p>
                           </div>
                        </aside>
 
                        <section className={styles.demoCard}>
-                          <h3>Quick Demographics</h3>
+                          <h3>{t.quickDemo}</h3>
                           <div className={styles.demoRow}>
-                             <span className={styles.demoLabel}>Patient ID</span>
+                             <span className={styles.demoLabel}>{t.patientID}</span>
                              <span className={styles.demoVal}>#{rx.patient_id.slice(0, 5).toUpperCase()}-ALPHA</span>
                           </div>
                           <div className={styles.demoRow}>
-                             <span className={styles.demoLabel}>Registration Date</span>
+                             <span className={styles.demoLabel}>{t.regDate}</span>
                              <span className={styles.demoVal}>
                                 {new Date(patient?.created_at || '').toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                              </span>
                           </div>
                           <div className={styles.demoRow}>
-                             <span className={styles.demoLabel}>Preferred Language</span>
+                             <span className={styles.demoLabel}>{t.prefLang}</span>
                              <span className={styles.demoVal}>{selectedLang}</span>
                           </div>
                           <div className={styles.demoRow}>
-                             <span className={styles.demoLabel}>Residential Status</span>
-                             <span className={styles.demoVal}>Permanent</span>
+                             <span className={styles.demoLabel}>{t.resStatus}</span>
+                             <span className={styles.demoVal}>{t.permanent}</span>
                           </div>
                        </section>
                     </div>
@@ -661,23 +832,23 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
 
                       <section className={styles.patientBar}>
                         <div className={styles.meta}>
-                          <span className={styles.label}>NAME:</span>
+                          <span className={styles.label}>{t.name}:</span>
                           <span className={styles.value}>{patient?.name || 'Valued Patient'}</span>
                         </div>
                         <div className={styles.meta}>
-                          <span className={styles.label}>AGE/SEX:</span>
+                          <span className={styles.label}>{t.ageSex}:</span>
                           <span className={styles.value}>{patient?.age || '—'} / {patient?.gender?.[0] || '—'}</span>
                         </div>
                         <div className={styles.meta}>
-                          <span className={styles.label}>WT:</span>
+                          <span className={styles.label}>{t.wt}:</span>
                           <span className={styles.value}>{rx.weight ? `${rx.weight} Kg` : '—'}</span>
                         </div>
                         <div className={styles.meta}>
-                          <span className={styles.label}>B.GRP:</span>
+                          <span className={styles.label}>{t.bGrp}:</span>
                           <span className={styles.value}>{patient?.blood_group || '—'}</span>
                         </div>
                         <div className={styles.meta}>
-                          <span className={styles.label}>DATE:</span>
+                          <span className={styles.label}>{t.dateLabel}:</span>
                           <span className={styles.value}>{new Date(rx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
                       </section>
@@ -688,19 +859,19 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                           <div className={styles.leftCol}>
                             {rx.complaints && (
                               <div className={styles.section}>
-                                <h3 className={styles.sectionTitle}>C/C (CHIEF COMPLAINTS)</h3>
+                                <h3 className={styles.sectionTitle}>{t.cc}</h3>
                                 <p className={styles.text}>{rx.complaints}</p>
                               </div>
                             )}
                             {rx.findings && (
                               <div className={styles.section}>
-                                <h3 className={styles.sectionTitle}>FINDINGS (O/E)</h3>
+                                <h3 className={styles.sectionTitle}>{t.findings}</h3>
                                 <p className={styles.text}>{rx.findings}</p>
                               </div>
                             )}
                             {rx.diagnosis && (
                               <div className={styles.section} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #0d6e56', marginTop: '20px' }}>
-                                <h3 className={styles.sectionTitle} style={{ color: '#0d6e56', marginBottom: '8px' }}>DIAGNOSIS</h3>
+                                <h3 className={styles.sectionTitle} style={{ color: '#0d6e56', marginBottom: '8px' }}>{t.diagnosis}</h3>
                                 <p className={styles.text} style={{ fontWeight: 800 }}>{rx.diagnosis}</p>
                               </div>
                             )}
@@ -723,13 +894,13 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                                   </div>
                                 ))
                               ) : (
-                                <p className={styles.empty}>No specific medicines prescribed.</p>
+                                <p className={styles.empty}>{t.noMedicines}</p>
                               )}
                             </div>
 
                             {rx.advice && (
                               <div className={styles.adviceSection}>
-                                <h3 className={styles.sectionTitle}>Adv. (Advice/Instructions)</h3>
+                                <h3 className={styles.sectionTitle}>{t.adv}</h3>
                                 <p className={styles.text}>{rx.advice}</p>
                               </div>
                             )}
@@ -743,7 +914,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                           <p>Ph: {clinic?.phone || 'Contact Number'}</p>
                         </div>
                         <div className={styles.legalFinal}>
-                           {hospitalName} • Digital Clinical Record
+                           {hospitalName} • {t.clinicalRecord}
                         </div>
                       </footer>
                     </div>
@@ -852,58 +1023,58 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                         <div className={styles.aiLoadingPulse}>
                            <svg viewBox="0 0 24 24" fill="white" width="32"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                         </div>
-                        <div className={styles.aiBadge}>AI Assistant is preparing your guide...</div>
-                        <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--text-soft)', fontWeight: 500 }}>Analyzing prescription data and crafting your personalized care summary in real-time.</p>
+                        <div className={styles.aiBadge}>{t.aiPreparing}</div>
+                        <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--text-soft)', fontWeight: 500 }}>{t.aiAnalyzing}</p>
                       </div>
                     )}
                   </>
                 )}
 
                 {activeTab === 'Patient History' && (
-                  <div className={styles.historyContainer}>
+                  <div id="history" className={styles.historyContainer}>
                     <div className={styles.historyHeader}>
-                      <h2>Clinical History</h2>
-                      <p>View past consultations and treatment progress for {patient?.name}.</p>
+                      <h1 className={styles.historyTitle}>{t.history}</h1>
+                      <p className={styles.historySub}>View past consultations and treatment progress for {patient?.name}.</p>
                     </div>
 
                     {loadingHistory ? (
                       <div className={styles.historyLoading}>
                         <div className={styles.loader}></div>
-                        <p style={{ marginTop: 16, fontWeight: 600, color: 'var(--text-soft)' }}>Retrieving clinical records...</p>
+                        <p>{t.retrieving}</p>
                       </div>
-                    ) : history?.visits?.length > 0 ? (
+                    ) : history?.visits && history.visits.length > 0 ? (
                       <div className={styles.timeline}>
                         {history.visits.map((visit: any, index: number) => (
                           <div key={index} className={styles.timelineItem}>
                             <div className={styles.timelineDate}>
                                {new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </div>
-                            <div className={styles.timelinePoint} />
+                            <div className={styles.timelinePoint}></div>
                             <div className={styles.timelineContent}>
                               <div className={styles.visitHeader}>
-                                <h3>{visit.doctor || 'Senior Consultant'}</h3>
-                                <span className={styles.visitType}>Consultation</span>
+                                <div className={styles.visitType}>{t.consultation}</div>
+                                <div className={styles.visitDoctor}>{visit.doctor}</div>
                               </div>
                               <div className={styles.visitBody}>
-                                <div className={styles.visitCol}>
-                                  <h4>Chief Complaints</h4>
-                                  <p>{visit.complaints || 'Routine check-up'}</p>
+                                <div className={styles.visitSection}>
+                                  <div className={styles.visitLabel}>{t.cc}</div>
+                                  <div className={styles.visitValue}>{visit.complaints}</div>
                                 </div>
-                                <div className={styles.visitCol}>
-                                  <h4>Medicines Prescribed</h4>
-                                  <div className={styles.miniMeds}>
-                                    {visit.medicines && visit.medicines.length > 0 ? (
-                                      visit.medicines.map((m: any, mi: number) => (
-                                        <span key={mi} className={styles.miniMedTag}>{typeof m === 'string' ? m : m.name}</span>
-                                      ))
-                                    ) : (
-                                      <span style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-soft)' }}>No medication prescribed</span>
-                                    )}
+                                <div className={styles.visitSection}>
+                                  <div className={styles.visitLabel}>{t.prescribed}</div>
+                                  <div className={styles.visitValue}>
+                                    {visit.medicines && visit.medicines.length > 0
+                                      ? visit.medicines.map((m: any) => m.name).join(', ')
+                                      : t.noMedsPrescribed}
                                   </div>
                                 </div>
                               </div>
-                              <Link href={`/view/${visit.prescription_id}`} className={styles.viewVisitBtn}>
-                                View Full Prescription
+                              <Link 
+                                href={`/view/${visit.prescription_id}`} 
+                                className={styles.viewVisitBtn}
+                                onClick={() => setActiveTab('Current Script')}
+                              >
+                                {t.viewFullRx}
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ marginLeft: 4 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                               </Link>
                             </div>
@@ -911,10 +1082,10 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                         ))}
                       </div>
                     ) : (
-                      <div className={styles.emptyHistory}>
-                         <div className={styles.emptyIconHistory}>📋</div>
-                         <h3>No past visits found.</h3>
-                         <p>This appears to be the first recorded visit for this patient.</p>
+                      <div className={styles.noHistory}>
+                        <div className={styles.noHistoryIcon}>📋</div>
+                        <h3>{t.noPastVisits}</h3>
+                        <p>{t.firstVisit}</p>
                       </div>
                     )}
                   </div>
@@ -981,17 +1152,17 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
               
               <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 20 }}>
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Qualification</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>{t.qualification}</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>{doctor?.qualification || 'MBBS, MD'}</div>
                 </div>
                 
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Registration No.</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>{t.regNo}</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-main)' }}>{doctor?.registration_number || 'N/A'}</div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>Standard Consultation Fee</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-soft)', letterSpacing: 0.5, marginBottom: 4 }}>{t.consultFee}</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#059669' }}>{doctor?.consultation_fee ? `₹${doctor.consultation_fee}` : '₹ 500'}</div>
                 </div>
               </div>
@@ -1001,7 +1172,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
                   style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', width: '100%' }}
                   onClick={() => setShowDocProfile(false)}
                 >
-                  Close Profile
+                  {t.closeProfile}
                 </button>
               </div>
             </div>
@@ -1014,7 +1185,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             {showSpeechPopup && !isSpeaking && (
               <div className={styles.speechPopup}>
                 <span onClick={handleToggleSpeech} style={{ cursor: 'pointer' }}>
-                   🔊 {activeSummary?.greeting && /[\u0900-\u097F]/.test(activeSummary.greeting) ? 'सुनने के लिए टैप करें' : 'Tap to Listen'}
+                   🔊 {t.tapToListen}
                 </span>
                 <button className={styles.closePopup} onClick={() => setShowSpeechPopup(false)}>×</button>
               </div>
@@ -1022,7 +1193,7 @@ export default function ViewPrescription({ params }: { params: Promise<{ id: str
             <button 
               className={`${styles.listenButton} ${isSpeaking ? styles.listenButtonActive : ''}`}
               onClick={handleToggleSpeech}
-              title={isSpeaking ? "Stop Listening" : "Listen to Summary"}
+              title={isSpeaking ? t.stopListen : t.listenSummary}
             >
               {isSpeaking ? (
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>

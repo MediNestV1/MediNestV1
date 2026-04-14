@@ -131,7 +131,7 @@ TONE & STYLE:
 
 JSON OUTPUT FORMAT:
 {
-  "greeting": "👋 Hello ${patientName} in ${lang}",
+  "greeting": "👋 Hello ${patientName}",
   "condition": "Explanation of the illness in ${lang}",
   "medicines": [
     {
