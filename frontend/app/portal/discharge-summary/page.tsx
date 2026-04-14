@@ -16,7 +16,7 @@ interface Medicine {
 }
 
 interface SummaryData {
-  patientName: string; age: string; sex: string; regNo: string; doa: string; dod: string; doctor: string; 
+  patientName: string; phone: string; age: string; sex: string; regNo: string; doa: string; dod: string; doctor: string; 
   diagnosis: string; 
   complaints: string[]; 
   findings: string[]; 
@@ -41,7 +41,7 @@ export default function DischargeSummaryRedesign() {
 
   // 1. Unified State
   const [summary, setSummary] = useState<SummaryData>({
-    patientName: '', age: '', sex: 'Male', regNo: '', doa: '', dod: '', doctor: '', 
+    patientName: '', phone: '', age: '', sex: 'Male', regNo: '', doa: '', dod: '', doctor: '', 
     diagnosis: '', complaints: [], findings: [], treatment: [], advice: [], medicines: []
   });
 
@@ -485,6 +485,10 @@ export default function DischargeSummaryRedesign() {
                       </select>
                     </div>
                   </div>
+                  <div className="field">
+                    <label>Phone Number (WhatsApp)</label>
+                    <input type="tel" value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} placeholder="e.g. 9876543210" />
+                  </div>
                   <div className="field"><label>Registration / IPD ID</label><input type="text" value={summary.regNo} onChange={e => updateField('regNo', e.target.value)} /></div>
                   <div className="field"><label>Adm. Date</label><input type="datetime-local" value={summary.doa} onChange={e => updateField('doa', e.target.value)} /></div>
                   <div className="field"><label>Dis. Date</label><input type="datetime-local" value={summary.dod} onChange={e => updateField('dod', e.target.value)} /></div>
@@ -570,6 +574,7 @@ export default function DischargeSummaryRedesign() {
                              <div><b>Patient:</b> {summary.patientName}</div>
                              <div><b>Reg No:</b> {summary.regNo}</div>
                              <div><b>Age/Sex:</b> {summary.age}/{summary.sex[0]}</div>
+                             <div><b>Contact:</b> {summary.phone || '---'}</div>
                              <div><b>Consultant:</b> {summary.doctor}</div>
                              <div><b>DOA:</b> {summary.doa}</div>
                              <div><b>DOD:</b> {summary.dod}</div>

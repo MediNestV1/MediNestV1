@@ -15,7 +15,7 @@ interface Medicine {
 }
 
 interface SummaryData {
-  patientName: string; age: string; sex: string; regNo: string; doa: string; dod: string; doctor: string; 
+  patientName: string; phone: string; age: string; sex: string; regNo: string; doa: string; dod: string; doctor: string; 
   diagnosis: string; 
   complaints: string[]; 
   findings: string[]; 
@@ -33,6 +33,7 @@ export default function FullResultPreview() {
   // Unified Action Bar State
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,14 +73,14 @@ export default function FullResultPreview() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const executeSave = async (quiet = false): Promise<boolean> => {
+  const executeSave = async (quiet = false): Promise<string | null> => {
     if (!summary || !summary.patientName) {
       if (!quiet) alert('Patient Name represents the minimum requirement to save a clinical record.');
-      return false;
+      return null;
     }
     
-    // Prevent duplicated saving
-    if (isSaved) return true;
+    // Prevent duplicated saving if we already have the ID
+    if (isSaved && savedId) return savedId;
     
     setIsSaving(true);
     try {
@@ -104,6 +105,7 @@ export default function FullResultPreview() {
             .from('patients')
             .insert({
               name: summary.patientName,
+              contact: summary.phone || null,
               age: parseInt(summary.age) || null,
               gender: summary.sex,
               clinic_id: clinic.id
@@ -134,15 +136,16 @@ export default function FullResultPreview() {
         payload.patient_id = patientId; // Enforce relational link
       }
 
-      let { error } = await supabase.from('discharge_summaries').insert([payload]);
+      let { data, error } = await supabase.from('discharge_summaries').insert([payload]).select('id');
       
       if (error && payload.patient_id) {
         // Fallback: If the insert fails (likely due to schema mismatch for patient_id),
         // we strip the relational linking column and try to insert organically.
         delete payload.patient_id;
-        const fallback = await supabase.from('discharge_summaries').insert([payload]);
+        const fallback = await supabase.from('discharge_summaries').insert([payload]).select('id');
         if (!fallback.error) {
            error = null; // Rescued successfully
+           data = fallback.data;
         } else {
            error = fallback.error; // Still failing, escalate the error
         }
@@ -150,12 +153,18 @@ export default function FullResultPreview() {
       
       if (error) throw error;
       
+      let newId = savedId;
+      if (data && data[0]) {
+        newId = data[0].id;
+        setSavedId(newId);
+      }
+      
       setIsSaved(true);
       if (!quiet) showToast('Discharge Summary Saved Successfully');
-      return true;
+      return newId;
     } catch (e: any) {
       if (!quiet) alert('Error saving record: ' + e.message);
-      return false;
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -174,22 +183,32 @@ export default function FullResultPreview() {
   };
 
   const handleWhatsAppShare = async () => {
-    if (!isSaved) {
-       // Best-effort background save.
-      await executeSave(true);
+    let activeId = savedId;
+    
+    if (!activeId) {
+      // Best-effort background save to acquire ID
+      activeId = await executeSave(true);
+    }
+
+    if (!activeId) {
+      alert('Missing Document ID. Please fill out required fields or try saving again.');
+      return;
     }
 
     const docName = summary?.doctor ? `Dr. ${summary.doctor}` : clinic?.name;
-    let message = `*Discharge Summary*\n`;
-    message += `Patient: ${summary?.patientName || 'Unknown'}\n`;
-    message += `Diagnosis: ${summary?.diagnosis || 'Pending'}\n\n`;
-    if (summary?.advice && summary.advice.length > 0) {
-      message += `*Instructions & Advice:*\n` + summary.advice.map(a => `• ${a}`).join('\n') + `\n\n`;
-    }
-    message += `Best Regards,\n${docName}`;
+    const shareLink = `${window.location.origin}/view-summary/${activeId}`;
+    
+    const message = `🏥 *${clinic?.name || 'MediNest Clinic'}*\n` +
+      `━━━━━━━━━━━━━━━\n` +
+      `Hello *${summary?.patientName || 'Patient'}*,\n\n` +
+      `Your Discharge Summary from *${docName}* is ready. You can view, download, or print your official clinical record securely here:\n` +
+      `🔗 ${shareLink}\n\n` +
+      `_Thank you for trusting us with your care!_ 🙏`;
 
     setTimeout(() => {
-      const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      // Strip all non-numeric characters for the WhatsApp DeepLink
+      const cleanPhone = summary.phone ? summary.phone.replace(/\D/g, '') : '';
+      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
     }, 150);
   };
