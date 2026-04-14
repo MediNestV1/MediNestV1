@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import styles from './page.module.css';
 import Link from 'next/link';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, authenticatedFetch } from '@/lib/api';
 
 interface Patient {
   id: string;
@@ -48,7 +48,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/patient-history/${patientId}`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/patient-history/${patientId}`);
         const data = await response.json();
 
         if (data.patient) setPatient(data.patient);

@@ -384,8 +384,8 @@
   color: #94a3b8; /* Ghost gray */
   pointer-events: none;
   z-index: 1;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
+  overflow: hidden;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   display: flex;
@@ -577,6 +577,11 @@
   margin-bottom: 24px;
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+.medPreviewSection {
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .previewSection h4 {

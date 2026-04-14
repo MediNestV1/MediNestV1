@@ -170,6 +170,11 @@
   break-inside: avoid;
 }
 
+.medPreviewSection {
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
 .previewSection h4 {
   font-size: 12px;
   font-weight: 900;

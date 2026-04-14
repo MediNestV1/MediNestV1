@@ -7,7 +7,7 @@ import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, authenticatedFetch } from '@/lib/api';
 import styles from './page.module.css';
 
 interface Medicine {
@@ -172,7 +172,7 @@ export default function PrescriptionPage() {
           
           // Also fetch AI summary if available
           try {
-            const res = await fetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
+            const res = await authenticatedFetch(`${API_BASE_URL}/api/patient-history/${data.id}`);
             if (res.ok) {
               const historyData = await res.json();
               if (historyData && historyData.summary) {
@@ -258,7 +258,7 @@ export default function PrescriptionPage() {
     setAiValidationFlags([]);
     try {
         console.log('[Clinical AI Engine] Running production inference...');
-        const res = await fetch(`${API_BASE_URL}/api/recommendations/suggest`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/api/recommendations/suggest`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -408,7 +408,7 @@ export default function PrescriptionPage() {
 
     // Fetch AI Snapshot for selected patient
     try {
-        const res = await fetch(`${API_BASE_URL}/api/patient-history/${p.id}`);
+        const res = await authenticatedFetch(`${API_BASE_URL}/api/patient-history/${p.id}`);
         const data = await res.json();
         if (data && data.summary) {
             setPtSnapshot(data.summary);

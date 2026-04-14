@@ -37,3 +37,8 @@ yarn-debug.log*
 # tool-specific
 .antigravity/
 .gemini/
+
+# debug/test scripts with secrets
+junk/
+scratch/
+backend/scratch/

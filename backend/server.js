@@ -8,8 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 4001;
 
 // Supabase Initialization - Using Service Role for background tasks
-const supabaseUrl = process.env.SUPABASE_URL || 'https://wmmxvgpwvhjcpyhgcpzw.supabase.co';
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXh2Z3B3dmhqY3B5aGdjcHp3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTUyODA3OCwiZXhwIjoyMDkxMTA0MDc4fQ.y5UHfrIzvA2AEyuwAU8TDuTimOdRr-9Um4LNpdQxqW0';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceRole);
 // Patient History route
 const patientHistoryRouter = require('./routes/patientHistory');
@@ -17,6 +17,8 @@ const recommendationsRouter = require('./routes/recommendations');
 const queueRouter = require('./routes/queue');
 const analyticsRouter = require('./routes/analytics');
 const notificationsRouter = require('./routes/notifications');
+
+const { requireAuth, requireClinicAccess } = require('./middleware/authMiddleware');
 
 // Validation Helpers
 function isValidHindi(text) {
@@ -34,11 +36,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.use('/api/patient-history', patientHistoryRouter);
-app.use('/api/recommendations', recommendationsRouter);
-app.use('/api/queue', queueRouter);
-app.use('/api/analytics', analyticsRouter);
-app.use('/api/notifications', notificationsRouter);
+app.use('/api/patient-history', requireAuth, requireClinicAccess, patientHistoryRouter);
+app.use('/api/recommendations', requireAuth, recommendationsRouter);
+app.use('/api/queue', requireAuth, requireClinicAccess, queueRouter);
+app.use('/api/analytics', requireAuth, requireClinicAccess, analyticsRouter);
+app.use('/api/notifications', requireAuth, requireClinicAccess, notificationsRouter);
 
 // ─── Basic Health Check ───
 app.get('/health', (req, res) => {
@@ -169,7 +171,7 @@ INPUT DATA:
             const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer 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`,
+                    "Authorization": `Bearer ${process.env.NVIDIA_API_KEY}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({

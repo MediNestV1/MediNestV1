@@ -23,4 +23,21 @@ const getApiBaseUrl = () => {
   return 'http://localhost:4001'; // Default fallback
 };
 
+import { createClient } from './supabase/client';
+
 export const API_BASE_URL = getApiBaseUrl();
+
+export const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const headers = new Headers(options.headers || {});
+  if (session?.access_token) {
+    headers.set('Authorization', `Bearer ${session.access_token}`);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+};

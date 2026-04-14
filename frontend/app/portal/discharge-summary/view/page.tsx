@@ -321,7 +321,7 @@ export default function FullResultPreview() {
                   </div>
 
                   {summary.medicines.length > 0 && (
-                    <div className={styles.previewSection}>
+                    <div className={`${styles.previewSection} ${styles.medPreviewSection}`}>
                       <h4>Medications Advised on Discharge</h4>
                       <table className={styles.medTable}>
                         <thead>

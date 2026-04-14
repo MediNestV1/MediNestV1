@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
+import { API_BASE_URL, authenticatedFetch } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -23,7 +24,7 @@ interface QueueEntry {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+const API = API_BASE_URL;
 
 const priorityConfig = {
   urgent:  { label: '🔴 Urgent',  color: '#ef4444', bg: '#fff1f2' },
@@ -89,7 +90,7 @@ export default function DoctorQueuePage() {
     try {
       const params = new URLSearchParams({ clinic_id: clinic.id });
       if (activeDoctorId) params.set('doctor_id', activeDoctorId);
-      const res = await fetch(`${API}/api/queue?${params}`);
+      const res = await authenticatedFetch(`${API}/api/queue?${params}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       setQueue(json.queue);
@@ -121,7 +122,7 @@ export default function DoctorQueuePage() {
   const updateStatus = async (id: string, status: string) => {
     setActionLoading(id + status);
     try {
-      await fetch(`${API}/api/queue/${id}/status`, {
+      await authenticatedFetch(`${API}/api/queue/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -135,7 +136,7 @@ export default function DoctorQueuePage() {
   const callNext = async () => {
     setActionLoading('call-next');
     try {
-      await fetch(`${API}/api/queue/call-next`, {
+      await authenticatedFetch(`${API}/api/queue/call-next`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinic_id: clinic?.id, doctor_id: activeDoctorId }),
