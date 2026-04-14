@@ -126,7 +126,7 @@ export default function OnboardingPage() {
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth'); return; }
+      if (!user) { router.replace('/auth'); return; }
 
       const fullAddress = [address, city].filter(Boolean).join(', ');
       const { data: clinic, error: clinicErr } = await supabase.from('clinics').insert({

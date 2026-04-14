@@ -22,7 +22,7 @@ export default function GoogleOneTap() {
       if (data?.user) {
         console.log('✅ GoogleOneTap: Login successful');
         // Redirect to portal on success
-        router.push('/portal');
+        router.replace('/portal');
       }
     } catch (error) {
       console.error('❌ GoogleOneTap Error:', error);

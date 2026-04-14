@@ -10,9 +10,10 @@ interface TopBarProps {
   backHref?: string;
   backLabel?: string;
   showLogout?: boolean;
+  showBack?: boolean;
 }
 
-export default function TopBar({ title, backHref, backLabel = 'Back', showLogout = true }: TopBarProps) {
+export default function TopBar({ title, backHref, backLabel = 'Back', showLogout = true, showBack = true }: TopBarProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -21,6 +22,11 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
     await supabase.auth.signOut();
     // 2. Server-side sign out (clears cookies and redirects)
     window.location.href = '/auth/logout';
+  };
+
+  const handleBack = () => {
+    if (backHref) return; // Let Link handle it
+    router.back();
   };
 
   return (
@@ -32,6 +38,13 @@ export default function TopBar({ title, backHref, backLabel = 'Back', showLogout
           </svg>
           <span>{backLabel}</span>
         </Link>
+      ) : showBack ? (
+        <button onClick={handleBack} className="topbar-back" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <span>{backLabel}</span>
+        </button>
       ) : (
         <div style={{ minWidth: 80 }} />
       )}

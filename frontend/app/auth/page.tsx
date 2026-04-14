@@ -66,7 +66,7 @@ function AuthPageContent() {
       if (authError) throw authError;
       if (!user) throw new Error('Login successful but no user record found.');
 
-      router.push('/portal');
+      router.replace('/portal');
     } catch (err: any) {
       setLoginError(err.message || 'Login failed. Please try again.');
       setLoginLoading(false);
@@ -85,7 +85,7 @@ function AuthPageContent() {
       const { error } = await supabase.auth.signUp({ email: regEmail, password: regPass });
       if (error) throw error;
       setRegSuccess(true);
-      setTimeout(() => router.push('/onboarding'), 1800);
+      setTimeout(() => router.replace('/onboarding'), 1800);
     } catch (err: any) {
       setRegError(err.message || 'Registration failed. Please try again.');
       setRegLoading(false);

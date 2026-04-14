@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
 import styles from './DashboardSidebar.module.css';
@@ -100,7 +101,7 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
                 : item.href;
               const isActive = pathname === dynamicHref;
               return (
-                <a 
+                <Link 
                   key={item.label} 
                   href={dynamicHref}
                   onClick={handleNavClick}
@@ -108,25 +109,25 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
                 >
                   {item.icon}
                   <span>{item.label}</span>
-                </a>
+                </Link>
               );
             })}
 
             {/* --- Unified Front Office Actions --- */}
             {isReceptionist && frontDeskActions.map((action) => (
-              <a key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
+              <Link key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
                 {action.icon}
                 <span>{action.label}</span>
-              </a>
+              </Link>
             ))}
 
             {!isReceptionist && (
               <div className={styles.deskActions}>
                 {quickActions.map((action) => (
-                  <a key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
+                  <Link key={action.label} href={action.href} onClick={handleNavClick} className={styles.deskAction}>
                     {action.icon}
                     <span>{action.label}</span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             )}
@@ -139,23 +140,23 @@ export default function DashboardSidebar({ isOpen, onClose }: DashboardSidebarPr
               />
             )}
 
-            <a href="/portal" onClick={handleNavClick} className={styles.portalButton}>
+            <Link href="/portal" onClick={handleNavClick} className={styles.portalButton}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               <span>Back to Portal</span>
-            </a>
+            </Link>
           </div>
 
         </nav>
 
         <div className={styles.sidebarFooter}>
           {!isReceptionist && (
-            <a href="/portal/doctor-dashboard/profile" onClick={handleNavClick} className={styles.footerLink}>
+            <Link href="/portal/doctor-dashboard/profile" onClick={handleNavClick} className={styles.footerLink}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Settings
-            </a>
+            </Link>
           )}
-          <a href="/support" className={styles.footerLink}>
+          <Link href="/support" className={styles.footerLink}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Help
-          </a>
+          </Link>
         </div>
       </aside>
     </>
