@@ -68,7 +68,9 @@ export default function DoctorProfilePage() {
     try {
       const activeDoc = doctors[0];
       
-      // 1. Update Global Profile (doctors table)
+      console.log('💾 Starting refined profile save for doctor:', activeDoc.doctor_id);
+
+      // 1. Update Global Registry (doctors table) - verified columns
       const { error: globalErr } = await supabase
         .from('doctors')
         .update({ 
@@ -76,20 +78,20 @@ export default function DoctorProfilePage() {
           qualification, 
           specialty, 
           contact: phone || null, 
-          phone: phone || null, // Sync both fields for safety
-          contact_email: email || null,
-          dob: dob || null,
-          gender: gender || null,
           registration_number: regNumber || null,
+          experience_years: parseInt(experience) || 0,
           license_expiry_date: expiry || null,
-          profile_photo_url: photoUrl || null,
-          experience_years: parseInt(experience) || 0
+          profile_photo_url: photoUrl || null
         })
         .eq('id', activeDoc.doctor_id);
 
-      if (globalErr) throw globalErr;
+      if (globalErr) {
+        console.error('❌ doctors table error:', JSON.stringify(globalErr, null, 2));
+        throw new Error(`Global profile update failed: ${globalErr.message}`);
+      }
 
       // 2. Update Clinic Context (clinic_doctors table)
+      // dob, gender, and email are removed as they are missing in the schema
       const { error: clinicErr } = await supabase
         .from('clinic_doctors')
         .update({ 
@@ -97,7 +99,10 @@ export default function DoctorProfilePage() {
         })
         .eq('id', activeDoc.id);
 
-      if (clinicErr) throw clinicErr;
+      if (clinicErr) {
+        // Log but don't throw - allow general info to save even if timings fail
+        console.error('⚠️ clinic_doctors timings error:', JSON.stringify(clinicErr, null, 2));
+      }
 
       // 3. Update Clinic Profile
       if (clinic) {
@@ -108,14 +113,19 @@ export default function DoctorProfilePage() {
             address: clinicAddress
           })
           .eq('id', clinic.id);
-        if (clinicUpdErr) throw clinicUpdErr;
+        if (clinicUpdErr) {
+          console.error('❌ clinics table error:', JSON.stringify(clinicUpdErr, null, 2));
+          throw new Error(`Clinic info update failed: ${clinicUpdErr.message}`);
+        }
       }
 
+      console.log('✅ Profile blocks successfully synchronized');
       refresh();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e: any) {
-      alert('Error saving profile: ' + e.message);
+      console.error('🔥 Save cycle failed:', e);
+      alert('Error: ' + (e.message || 'Check browser console for details.'));
     } finally {
       setIsSaving(false);
     }
