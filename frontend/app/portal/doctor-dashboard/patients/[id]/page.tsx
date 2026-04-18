@@ -250,8 +250,9 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                   </div>
                </div>
             )}
-       )}
-    </>
+          </div>
+        )}
+     </>
   );
 
   const renderHistory = () => (
