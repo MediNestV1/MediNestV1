@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   User, 
   Briefcase, 
@@ -21,6 +22,7 @@ import styles from './page.module.css';
 export default function DoctorProfilePage() {
   const { doctors, clinic, refresh } = useClinic();
   const supabase = createClient();
+  const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<'general' | 'professional' | 'clinic'>('general');
   const [name, setName] = useState('');
@@ -45,8 +47,9 @@ export default function DoctorProfilePage() {
       setClinicName(clinic.name || '');
       setClinicAddress(clinic.address || '');
     }
+    const doctorIdParam = searchParams?.get('doctorId');
     if (doctors && doctors.length > 0) {
-      const doc = doctors[0];
+      const doc = doctorIdParam ? doctors.find(d => d.id === doctorIdParam) || doctors[0] : doctors[0];
       setName(doc.name || '');
       setQualification(doc.qualification || '');
       setSpecialty(doc.specialty || '');
@@ -66,7 +69,8 @@ export default function DoctorProfilePage() {
     if (!doctors || doctors.length === 0) return;
     setIsSaving(true);
     try {
-      const activeDoc = doctors[0];
+      const doctorIdParam = searchParams?.get('doctorId');
+      const activeDoc = doctorIdParam ? doctors.find(d => d.id === doctorIdParam) || doctors[0] : doctors[0];
       
       console.log('💾 Starting refined profile save for doctor:', activeDoc.doctor_id);
 
@@ -135,9 +139,19 @@ export default function DoctorProfilePage() {
     ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'DR';
 
+  const doctorIdParam = searchParams?.get('doctorId');
+  const doctorNameParam = searchParams?.get('doctorName');
+  let dynamicBackHref = '/portal/doctor-dashboard';
+  if (doctorIdParam) {
+    dynamicBackHref += `?doctorId=${doctorIdParam}`;
+    if (doctorNameParam) {
+      dynamicBackHref += `&doctorName=${encodeURIComponent(doctorNameParam)}`;
+    }
+  }
+
   return (
     <div className={styles.page}>
-      <TopBar title="Doctor Profile" backHref="/portal/doctor-dashboard" />
+      <TopBar title="Doctor Profile" backHref={dynamicBackHref} />
 
       <main className={styles.main}>
         {/* Improved Header Area */}

@@ -21,16 +21,19 @@ async function generatePatientSummary(patient, prescriptions) {
   {
     "keyConditions": ["Condition 1", "Condition 2"],
     "currentMedications": ["Med 1", "Med 2"],
-    "recentVisitsSummary": "A 1-2 sentence summary of the latest clinical interactions"
+    "recentVisitsSummary": "A 1-2 sentence summary of the latest clinical interactions (OPD visits and IPD discharges)"
   }
 
-  DATA: ${JSON.stringify(prescriptions.map(p => ({
+  DATA:
+  - Prescriptions: ${JSON.stringify(prescriptions.map(p => ({
     date: p.date,
     complaints: p.complaints,
     findings: p.findings,
     medicines: p.medicines,
     advice: p.advice
-  })))}`;
+  })))}
+  - Discharge Summaries: ${JSON.stringify(patient.summaries || [])}
+  `;
 
   try {
     const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
@@ -122,16 +125,49 @@ router.get('/:patientId', async (req, res) => {
       .eq('patient_id', patientId)
       .order('date', { ascending: false });
 
-    const visits = (rawPrescriptions || []).map(p => ({
-      visit_date: p.date || p.created_at,
-      created_at: p.created_at,
-      doctor: p.doctor_name,
-      complaints: p.complaints,
-      findings: p.findings,
-      medicines: typeof p.medicines === 'string' ? JSON.parse(p.medicines) : p.medicines,
-      advice: p.advice,
-      prescription_id: p.id
-    }));
+    const visits = (rawPrescriptions || []).map(p => {
+      let medicines = [];
+      try {
+        medicines = typeof p.medicines === 'string' ? JSON.parse(p.medicines) : p.medicines;
+      } catch (e) {
+        console.error(`⚠️ Prescription ${p.id} has malformed medicines JSON`);
+      }
+
+      return {
+        visit_date: p.date || p.created_at,
+        created_at: p.created_at,
+        doctor: p.doctor_name,
+        complaints: p.complaints,
+        findings: p.findings,
+        medicines: medicines || [],
+        advice: p.advice,
+        prescription_id: p.id
+      };
+    });
+
+    // 1b. Fetch Discharge Summaries
+    const { data: rawSummaries } = await supabase
+      .from('discharge_summaries')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+
+    const summaries = (rawSummaries || []).map(s => {
+      const safeParse = (val) => {
+        if (!val) return [];
+        try { return typeof val === 'string' ? JSON.parse(val) : val; }
+        catch (e) { return []; }
+      };
+
+      return {
+        ...s,
+        medicines: safeParse(s.medicines),
+        complaints: safeParse(s.complaints),
+        findings: safeParse(s.findings),
+        treatment: safeParse(s.treatment),
+        advice: safeParse(s.advice)
+      };
+    });
 
     // 1. Fetch existing cached snapshot
     const { data: existing } = await supabase
@@ -169,8 +205,10 @@ router.get('/:patientId', async (req, res) => {
     // 3. Trigger Background Refresh (Non-Blocking)
     if (needsRefresh) {
       console.log(`⚡ [WARP SPEED] Triggering background AI refresh for ${patient.name}...`);
+      // Attach summaries for AI context
+      const patientWithSummaries = { ...patient, summaries };
       // Start background task but do NOT await it
-      generatePatientSummary(patient, rawPrescriptions || []).then(async (generatedJson) => {
+      generatePatientSummary(patientWithSummaries, rawPrescriptions || []).then(async (generatedJson) => {
         if (generatedJson) {
            await supabase.from('patient_histories').upsert({
              patient_id: patientId,
@@ -182,7 +220,7 @@ router.get('/:patientId', async (req, res) => {
       });
     }
 
-    res.json({ patient, visits, summary: finalSummary });
+    res.json({ patient, visits, summaries, summary: finalSummary });
 
   } catch (err) {
     console.error('❌ [SERVER ERROR] Patient History:', err);

@@ -39,6 +39,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [summaries, setSummaries] = useState<any[]>([]); // New state for Discharge Summaries
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Patient Summary');
@@ -53,6 +54,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
 
         if (data.patient) setPatient(data.patient);
         if (data.visits) setVisits(data.visits);
+        if (data.summaries) setSummaries(data.summaries); // Capture summaries
         if (data.summary) setSnapshot(data.summary);
       } catch (err) {
         console.error('Error fetching patient hub data:', err);
@@ -70,15 +72,38 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
     { label: 'Patient Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> },
     { label: 'Clinical History', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
     { label: 'Medications', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"></path></svg> },
+    { label: 'Discharge Summaries', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg> },
     { label: 'Lab Results', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v8l-8 12h20l-8-12V2"></path><line x1="6" y1="12" x2="18" y2="12"></line></svg> },
     { label: 'Encounters', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> },
   ];
 
-  // Helper: Aggregate all medications
-  const allMeds = visits.reduce((acc: any[], v) => {
-    const medsWithDate = v.medicines.map(m => ({ ...m, date: v.visit_date, doctor: v.doctor }));
-    return [...acc, ...medsWithDate];
-  }, []);
+  // Helper: Aggregate all medications from both OPD and IPD
+  const allMeds = [
+    ...(visits || []).reduce((acc: any[], v) => {
+      const medsWithDate = (v.medicines || []).map(m => ({ ...m, date: v.visit_date, doctor: v.doctor, type: 'OPD' }));
+      return [...acc, ...medsWithDate];
+    }, []),
+    ...(summaries || []).reduce((acc: any[], s) => {
+      // Robust Medicines Parsing with fallback for malformed JSON
+      let parsedMeds = [];
+      try {
+        const rawMeds = s.medicines;
+        parsedMeds = Array.isArray(rawMeds) ? rawMeds : (typeof rawMeds === 'string' ? JSON.parse(rawMeds) : []);
+      } catch (e) {
+        console.warn(`⚠️ [HUB-SYNC] Failed to parse medicines for Summary: ${s.id}`);
+      }
+      
+      const medsWithDate = (parsedMeds || []).map((m: any) => ({ 
+        ...m, 
+        dose: m.dose || m.frequency || '---', 
+        dur: m.dur || m.duration || '---', 
+        date: s.date_discharge || s.created_at, 
+        doctor: s.doctor_name,
+        type: 'IPD'
+      }));
+      return [...acc, ...medsWithDate];
+    }, [])
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const renderSummary = () => (
     <>
@@ -202,6 +227,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                 <th>Dosage</th>
                 <th>Frequency</th>
                 <th>Duration</th>
+                <th>Type</th>
                 <th>Prescribed On</th>
                 <th>Doctor</th>
              </tr>
@@ -211,14 +237,26 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                <tr key={i}>
                   <td><strong>{m.name}</strong></td>
                   <td>{m.dose}</td>
-                  <td>{m.freq}</td>
+                  <td>{m.freq || m.frequency}</td>
                   <td>{m.dur}</td>
+                  <td>
+                    <span style={{ 
+                      padding: '2px 8px', 
+                      borderRadius: 6, 
+                      fontSize: 10, 
+                      fontWeight: 900, 
+                      background: m.type === 'IPD' ? '#fef3c7' : '#e0f2fe',
+                      color: m.type === 'IPD' ? '#92400e' : '#0369a1' 
+                    }}>
+                      {m.type}
+                    </span>
+                  </td>
                   <td>{new Date(m.date).toLocaleDateString()}</td>
                   <td>{m.doctor}</td>
                </tr>
              ))}
              {allMeds.length === 0 && (
-               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No medications found.</td></tr>
+               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}>No medications found.</td></tr>
              )}
           </tbody>
        </table>
@@ -231,6 +269,49 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
        <h2>No Lab Results Yet</h2>
        <p>Laboratory integrations and reports for {patient?.name} will appear here.</p>
        <button className={styles.btnSecondary} style={{ marginTop: 24 }}>Upload Report</button>
+    </div>
+  );
+
+  const renderDischargeSummaries = () => (
+    <div className={styles.sectionBox}>
+       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3>IPD Discharge Summaries</h3>
+       </div>
+       <table className={styles.hubTable}>
+          <thead>
+             <tr>
+                <th>Date</th>
+                <th>Diagnosis</th>
+                <th>Doctor</th>
+                <th>Reg No.</th>
+                <th>Action</th>
+             </tr>
+          </thead>
+          <tbody>
+             {summaries.map((s, i) => (
+               <tr key={i}>
+                  <td><strong>{new Date(s.created_at).toLocaleDateString()}</strong></td>
+                  <td>{s.diagnosis}</td>
+                  <td>Dr. {s.doctor_name}</td>
+                  <td>{s.reg_no || '---'}</td>
+                  <td>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <Link href={`/portal/discharge-summary/view?id=${s.id}`} className={styles.tableAction} target="_blank">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          View
+                        </Link>
+                        <span style={{ fontSize: 10, padding: '2px 6px', background: '#ecfdf5', color: '#065f46', borderRadius: 4, fontWeight: 900 }}>
+                          📝 RECORD ATTACHED
+                        </span>
+                     </div>
+                  </td>
+               </tr>
+             ))}
+             {summaries.length === 0 && (
+               <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40 }}>No discharge summaries found.</td></tr>
+             )}
+          </tbody>
+       </table>
     </div>
   );
 
@@ -314,6 +395,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
            {activeTab === 'Patient Summary' && renderSummary()}
            {activeTab === 'Clinical History' && renderHistory()}
            {activeTab === 'Medications' && renderMedications()}
+           {activeTab === 'Discharge Summaries' && renderDischargeSummaries()}
            {activeTab === 'Lab Results' && renderLabs()}
            {activeTab === 'Encounters' && renderEncounters()}
         </main>

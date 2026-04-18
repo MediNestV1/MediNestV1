@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
 import styles from './view.module.css';
@@ -24,7 +24,14 @@ interface SummaryData {
   medicines: Medicine[];
 }
 
-export default function FullResultPreview() {
+export default function WrappedFullResultPreview() {
+  return (
+    <Suspense fallback={<div style={{ padding: 100, textAlign: 'center' }}>Initializing...</div>}>
+      <FullResultPreview />
+    </Suspense>
+  );
+}
+function FullResultPreview() {
   const router = useRouter();
   const { clinic, doctors, loading: clinicLoading } = useClinic();
   const supabase = createClient();
@@ -34,39 +41,122 @@ export default function FullResultPreview() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const draftStr = localStorage.getItem('discharge_summary_draft');
-    if (draftStr) {
-      try {
-        const draft = JSON.parse(draftStr);
+    const fetchData = async () => {
+      // 1. Identify Target (ID from URL vs. Local Draft)
+      const recordId = searchParams.get('id');
+      
+      if (recordId) {
+        setIsFetching(true);
+        setFetchError(null);
+        console.info('🛡️ [MEDI-HYDRATE] Fetching clinical record from database:', recordId);
         
-        // Migration logic for preview page too (consistency)
-        const migrate = (val: any) => {
-          if (Array.isArray(val)) return val;
-          if (typeof val === 'string' && val.trim()) {
-            return val.split('\n')
-                      .map(s => s.replace(/^[•\-\*]\s*/, '').trim())
-                      .filter(Boolean);
-          }
-          return [];
-        };
+        try {
+          const { data, error } = await supabase
+            .from('discharge_summaries')
+            .select('*')
+            .eq('id', recordId)
+            .single();
 
-        const migratedSummary = {
-          ...draft,
-          complaints: migrate(draft.complaints),
-          findings: migrate(draft.findings),
-          treatment: migrate(draft.treatment),
-          advice: migrate(draft.advice)
-        };
-        
-        setSummary(migratedSummary);
-      } catch (e) {
-        console.error('Failed to parse draft', e);
+          if (error) {
+            console.error('❌ [DB ERROR]', error);
+            setFetchError(`Database error: ${error.message}`);
+            return;
+          }
+
+          if (!data) {
+            setFetchError('Clinical record not found in database.');
+            return;
+          }
+
+          const safeParse = (val: any) => {
+             if (!val) return [];
+             try { 
+               const parsed = typeof val === 'string' ? JSON.parse(val) : val; 
+               return Array.isArray(parsed) ? parsed : [];
+             } 
+             catch (e) { 
+               console.warn('⚠️ [PARSER] Failed to parse clinical field, defaulting to empty array');
+               return []; 
+             }
+          };
+
+          // Map demographic "Age / Sex" back to separate fields
+          let ageVal = '';
+          let sexVal = 'Male';
+          if (data.age_sex) {
+            const parts = data.age_sex.split('/');
+            ageVal = parts[0]?.trim() || '';
+            const rawSex = (parts[1] || '').trim().toLowerCase();
+            sexVal = rawSex === 'f' || rawSex === 'female' ? 'Female' : 'Male';
+          }
+
+          setSummary({
+            patientName: data.patient_name || 'Unnamed Patient',
+            phone: '', 
+            age: ageVal,
+            sex: sexVal,
+            regNo: data.reg_no || '---',
+            doa: data.date_admission || '---',
+            dod: data.date_discharge || '---',
+            doctor: data.doctor_name || '---',
+            diagnosis: data.diagnosis || 'Diagnosis not recorded',
+            complaints: safeParse(data.complaints),
+            findings: safeParse(data.findings),
+            treatment: safeParse(data.treatment),
+            advice: safeParse(data.advice),
+            medicines: safeParse(data.medicines)
+          });
+          setSavedId(data.id);
+          setIsSaved(true);
+          console.info('✅ [MEDI-HYDRATE] Hydration complete for:', data.patient_name);
+        } catch (err: any) {
+          console.error('🔥 [CRITICAL] Hydration failed:', err);
+          setFetchError(err.message || 'An unexpected error occurred during record hydration.');
+        } finally {
+          setIsFetching(false);
+        }
+        return;
       }
+
+      // 2. Editor Mode: Load from Local Draft
+      const draftStr = localStorage.getItem('discharge_summary_draft');
+      if (draftStr) {
+        try {
+          const draft = JSON.parse(draftStr);
+          const migrate = (val: any) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === 'string' && val.trim()) {
+              return val.split('\n').map(s => s.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+            }
+            return [];
+          };
+
+          setSummary({
+            ...draft,
+            complaints: migrate(draft.complaints),
+            findings: migrate(draft.findings),
+            treatment: migrate(draft.treatment),
+            advice: migrate(draft.advice)
+          });
+        } catch (e) {
+          console.error('Failed to parse draft', e);
+        }
+      }
+    };
+    
+    if (clinic?.id || !recordId) { // Only fetch if clinic is ready OR we are in local craft mode
+       const recordId = searchParams.get('id');
+       fetchData();
     }
-  }, []);
+  }, [supabase, searchParams, clinic?.id]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -88,24 +178,66 @@ export default function FullResultPreview() {
 
       // --- PATIENT SYNC ENGINE ---
       if (clinic?.id) {
-        // Query to find existing patient
-        const { data: existingPatient } = await supabase
-          .from('patients')
-          .select('id')
-          .eq('name', summary.patientName)
-          .eq('clinic_id', clinic.id)
-          .limit(1)
-          .maybeSingle();
+        // Advanced Lookup: Prioritize phone (contact) and name match
+        let existingPatient = null;
+        
+        if (summary.phone) {
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('contact', summary.phone)
+            .eq('clinic_id', clinic.id)
+            .maybeSingle();
+          existingPatient = data;
+        }
+
+        if (!existingPatient) {
+          // Fallback to name search if phone didn't yield result
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('name', summary.patientName)
+            .eq('clinic_id', clinic.id)
+            .limit(1)
+            .maybeSingle();
+          existingPatient = data;
+        }
 
         if (existingPatient?.id) {
           patientId = existingPatient.id;
+          
+          // --- AUTO-UPDATE DEMOGRAPHICS ---
+          const newAge = parseInt(summary.age);
+          const hasAgeChanged = newAge && existingPatient.age !== newAge;
+          const hasGenderChanged = summary.sex && existingPatient.gender !== summary.sex;
+          const hasNameChanged = summary.patientName && existingPatient.name !== summary.patientName;
+          const hasContactChanged = summary.phone && existingPatient.contact !== summary.phone;
+
+          if (hasAgeChanged || hasGenderChanged || hasNameChanged || hasContactChanged) {
+            console.log('🔄 Syncing comprehensive patient demographics...', { 
+              age: newAge, 
+              sex: summary.sex, 
+              name: summary.patientName, 
+              contact: summary.phone 
+            });
+            
+            await supabase
+              .from('patients')
+              .update({
+                age: newAge || existingPatient.age,
+                gender: summary.sex || existingPatient.gender,
+                name: summary.patientName || existingPatient.name,
+                contact: summary.phone || existingPatient.contact
+              })
+              .eq('id', patientId);
+          }
         } else {
           // Auto-create patient profile
           const { data: newPatient, error: patientError } = await supabase
             .from('patients')
             .insert({
               name: summary.patientName,
-              contact: summary.phone || null,
+              contact: summary.phone || '0000000000', // Default if missing
               age: parseInt(summary.age) || null,
               gender: summary.sex,
               clinic_id: clinic.id
@@ -129,27 +261,11 @@ export default function FullResultPreview() {
         treatment: JSON.stringify(summary.treatment), 
         medicines: JSON.stringify(summary.medicines),
         advice: JSON.stringify(summary.advice), 
-        clinic_id: clinic?.id
+        clinic_id: clinic?.id,
+        patient_id: patientId // Direct Linkage
       };
 
-      if (patientId) {
-        payload.patient_id = patientId; // Enforce relational link
-      }
-
       let { data, error } = await supabase.from('discharge_summaries').insert([payload]).select('id');
-      
-      if (error && payload.patient_id) {
-        // Fallback: If the insert fails (likely due to schema mismatch for patient_id),
-        // we strip the relational linking column and try to insert organically.
-        delete payload.patient_id;
-        const fallback = await supabase.from('discharge_summaries').insert([payload]).select('id');
-        if (!fallback.error) {
-           error = null; // Rescued successfully
-           data = fallback.data;
-        } else {
-           error = fallback.error; // Still failing, escalate the error
-        }
-      }
       
       if (error) throw error;
       
@@ -160,7 +276,11 @@ export default function FullResultPreview() {
       }
       
       setIsSaved(true);
-      if (!quiet) showToast('Discharge Summary Saved Successfully');
+      if (!quiet) {
+        setShowSuccessModal(true);
+        // Also keep toast for secondary confirmation if modal closed
+        showToast('Discharge Summary Saved Successfully');
+      }
       return newId;
     } catch (e: any) {
       if (!quiet) alert('Error saving record: ' + e.message);
@@ -213,10 +333,37 @@ export default function FullResultPreview() {
     }, 150);
   };
 
-  if (clinicLoading || !summary) {
+  if (clinicLoading || isFetching) {
+    return (
+      <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+        <div style={{ textAlign: 'center' }}>
+           <div className={styles.loaderSpinner} />
+           <p style={{ marginTop: 20, color: '#64748b', fontWeight: 600 }}>Fetching clinical record...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
     return (
       <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading document preview...</p>
+        <div style={{ textAlign: 'center', maxWidth: 400, padding: 40, background: '#fff', borderRadius: 20, boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+           <div style={{ fontSize: 40, marginBottom: 20 }}>⚠️</div>
+           <h3 style={{ marginBottom: 12 }}>Unable to load record</h3>
+           <p style={{ color: '#64748b', marginBottom: 24 }}>{fetchError}</p>
+           <button className={styles.btnBack} style={{ margin: '0 auto' }} onClick={() => router.back()}>Go Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+           <p>No document draft found.</p>
+           <button className={styles.btnBack} style={{ marginTop: 20 }} onClick={() => router.back()}>Return to Editor</button>
+        </div>
       </div>
     );
   }
@@ -224,6 +371,37 @@ export default function FullResultPreview() {
   return (
     <>
     {toast && <div className={styles.toast} role="alert">{toast}</div>}
+    
+    {showSuccessModal && (
+      <div className={styles.modalOverlay}>
+        <div className={styles.successModal}>
+          <div className={styles.modalContent}>
+            <div className={styles.successIcon}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <h3>Summary Saved Successfully</h3>
+            <p>This discharge summary has been officially linked to <strong>{summary.patientName}</strong>'s clinical record.</p>
+            
+            <div className={styles.modalActions}>
+              <button className={styles.btnGotIt} onClick={() => setShowSuccessModal(false)}>Got it</button>
+              <button 
+                className={styles.btnViewHub} 
+                onClick={() => {
+                   // Handle patient ID safely
+                   const pid = summary.phone || summary.patientName; // Fallback for route if needed, but we usually have the UUID
+                   router.push(`/portal/doctor-dashboard`); // Redirect to dashboard or specific patient if we have UUID
+                }}
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     
     <div className={styles.page}>
       <header className={styles.header}>

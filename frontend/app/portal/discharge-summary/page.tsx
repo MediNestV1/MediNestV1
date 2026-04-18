@@ -35,6 +35,136 @@ interface Suggestion {
 
 const SECTION_SEQUENCE = ['complaints', 'findings', 'treatment', 'advice'];
 
+// --- STANDALONE REUSABLE STRUCTURED LIST COMPONENT WITH SMART ASSIST ---
+interface BulletListEditorProps {
+  field: keyof SummaryData;
+  items: string[];
+  placeholder: string;
+  updateField: (field: keyof SummaryData, value: any) => void;
+  autoSaveStatus: string;
+  setAutoSaveStatus: (status: 'idle' | 'saving' | 'saved') => void;
+  suggestTimer: React.MutableRefObject<NodeJS.Timeout | null>;
+  activeSuggestion: Suggestion | null;
+  setActiveSuggestion: (suggestion: Suggestion | null) => void;
+  fetchSmartSuggestion: (field: string, index: number, currentText: string) => void;
+}
+
+const BulletListEditor = ({ 
+  field, 
+  items, 
+  placeholder,
+  updateField,
+  autoSaveStatus,
+  setAutoSaveStatus,
+  suggestTimer,
+  activeSuggestion,
+  setActiveSuggestion,
+  fetchSmartSuggestion
+}: BulletListEditorProps) => {
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const updateItem = (index: number, val: string) => {
+    const newItems = [...items];
+    newItems[index] = val;
+    updateField(field, newItems);
+
+    // Reset auto-save status to idle to restart the timer correctly during typing
+    if (autoSaveStatus !== 'idle') setAutoSaveStatus('idle');
+
+    // Debounced Suggestion Trigger
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    suggestTimer.current = setTimeout(() => {
+      fetchSmartSuggestion(field, index, val);
+    }, 300); // Faster suggestion
+  };
+
+  const acceptSuggestion = (index: number) => {
+    if (activeSuggestion && activeSuggestion.index === index) {
+      const newItems = [...items];
+      newItems[index] = activeSuggestion.fullText;
+      updateField(field, newItems);
+      setActiveSuggestion(null);
+    }
+  };
+
+  const addItem = (index: number) => {
+    const newItems = [...items];
+    newItems.splice(index + 1, 0, "");
+    updateField(field, newItems);
+    setActiveSuggestion(null);
+    setTimeout(() => inputRefs.current[index + 1]?.focus(), 0);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length <= 1) {
+      updateField(field, [""]);
+      return;
+    }
+    const newItems = items.filter((_, i) => i !== index);
+    updateField(field, newItems);
+    setActiveSuggestion(null);
+    setTimeout(() => inputRefs.current[Math.max(0, index - 1)]?.focus(), 0);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Tab' && activeSuggestion && activeSuggestion.index === index) {
+      e.preventDefault();
+      acceptSuggestion(index);
+    } else if (e.key === 'Escape') {
+      setActiveSuggestion(null);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      addItem(index);
+    } else if (e.key === 'Backspace' && items[index] === "" && items.length > 1) {
+      e.preventDefault();
+      removeItem(index);
+    }
+  };
+
+  return (
+    <div className={styles.bulletListContainer}>
+      {items.length === 0 ? (
+        <button className={styles.btnAddPoint} onClick={() => updateField(field, [""])}>
+          + Start adding {field}
+        </button>
+      ) : (
+        items.map((item, idx) => (
+          <div key={idx} className={styles.bulletRow}>
+            <div className={styles.bulletMarker} />
+            <div className={styles.inputWrapper}>
+               <input
+                 ref={el => { inputRefs.current[idx] = el }}
+                 className={styles.bulletInput}
+                 value={item}
+                 onChange={(e) => updateItem(idx, e.target.value)}
+                 onKeyDown={(e) => onKeyDown(e, idx)}
+                 onBlur={() => setTimeout(() => setActiveSuggestion(null), 200)}
+                 placeholder={idx === 0 ? placeholder : "Next point..."}
+               />
+               {activeSuggestion && activeSuggestion.field === field && activeSuggestion.index === idx && (
+                 <div className={`${styles.ghostText} ${styles.active}`}>
+                   <span style={{ color: 'transparent', visibility: 'hidden' }}>{item}</span>
+                   {activeSuggestion.text}
+                   <span className={styles.ghostHint}>TAB</span>
+                 </div>
+               )}
+            </div>
+            <button 
+              className={styles.btnRemovePoint} 
+              onClick={() => removeItem(idx)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        ))
+      )}
+      <button className={styles.btnAddPoint} onClick={() => addItem(items.length - 1)}>
+        + Add another point
+      </button>
+    </div>
+  );
+};
+
 export default function DischargeSummaryRedesign() {
   const router = useRouter();
   const { clinic, doctors, loading: clinicLoading } = useClinic();
@@ -123,7 +253,7 @@ export default function DischargeSummaryRedesign() {
     // Logic for Complaints
     if (field === 'complaints') {
       if (input.includes('chest pain')) {
-        if (diag.includes('acs') || diag.includes('heart')) baseSuggestion = " radiating to left arm and sweating";
+        if (summary.diagnosis.toLowerCase().includes('acs') || summary.diagnosis.toLowerCase().includes('heart')) baseSuggestion = " radiating to left arm and sweating";
         else baseSuggestion = " associated with breathlessness";
       }
       else if (input.includes('fever')) baseSuggestion = " associated with chills and rigor";
@@ -236,128 +366,91 @@ export default function DischargeSummaryRedesign() {
     if (currentIndex !== -1 && currentIndex < SECTION_SEQUENCE.length - 1) {
       const nextSection = SECTION_SEQUENCE[currentIndex + 1];
       showToast(`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} saved`);
-      setActiveSection(nextSection);
+      setActiveSection(null); // First close
+      setTimeout(() => setActiveSection(nextSection), 10); // Then open next to force re-render
     } else {
       showToast('All clinical sections completed');
       setActiveSection(null);
     }
   };
 
-  // --- REUSABLE STRUCTURED LIST COMPONENT WITH SMART ASSIST ---
-  const BulletListEditor = ({ 
-    field, 
-    items, 
-    placeholder 
-  }: { 
-    field: keyof SummaryData, 
-    items: string[], 
-    placeholder: string 
-  }) => {
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-    const updateItem = (index: number, val: string) => {
-      const newItems = [...items];
-      newItems[index] = val;
-      updateField(field, newItems);
-
-      // Debounced Suggestion Trigger
-      if (suggestTimer.current) clearTimeout(suggestTimer.current);
-      suggestTimer.current = setTimeout(() => {
-        fetchSmartSuggestion(field, index, val);
-      }, 500);
-    };
-
-    const acceptSuggestion = (index: number) => {
-      if (activeSuggestion && activeSuggestion.index === index) {
-        const newItems = [...items];
-        newItems[index] = activeSuggestion.fullText;
-        updateField(field, newItems);
-        setActiveSuggestion(null);
-      }
-    };
-
-    const addItem = (index: number) => {
-      const newItems = [...items];
-      newItems.splice(index + 1, 0, "");
-      updateField(field, newItems);
-      setActiveSuggestion(null);
-      setTimeout(() => inputRefs.current[index + 1]?.focus(), 0);
-    };
-
-    const removeItem = (index: number) => {
-      if (items.length <= 1) {
-        updateField(field, [""]);
-        return;
-      }
-      const newItems = items.filter((_, i) => i !== index);
-      updateField(field, newItems);
-      setActiveSuggestion(null);
-      setTimeout(() => inputRefs.current[Math.max(0, index - 1)]?.focus(), 0);
-    };
-
-    const onKeyDown = (e: React.KeyboardEvent, index: number) => {
-      if (e.key === 'Tab' && activeSuggestion && activeSuggestion.index === index) {
-        e.preventDefault();
-        acceptSuggestion(index);
-      } else if (e.key === 'Escape') {
-        setActiveSuggestion(null);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        addItem(index);
-      } else if (e.key === 'Backspace' && items[index] === "" && items.length > 1) {
-        e.preventDefault();
-        removeItem(index);
-      }
-    };
-
-    return (
-      <div className={styles.bulletListContainer}>
-        {items.length === 0 ? (
-          <button className={styles.btnAddPoint} onClick={() => updateField(field, [""])}>
-            + Start adding {field}
-          </button>
-        ) : (
-          items.map((item, idx) => (
-            <div key={idx} className={styles.bulletRow}>
-              <div className={styles.bulletMarker} />
-              <div className={styles.inputWrapper}>
-                 <input
-                   ref={el => { inputRefs.current[idx] = el }}
-                   className={styles.bulletInput}
-                   value={item}
-                   onChange={(e) => updateItem(idx, e.target.value)}
-                   onKeyDown={(e) => onKeyDown(e, idx)}
-                   onBlur={() => setTimeout(() => setActiveSuggestion(null), 200)}
-                   placeholder={idx === 0 ? placeholder : "Next point..."}
-                 />
-                 {activeSuggestion && activeSuggestion.field === field && activeSuggestion.index === idx && (
-                   <div className={`${styles.ghostText} ${styles.active}`}>
-                     <span style={{ color: 'transparent', visibility: 'hidden' }}>{item}</span>
-                     {activeSuggestion.text}
-                     <span className={styles.ghostHint}>TAB</span>
-                   </div>
-                 )}
-              </div>
-              <button 
-                className={styles.btnRemovePoint} 
-                onClick={() => removeItem(idx)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
-              </button>
-            </div>
-          ))
-        )}
-        <button className={styles.btnAddPoint} onClick={() => addItem(items.length - 1)}>
-          + Add another point
-        </button>
-      </div>
-    );
-  };
 
   const handleFinalSubmit = async () => {
     if (!summary.patientName) return alert('Patient Name is required');
     setIsSaving(true);
     try {
+      let patientId: string | null = null;
+
+      // --- PATIENT SYNC ENGINE ---
+      if (clinic?.id) {
+        let existingPatient = null;
+
+        // 1. Lookup by phone (most reliable identifier)
+        if (summary.phone) {
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('contact', summary.phone)
+            .eq('clinic_id', clinic.id)
+            .maybeSingle();
+          existingPatient = data;
+        }
+
+        // 2. Fallback to name match
+        if (!existingPatient) {
+          const { data } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('name', summary.patientName)
+            .eq('clinic_id', clinic.id)
+            .limit(1)
+            .maybeSingle();
+          existingPatient = data;
+        }
+
+        if (existingPatient?.id) {
+          patientId = existingPatient.id;
+
+          // --- AUTO-UPDATE DEMOGRAPHICS ---
+          const newAge = parseInt(summary.age);
+          const hasAgeChanged = newAge && existingPatient.age !== newAge;
+          const hasGenderChanged = summary.sex && existingPatient.gender !== summary.sex;
+          const hasNameChanged = summary.patientName && existingPatient.name !== summary.patientName;
+          const hasContactChanged = summary.phone && existingPatient.contact !== summary.phone;
+
+          if (hasAgeChanged || hasGenderChanged || hasNameChanged || hasContactChanged) {
+            console.log('🔄 [DS-EDITOR] Syncing patient demographics from discharge summary...');
+            await supabase
+              .from('patients')
+              .update({
+                age: newAge || existingPatient.age,
+                gender: summary.sex || existingPatient.gender,
+                name: summary.patientName || existingPatient.name,
+                contact: summary.phone || existingPatient.contact
+              })
+              .eq('id', patientId);
+          }
+        } else {
+          // Auto-create patient profile
+          const { data: newPatient, error: patientError } = await supabase
+            .from('patients')
+            .insert({
+              name: summary.patientName,
+              contact: summary.phone || '0000000000',
+              age: parseInt(summary.age) || null,
+              gender: summary.sex,
+              clinic_id: clinic.id
+            })
+            .select('id')
+            .single();
+
+          if (!patientError && newPatient?.id) {
+            patientId = newPatient.id;
+          }
+        }
+      }
+
+      // --- DISCHARGE SUMMARY SAVE (with patient linkage) ---
       const { error } = await supabase.from('discharge_summaries').insert([{
         patient_name: summary.patientName, reg_no: summary.regNo, age_sex: `${summary.age} / ${summary.sex}`,
         doctor_name: summary.doctor, date_admission: summary.doa, date_discharge: summary.dod,
@@ -367,11 +460,12 @@ export default function DischargeSummaryRedesign() {
         treatment: JSON.stringify(summary.treatment), 
         medicines: JSON.stringify(summary.medicines),
         advice: JSON.stringify(summary.advice), 
-        clinic_id: clinic?.id
+        clinic_id: clinic?.id,
+        patient_id: patientId
       }]);
       if (error) throw error;
       localStorage.removeItem('discharge_summary_draft');
-      alert('Discharge Summary finalized successfully!');
+      alert('Discharge Summary finalized and linked to patient record!');
       window.print();
     } catch (e: any) {
       alert('Error saving: ' + e.message);
@@ -449,7 +543,14 @@ export default function DischargeSummaryRedesign() {
                  <BulletListEditor 
                     field={field} 
                     items={items.length === 0 ? [""] : items} 
-                    placeholder={`Enter patient ${activeSection} point...`} 
+                    placeholder={`Enter patient ${activeSection} point...`}
+                    updateField={updateField}
+                    autoSaveStatus={autoSaveStatus}
+                    setAutoSaveStatus={setAutoSaveStatus}
+                    suggestTimer={suggestTimer}
+                    activeSuggestion={activeSuggestion}
+                    setActiveSuggestion={setActiveSuggestion}
+                    fetchSmartSuggestion={fetchSmartSuggestion}
                  />
                  <div className={styles.cardFooter}>
                     <button className={styles.btnSaveBack} onClick={handleSaveAndNext}>
