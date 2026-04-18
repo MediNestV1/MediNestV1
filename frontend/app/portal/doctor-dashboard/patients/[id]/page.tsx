@@ -217,7 +217,39 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                   </span>
                </div>
             </div>
-         </div>
+            {admissions[0].attachments && admissions[0].attachments.length > 0 && (
+               <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, fontSize: 13, fontWeight: 900, color: 'var(--sanctuary-primary)' }}>
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                     ATTACHED REPORTS ({admissions[0].attachments.length})
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                     {admissions[0].attachments.map((file: any, idx: number) => (
+                        <a 
+                           key={idx} 
+                           href={file.url} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           style={{ 
+                              padding: '6px 12px', 
+                              background: '#fff', 
+                              border: '1px solid #e2e8f0', 
+                              borderRadius: 8, 
+                              fontSize: 11, 
+                              fontWeight: 700, 
+                              color: 'var(--sanctuary-primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6
+                           }}
+                        >
+                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                           {file.name.length > 20 ? file.name.slice(0, 17) + '...' : file.name}
+                        </a>
+                     ))}
+                  </div>
+               </div>
+            )}
        )}
     </>
   );

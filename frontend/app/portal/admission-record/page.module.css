@@ -204,6 +204,113 @@
 .triageBtn.severe:hover { border-color: #ef4444; color: #ef4444; }
 .triageBtn.severe.active { background: #ef4444; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
 
+/* --- Upload Area --- */
+.uploadZone {
+  margin-top: 12px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  background: var(--sanctuary-gray-low);
+  transition: .2s;
+}
+
+.uploadZone:hover {
+  background: #fff;
+  border-color: var(--sanctuary-primary);
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.uploadLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  cursor: pointer;
+  color: var(--sanctuary-ink-l);
+}
+
+.uploadLabel span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.uploadLabel small {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.attachmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--sanctuary-gray-low);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  animation: slideIn .2s ease-out;
+}
+
+.fileName {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sanctuary-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileMeta {
+  font-size: 10px;
+  color: var(--sanctuary-ink-l);
+  font-weight: 600;
+}
+
+.btnFileAction {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: .2s;
+}
+
+.btnFileAction:hover {
+  border-color: var(--sanctuary-primary);
+}
+
+.btnFileDelete {
+  padding: 4px;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.btnFileDelete:hover {
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .previewContent {
   font-size: 13px;
   color: var(--sanctuary-ink-l);

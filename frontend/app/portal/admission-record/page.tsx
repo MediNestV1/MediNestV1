@@ -14,6 +14,7 @@ interface SummaryData {
   severity: string; admission_type: string;
   has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
   doctor_observations: string;
+  attachments: { name: string; url: string; type: string; size: number }[];
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -157,6 +158,7 @@ export default function AdmissionRecordRedesign() {
     severity: 'Mild', admission_type: 'OPD',
     has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
     doctor_observations: '',
+    attachments: [],
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -166,6 +168,7 @@ export default function AdmissionRecordRedesign() {
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<Suggestion | null>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [toast, setToast] = useState<string | null>(null);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
@@ -193,7 +196,8 @@ export default function AdmissionRecordRedesign() {
           allergies: draft.allergies || '',
           severity: draft.severity || 'Mild',
           admission_type: draft.admission_type || 'OPD',
-          doctor_observations: draft.doctor_observations || ''
+          doctor_observations: draft.doctor_observations || '',
+          attachments: draft.attachments || []
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -252,6 +256,77 @@ export default function AdmissionRecordRedesign() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Max 10MB.`);
+        continue;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}-${Date.now()}.${fileExt}`;
+      const filePath = `${clinic?.id}/${fileName}`;
+
+      setUploadProgress(prev => ({ ...prev, [file.name]: 10 }));
+
+      const { data, error } = await supabase.storage
+        .from('medical-records')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (error) {
+        console.error('Upload error:', error);
+        showToast(`Failed to upload ${file.name}`);
+        setUploadProgress(prev => {
+          const next = { ...prev };
+          delete next[file.name];
+          return next;
+        });
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('medical-records').getPublicUrl(filePath);
+
+      setSummary(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, {
+          name: file.name,
+          url: publicUrl,
+          type: file.type,
+          size: file.size
+        }]
+      }));
+
+      setUploadProgress(prev => {
+        const next = { ...prev };
+        delete next[file.name];
+        return next;
+      });
+      showToast(`${file.name} attached`);
+    }
+  };
+
+  const handleDeleteAttachment = async (index: number) => {
+    if (!confirm('Remove this attachment?')) return;
+    const item = summary.attachments[index];
+    
+    // Attempt to extract path from URL
+    try {
+      const path = item.url.split('public/medical-records/')[1];
+      if (path) {
+        await supabase.storage.from('medical-records').remove([path]);
+      }
+    } catch (e) { console.error('Delete storage error', e); }
+
+    const newAttachments = [...summary.attachments];
+    newAttachments.splice(index, 1);
+    updateField('attachments', newAttachments);
+    showToast('Attachment removed');
   };
 
   const handleSaveAndNext = () => {
@@ -340,6 +415,7 @@ export default function AdmissionRecordRedesign() {
         doctor_name: summary.doctor, ward: summary.ward, bed: summary.bed, department: summary.department, date_admission: summary.date_admission,
         severity: summary.severity, admission_type: summary.admission_type,
         doctor_observations: summary.doctor_observations,
+        attachments: summary.attachments,
         has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
         past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
@@ -369,6 +445,7 @@ export default function AdmissionRecordRedesign() {
         severity: 'Mild', admission_type: 'OPD',
         has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
         doctor_observations: '',
+        attachments: [],
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
       localStorage.removeItem('admission_draft');
@@ -577,6 +654,58 @@ export default function AdmissionRecordRedesign() {
                     ✅ Save Admission Record
                   </button>
                   <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.9, color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={handleClear}>🗑️ Clear Records</button>
+               </div>
+
+               <div className={styles.summaryCard} style={{ marginTop: 24 }}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                      Attachments
+                    </div>
+                  </div>
+                  
+                  <div className={styles.uploadZone}>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*,application/pdf" 
+                      onChange={handleFileUpload} 
+                      className={styles.fileInputHidden} 
+                      id="file-upload" 
+                    />
+                    <label htmlFor="file-upload" className={styles.uploadLabel}>
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                       <span>Upload Reports / Images</span>
+                       <small>PDF or Images (Max 10MB)</small>
+                    </label>
+                  </div>
+
+                  {Object.keys(uploadProgress).length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                       {Object.keys(uploadProgress).map(name => (
+                         <div key={name} style={{ fontSize: 11, color: 'var(--sanctuary-primary)', fontWeight: 700, marginBottom: 4 }}>
+                            Uploading {name}...
+                         </div>
+                       ))}
+                    </div>
+                  )}
+
+                  <div className={styles.attachmentList}>
+                    {summary.attachments.map((file, i) => (
+                      <div key={i} className={styles.attachmentItem}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className={styles.fileName}>{file.name}</div>
+                          <div className={styles.fileMeta}>{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                           <a href={file.url} target="_blank" rel="noopener noreferrer" className={styles.btnFileAction}>View</a>
+                           <button onClick={() => handleDeleteAttachment(i)} className={styles.btnFileDelete}>
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                </div>
             </section>
           </div>
