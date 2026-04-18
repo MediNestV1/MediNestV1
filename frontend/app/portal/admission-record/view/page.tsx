@@ -63,9 +63,11 @@ export default function AdmissionRecordView() {
                    </div>
                    <div className={styles.previewInfoGrid}>
                      <div><b>Patient Name:</b> {record.patient_name}</div>
+                     <div><b>Admission ID:</b> {record.id.slice(0, 8).toUpperCase()}</div>
                      <div><b>Age / Sex:</b> {record.age_sex}</div>
                      <div><b>Contact:</b> {record.contact || '---'}</div>
-                     <div><b>Bed / Ward:</b> {record.bed_ward || '---'}</div>
+                     <div><b>Department:</b> {record.department || '---'}</div>
+                     <div><b>Ward / Bed:</b> {record.ward || '---'} / {record.bed || '---'}</div>
                      <div><b>Consultant:</b> Dr. {record.doctor_name || '---'}</div>
                      <div><b>Admission Date:</b> {new Date(record.date_admission).toLocaleString()}</div>
                    </div>

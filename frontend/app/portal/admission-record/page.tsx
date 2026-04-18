@@ -10,7 +10,7 @@ import styles from './page.module.css';
 
 // Types
 interface SummaryData {
-  patientName: string; phone: string; age: string; sex: string; doctor: string; bed_ward: string; date_admission: string; 
+  patientName: string; phone: string; age: string; sex: string; doctor: string; ward: string; bed: string; department: string; date_admission: string; 
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -150,7 +150,7 @@ export default function AdmissionRecordRedesign() {
   const supabase = createClient();
 
   const [summary, setSummary] = useState<SummaryData>({
-    patientName: '', phone: '', age: '', sex: 'Male', doctor: '', bed_ward: '', date_admission: new Date().toISOString().slice(0, 16), 
+    patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -289,7 +289,7 @@ export default function AdmissionRecordRedesign() {
 
       const { error } = await supabase.from('admission_records').insert([{
         patient_name: summary.patientName, age_sex: `${summary.age} / ${summary.sex}`, contact: summary.phone,
-        doctor_name: summary.doctor, bed_ward: summary.bed_ward, date_admission: summary.date_admission,
+        doctor_name: summary.doctor, ward: summary.ward, bed: summary.bed, department: summary.department, date_admission: summary.date_admission,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
         complaints: summary.complaints, findings: summary.findings,
         investigations: summary.investigations, treatment_plan: summary.treatment_plan, 
@@ -313,7 +313,7 @@ export default function AdmissionRecordRedesign() {
   const handleClear = () => {
     if (confirm('Are you sure you want to clear all records? This will delete the current draft.')) {
       setSummary({
-        patientName: '', phone: '', age: '', sex: 'Male', doctor: '', bed_ward: '', date_admission: new Date().toISOString().slice(0, 16), 
+        patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
       localStorage.removeItem('admission_draft');
@@ -421,7 +421,11 @@ export default function AdmissionRecordRedesign() {
                     <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select value={summary.sex} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
                   </div>
                   <div className="field"><label>Phone Number</label><input type="tel" value={summary.phone} onChange={e => updateField('phone', e.target.value)} /></div>
-                  <div className="field"><label>Bed / Ward</label><input type="text" value={summary.bed_ward} onChange={e => updateField('bed_ward', e.target.value)} placeholder="e.g. Ward A, Bed 12" /></div>
+                  <div className="field"><label>Department</label><input type="text" value={summary.department} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
+                  <div className={styles.briefItem}>
+                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" value={summary.ward} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" value={summary.bed} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
+                  </div>
                   <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission} onChange={e => updateField('date_admission', e.target.value)} /></div>
                   <div className="field"><label>Attending Doctor</label><select value={summary.doctor} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
                 </div>

@@ -160,7 +160,25 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
              <div className={styles.profileItem}><strong>Joined:</strong> {new Date(patient?.created_at || '').toLocaleDateString()}</div>
           </div>
        </div>
+
+       {admissions.length > 0 && (
+         <div className={styles.sectionBox} style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}>
+            <h3 style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: 8 }}>
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 14h18M5 14v4M19 14v4M3 8h18M6 8V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3M12 4v4"></path></svg>
+               Current/Latest Admission Details
+            </h3>
+            <div className={styles.profileGrid}>
+               <div className={styles.profileItem}><strong>Admission ID:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 900 }}>{admissions[0].id.slice(0, 8).toUpperCase()}</span></div>
+               <div className={styles.profileItem}><strong>Adm. Date:</strong> {new Date(admissions[0].date_admission).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+               <div className={styles.profileItem}><strong>Department:</strong> {admissions[0].department || 'General Medicine'}</div>
+               <div className={styles.profileItem}><strong>Ward No:</strong> {admissions[0].ward || '---'}</div>
+               <div className={styles.profileItem}><strong>Bed No:</strong> {admissions[0].bed || '---'}</div>
+               <div className={styles.profileItem}><strong>Admitting Dr:</strong> Dr. {admissions[0].doctor_name}</div>
+            </div>
+         </div>
+       )}
     </>
+  );  </>
   );
 
   const renderHistory = () => (
@@ -339,8 +357,8 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
           <tbody>
              {admissions.map((a, i) => (
                 <tr key={i}>
-                   <td>{new Date(a.date_admission).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                   <td>{a.bed_ward || '---'}</td>
+                   <td>{new Date(a.date_admission).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                   <td>{a.ward || '---'} / {a.bed || '---'}</td>
                    <td>{a.diagnosis || '---'}</td>
                    <td>Dr. {a.doctor_name}</td>
                    <td><span className={styles.badge} style={{ background: '#ecfdf5', color: '#065f46' }}>ADMITTED</span></td>
