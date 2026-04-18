@@ -51,6 +51,53 @@ interface BulletListEditorProps {
   fetchSmartSuggestion: (field: string, index: number, currentText: string) => void;
 }
 
+const ChipInputEditor = ({ items, updateField, field, placeholder }: any) => {
+  const [inputValue, setInputValue] = useState('');
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      if (!items.includes(inputValue.trim())) {
+        updateField(field, [...items, inputValue.trim()]);
+      }
+      setInputValue('');
+    } else if (e.key === 'Backspace' && !inputValue && items.length > 0) {
+      updateField(field, items.slice(0, -1));
+    }
+  };
+
+  const removeChip = (idx: number) => {
+    const next = [...items];
+    next.splice(idx, 1);
+    updateField(field, next);
+  };
+
+  return (
+    <div className={styles.bulletListContainer} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+      <div className={styles.chipGroup}>
+        {items.map((item: string, idx: number) => (
+          <div key={idx} className={styles.chip}>
+            {item}
+            <button className={styles.chipRemove} onClick={() => removeChip(idx)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        ))}
+        <input 
+          className={styles.chipInput}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={items.length === 0 ? placeholder : "Add more..."}
+        />
+      </div>
+      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Press ENTER to add tag • BACKSPACE to remove
+      </div>
+    </div>
+  );
+};
+
 const BulletListEditor = ({ 
   field, items, placeholder, updateField, autoSaveStatus, setAutoSaveStatus,
   suggestTimer, activeSuggestion, setActiveSuggestion, fetchSmartSuggestion
@@ -543,7 +590,15 @@ export default function AdmissionRecordRedesign() {
         </div>
         {!isCollapsed && (
           <div className={styles.previewContent}>
-            {value || <span className={styles.emptyPlaceholder}>{placeholder}</span>}
+            {field === 'complaints' && items.length > 0 ? (
+               <div className={styles.chipGroup}>
+                  {items.map((it, i) => (
+                    <div key={i} className={styles.chip}>{it}</div>
+                  ))}
+               </div>
+            ) : (
+               value || <span className={styles.emptyPlaceholder}>{placeholder}</span>
+            )}
           </div>
         )}
       </div>
@@ -585,7 +640,11 @@ export default function AdmissionRecordRedesign() {
         <section className={styles.editorBody}>
            <div className={styles.editorContainer}>
               <div className={styles.editorCard}>
-                 <BulletListEditor field={field} items={items.length === 0 ? [""] : items} placeholder={`Enter patient ${label} point...`} updateField={updateField} autoSaveStatus={autoSaveStatus} setAutoSaveStatus={setAutoSaveStatus} suggestTimer={suggestTimer} activeSuggestion={activeSuggestion} setActiveSuggestion={setActiveSuggestion} fetchSmartSuggestion={fetchSmartSuggestion} />
+                 {activeSection === 'complaints' || activeSection === 'findings' ? (
+                    <ChipInputEditor field={field} items={items} updateField={updateField} placeholder={`Enter ${label.toLowerCase()}...`} />
+                 ) : (
+                    <BulletListEditor field={field} items={items.length === 0 ? [""] : items} placeholder={`Enter patient ${label} point...`} updateField={updateField} autoSaveStatus={autoSaveStatus} setAutoSaveStatus={setAutoSaveStatus} suggestTimer={suggestTimer} activeSuggestion={activeSuggestion} setActiveSuggestion={setActiveSuggestion} fetchSmartSuggestion={fetchSmartSuggestion} />
+                 )}
                  <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: SECTION_SEQUENCE.indexOf(activeSection) > 0 ? 'space-between' : 'flex-end', width: '100%' }}>
                     {SECTION_SEQUENCE.indexOf(activeSection) > 0 && (<button className="btn-secondary" style={{ padding: '12px 18px', fontSize: 13, fontWeight: 700, borderRadius: 12 }} onClick={handlePreviousSection}>← Previous Section</button>)}
                     <button className={styles.btnSaveBack} onClick={handleSaveAndNext}>{isLastSection ? 'Save & Finish' : 'Save & Next Section'}</button>

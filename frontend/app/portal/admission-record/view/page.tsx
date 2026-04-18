@@ -137,16 +137,10 @@ export default function AdmissionRecordView() {
                        <p>{record.past_surgeries}</p>
                      </div>
                    )}
-                   <div className={styles.previewSectio
-                    {record.vitals && (
-                      <div className={styles.previewSection} style={{ borderLeft: '3px solid #ef4444', paddingLeft: 12 }}>
-                        <h4 style={{ color: '#ef4444' }}>❤️ Baseline Vitals</h4>
-                        <p style={{ fontWeight: 800 }}>{record.vitals}</p>
-                      </div>
-                    )}n}>
-                     <h4>🧠 Provisional Diagnosis</h4>
-                     <p>{record.diagnosis}</p>
-                   </div>
+                    <div className={styles.previewSection}>
+                      <h4>🧠 Provisional Diagnosis</h4>
+                      <p>{record.diagnosis}</p>
+                    </div>
                    {record.doctor_observations && (
                      <div className={styles.previewSection} style={{ borderLeft: '3px solid #8b5cf6', paddingLeft: 12 }}>
                        <h4 style={{ color: '#8b5cf6' }}>Doctor Observations</h4>
@@ -159,14 +153,22 @@ export default function AdmissionRecordView() {
                        <p style={{ whiteSpace: 'pre-wrap' }}>{record.hpi}</p>
                      </div>
                    )}
-                   <div className={styles.previewSection}>
-                     <h4>Chief Complaints</h4>
-                     <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.complaints) && record.complaints.map((c: string, i: number) => <li key={i}>{c}</li>)}</ul>
-                   </div>
-                   <div className={styles.previewSection}>
-                     <h4>🩺 Clinical Findings</h4>
-                     <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.findings) && record.findings.map((f: string, i: number) => <li key={i}>{f}</li>)}</ul>
-                   </div>
+                    <div className={styles.previewSection}>
+                      <h4>Chief Complaints</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                        {Array.isArray(record.complaints) && record.complaints.map((c: string, i: number) => (
+                          <span key={i} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: 16, fontSize: 12, fontWeight: 700 }}>{c}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.previewSection}>
+                      <h4>🩺 Clinical Findings</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                        {Array.isArray(record.findings) && record.findings.map((f: string, i: number) => (
+                          <span key={i} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: 16, fontSize: 12, fontWeight: 700 }}>{f}</span>
+                        ))}
+                      </div>
+                    </div>
                    <div className={styles.previewSection}>
                      <h4>Investigations Advised</h4>
                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.investigations) && record.investigations.map((inv: string, i: number) => <li key={i}>{inv}</li>)}</ul>
