@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import { useClinic } from '@/context/ClinicContext';
 import { createClient } from '@/lib/supabase/client';
@@ -151,6 +151,8 @@ const BulletListEditor = ({
 
 export default function AdmissionRecordRedesign() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const docNameParam = searchParams.get('docName');
   const { clinic, doctors, loading: clinicLoading } = useClinic();
   const supabase = createClient();
 
@@ -210,8 +212,15 @@ export default function AdmissionRecordRedesign() {
       } catch (e) {
         console.error('Failed to parse draft', e);
       }
+    } else {
+      // Defaulting logic for new records
+      if (docNameParam) {
+        setSummary(prev => ({ ...prev, doctor: docNameParam }));
+      } else if (doctors && doctors.length > 0) {
+        setSummary(prev => ({ ...prev, doctor: doctors[0].name }));
+      }
     }
-  }, []);
+  }, [docNameParam, doctors]);
 
   const saveDraft = useCallback((data: SummaryData) => {
     localStorage.setItem('admission_draft', JSON.stringify(data));
@@ -243,11 +252,23 @@ export default function AdmissionRecordRedesign() {
     let baseSuggestion = "";
     
     if (field === 'complaints') {
-      if (input.includes('chest pain')) baseSuggestion = " associated with breathlessness";
-      else if (input.includes('fever')) baseSuggestion = " associated with chills and rigor";
+      if (input.includes('fever')) baseSuggestion = " associated with chills and rigor";
+      else if (input.includes('chest pain')) baseSuggestion = " radiating to left arm with breathlessness";
+      else if (input.includes('abdominal pain')) baseSuggestion = " associated with nausea and vomiting";
+      else if (input.includes('headache')) baseSuggestion = " thumping type associated with photophobia";
+      else if (input.includes('breathless')) baseSuggestion = " on exertion associated with orthopnea";
     } else if (field === 'investigations') {
-      if (input.includes('cbc')) baseSuggestion = " and LFT, KFT";
+      if (input.includes('cbc')) baseSuggestion = " and LFT, KFT, Serum Electrolytes";
       else if (input.includes('xray')) baseSuggestion = " chest PA view";
+      else if (input.includes('ct scan')) baseSuggestion = " abdomen and pelvis with contrast";
+      else if (input.includes('usg')) baseSuggestion = " whole abdomen for internal pathology";
+      else if (input.includes('ecg')) baseSuggestion = " 12 lead for cardiac evaluation";
+    } else if (field === 'treatment_plan') {
+      if (input.includes('iv')) baseSuggestion = " Fluids (NS/RL) 100ml/hr";
+      else if (input.includes('inj')) baseSuggestion = " Pantop 40mg IV OD";
+      else if (input.includes('antibiotic')) baseSuggestion = " coverage as per hospital protocol";
+      else if (input.includes('tab')) baseSuggestion = " PCM 650mg SOS for fever";
+    }
     }
 
     if (baseSuggestion) {
