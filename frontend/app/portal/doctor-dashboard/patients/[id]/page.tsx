@@ -178,7 +178,6 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
          </div>
        )}
     </>
-  );  </>
   );
 
   const renderHistory = () => (
