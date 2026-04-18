@@ -269,7 +269,6 @@ export default function AdmissionRecordRedesign() {
       else if (input.includes('antibiotic')) baseSuggestion = " coverage as per hospital protocol";
       else if (input.includes('tab')) baseSuggestion = " PCM 650mg SOS for fever";
     }
-    }
 
     if (baseSuggestion) {
       const sigWord = baseSuggestion.trim().split(' ')[0];
@@ -605,20 +604,20 @@ export default function AdmissionRecordRedesign() {
                   </div>
                   <div className={`${styles.statusDot} ${getStatus(summary.patientName)}`} />
                 </div>
-                <div className="field"><label>Full Name</label><input type="text" value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
+                <div className="field"><label>Full Name</label><input type="text" className={styles.metadataInput} value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
                 <div className={styles.patientBrief}>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
-                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select value={summary.sex || 'Male'} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" className={styles.metadataInput} value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select className={styles.metadataInput} value={summary.sex || 'Male'} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
                   </div>
-                  <div className="field"><label>Phone Number</label><input type="tel" value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} /></div>
-                  <div className="field"><label>Department</label><input type="text" value={summary.department || ''} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
+                  <div className="field"><label>Phone Number</label><input type="tel" className={styles.metadataInput} value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} /></div>
+                  <div className="field"><label>Department</label><input type="text" className={styles.metadataInput} value={summary.department || ''} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
-                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" className={styles.metadataInput} value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" className={styles.metadataInput} value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
                   </div>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
+                    <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select className={styles.metadataInput} value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
                     <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Triage / Severity</label>
                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                           {['Mild', 'Moderate', 'Severe'].map(lvl => (
@@ -633,8 +632,8 @@ export default function AdmissionRecordRedesign() {
                        </div>
                     </div>
                   </div>
-                  <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
-                  <div className="field"><label>Attending Doctor</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
+                  <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" className={styles.metadataInput} value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
+                  <div className="field"><label>Attending Doctor</label><select className={styles.metadataInput} value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
                 </div>
               </div>
 
@@ -711,7 +710,7 @@ export default function AdmissionRecordRedesign() {
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitle}>🧠 Provisional Diagnosis</div>
                 </div>
-                <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
+                <input className={`${styles.bulletInput} ${styles.diagnosisInput}`} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
               </div>
 
               <div className={styles.summaryCard}>
@@ -728,7 +727,7 @@ export default function AdmissionRecordRedesign() {
                     </div>
                  </div>
                  {!collapsed.hpi && (
-                   <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
+                   <textarea className={styles.hpiTextarea} value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', padding: 12, borderRadius: 8, outline: 'none'}}></textarea>
                  )}
               </div>
 
