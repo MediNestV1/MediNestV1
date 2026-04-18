@@ -200,6 +200,22 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                <div className={styles.profileItem}><strong>Ward No:</strong> {admissions[0].ward || '---'}</div>
                <div className={styles.profileItem}><strong>Bed No:</strong> {admissions[0].bed || '---'}</div>
                <div className={styles.profileItem}><strong>Admitting Dr:</strong> Dr. {admissions[0].doctor_name}</div>
+               <div className={styles.profileItem}><strong>Adm. Type:</strong> {admissions[0].admission_type || 'OPD'}</div>
+               <div className={styles.profileItem}>
+                  <strong>Triage:</strong> 
+                  <span style={{ 
+                     marginLeft: 8, 
+                     padding: '2px 8px', 
+                     borderRadius: 4, 
+                     fontSize: 10, 
+                     fontWeight: 900, 
+                     textTransform: 'uppercase',
+                     background: admissions[0].severity === 'Severe' ? '#ef4444' : admissions[0].severity === 'Moderate' ? '#f59e0b' : '#10b981',
+                     color: '#fff'
+                  }}>
+                     {admissions[0].severity || 'Mild'}
+                  </span>
+               </div>
             </div>
          </div>
        )}

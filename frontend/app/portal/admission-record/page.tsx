@@ -11,6 +11,7 @@ import styles from './page.module.css';
 // Types
 interface SummaryData {
   patientName: string; phone: string; age: string; sex: string; doctor: string; ward: string; bed: string; department: string; date_admission: string; 
+  severity: string; admission_type: string;
   has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
   complaints: string[]; 
   hpi: string;
@@ -152,6 +153,7 @@ export default function AdmissionRecordRedesign() {
 
   const [summary, setSummary] = useState<SummaryData>({
     patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
+    severity: 'Mild', admission_type: 'OPD',
     has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
@@ -186,7 +188,9 @@ export default function AdmissionRecordRedesign() {
           has_hypertension: !!draft.has_hypertension,
           has_thyroid: !!draft.has_thyroid,
           past_surgeries: draft.past_surgeries || '',
-          allergies: draft.allergies || ''
+          allergies: draft.allergies || '',
+          severity: draft.severity || 'Mild',
+          admission_type: draft.admission_type || 'OPD'
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -331,6 +335,7 @@ export default function AdmissionRecordRedesign() {
       const { error } = await supabase.from('admission_records').insert([{
         patient_name: summary.patientName, age_sex: `${summary.age} / ${summary.sex}`, contact: summary.phone,
         doctor_name: summary.doctor, ward: summary.ward, bed: summary.bed, department: summary.department, date_admission: summary.date_admission,
+        severity: summary.severity, admission_type: summary.admission_type,
         has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
         past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
@@ -357,6 +362,7 @@ export default function AdmissionRecordRedesign() {
     if (confirm('Are you sure you want to clear all records? This will delete the current draft.')) {
       setSummary({
         patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
+        severity: 'Mild', admission_type: 'OPD',
         has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
@@ -469,6 +475,22 @@ export default function AdmissionRecordRedesign() {
                   <div className={styles.briefItem}>
                     <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
                     <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
+                  </div>
+                  <div className={styles.briefItem}>
+                    <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Triage / Severity</label>
+                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          {['Mild', 'Moderate', 'Severe'].map(lvl => (
+                            <button 
+                              key={lvl} 
+                              onClick={() => updateField('severity', lvl)}
+                              className={`${styles.triageBtn} ${summary.severity === lvl ? styles.active : ''} ${styles[lvl.toLowerCase()]}`}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
+                       </div>
+                    </div>
                   </div>
                   <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
                   <div className="field"><label>Attending Doctor</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>

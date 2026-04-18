@@ -175,6 +175,35 @@
   accent-color: var(--sanctuary-primary);
 }
 
+/* --- Triage Buttons --- */
+.triageBtn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--sanctuary-ink-l);
+}
+
+.triageBtn.active {
+  color: #fff;
+  border-color: transparent;
+}
+
+.triageBtn.mild:hover { border-color: #10b981; color: #10b981; }
+.triageBtn.mild.active { background: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
+
+.triageBtn.moderate:hover { border-color: #f59e0b; color: #f59e0b; }
+.triageBtn.moderate.active { background: #f59e0b; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
+
+.triageBtn.severe:hover { border-color: #ef4444; color: #ef4444; }
+.triageBtn.severe.active { background: #ef4444; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+
 .previewContent {
   font-size: 13px;
   color: var(--sanctuary-ink-l);

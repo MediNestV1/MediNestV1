@@ -70,6 +70,22 @@ export default function AdmissionRecordView() {
                      <div><b>Ward / Bed:</b> {record.ward || '---'} / {record.bed || '---'}</div>
                      <div><b>Consultant:</b> Dr. {record.doctor_name || '---'}</div>
                      <div><b>Admission Date:</b> {new Date(record.date_admission).toLocaleString()}</div>
+                     <div><b>Admission Source:</b> {record.admission_type || 'OPD'}</div>
+                     <div style={{ marginTop: 4 }}>
+                        <b>Triage Level:</b> 
+                        <span style={{ 
+                           marginLeft: 8, 
+                           padding: '2px 10px', 
+                           borderRadius: 4, 
+                           fontSize: 11, 
+                           fontWeight: 900, 
+                           textTransform: 'uppercase',
+                           background: record.severity === 'Severe' ? '#ef4444' : record.severity === 'Moderate' ? '#f59e0b' : '#10b981',
+                           color: '#fff'
+                        }}>
+                           {record.severity || 'Mild'}
+                        </span>
+                     </div>
                      <div style={{ gridColumn: 'span 2', marginTop: 8, padding: '8px 12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
                         <b>Comorbidities:</b> {[
                           record.has_diabetes && "Diabetes",
