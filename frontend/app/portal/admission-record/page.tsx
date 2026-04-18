@@ -950,7 +950,7 @@ export default function AdmissionRecordRedesign() {
                     Provisional Diagnosis
                   </div>
                 </div>
-                <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
+                <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Enter provisional diagnosis..." />
               </div>
 
               <div className={styles.summaryCard}>
@@ -970,7 +970,7 @@ export default function AdmissionRecordRedesign() {
                     </div>
                  </div>
                  {!collapsed.hpi && (
-                   <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
+                   <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Enter history of present illness (HPI) details..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
                  )}
               </div>
 
@@ -1021,17 +1021,17 @@ export default function AdmissionRecordRedesign() {
                     </div>
                     <div className={`${styles.statusDot} ${getStatus(summary.doctor_observations)}`} />
                  </div>
-                 <textarea value={summary.doctor_observations || ''} onChange={e => updateField('doctor_observations', e.target.value)} placeholder="Additional monitoring requirements or behavioral notes..." style={{width: '100%', minHeight: 100, border: 'none', resize: 'vertical', background: '#f5f3ff', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14, color: '#4c1d95'}}></textarea>
+                 <textarea value={summary.doctor_observations || ''} onChange={e => updateField('doctor_observations', e.target.value)} placeholder="Enter additional monitoring requirements or clinical observations..." style={{width: '100%', minHeight: 100, border: 'none', resize: 'vertical', background: '#f5f3ff', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14, color: '#4c1d95'}}></textarea>
               </div>
 
               <div className={styles.clinicalSplit}>
-                {renderClinicalCard('Complaints', 'complaints', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>, 'Chief complaints...')}
-                {renderClinicalCard('Findings', 'findings', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, 'Clinical findings...')}
+                {renderClinicalCard('Complaints', 'complaints', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>, 'Add patient complaints (e.g. Fever, Cough)...')}
+                {renderClinicalCard('Findings', 'findings', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, 'Enter objective clinical findings...')}
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                {renderClinicalCard('Investigations Advised', 'investigations', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>, 'Lab / Radiology orders...')}
-                {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m4.83 6.74 4.58 9.15a3 3 0 1 1-5.36 2.68L4.83 6.74ZM12 22a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm9-9a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm0-9-4.58 9.15a3 3 0 1 1 5.36-2.68L21 4Z"></path></svg>, 'First line management...')}
+                {renderClinicalCard('Investigations Advised', 'investigations', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>, 'Order lab tests or imaging...')}
+                {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m4.83 6.74 4.58 9.15a3 3 0 1 1-5.36 2.68L4.83 6.74ZM12 22a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm9-9a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm0-9-4.58 9.15a3 3 0 1 1 5.36-2.68L21 4Z"></path></svg>, 'Outline medication or management plan...')}
               </div>
             </section>
           </div>
