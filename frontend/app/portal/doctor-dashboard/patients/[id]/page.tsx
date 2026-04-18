@@ -41,6 +41,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [summaries, setSummaries] = useState<any[]>([]); // New state for Discharge Summaries
+  const [admissions, setAdmissions] = useState<any[]>([]); // New state for Admission Records
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Patient Summary');
@@ -59,6 +60,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
         if (data.patient) setPatient(data.patient);
         if (data.visits) setVisits(data.visits);
         if (data.summaries) setSummaries(data.summaries); // Capture summaries
+        if (data.admissions) setAdmissions(data.admissions); // Capture admissions
         if (data.summary) setSnapshot(data.summary);
       } catch (err) {
         console.error('Error fetching patient hub data:', err);
@@ -76,6 +78,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
     { label: 'Patient Summary', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> },
     { label: 'Clinical History', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> },
     { label: 'Medications', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.5 20.5a7 7 0 1 1 9.9-9.9l-6.3 6.3a3.5 3.5 0 1 1-4.9-4.9l5.1-5.1"></path></svg> },
+    { label: 'Admissions', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 14h18M5 14v4M19 14v4M3 8h18M6 8V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3M12 4v4"></path></svg> },
     { label: 'Discharge Summaries', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg> },
     { label: 'Lab Results', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v8l-8 12h20l-8-12V2"></path><line x1="6" y1="12" x2="18" y2="12"></line></svg> },
     { label: 'Encounters', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> },
@@ -319,6 +322,46 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
     </div>
   );
 
+  const renderAdmissions = () => (
+    <div className={styles.sectionBox}>
+       <h3>Admission Records</h3>
+       <table className={styles.hubTable}>
+          <thead>
+             <tr>
+                <th>Date of Admission</th>
+                <th>Bed / Ward</th>
+                <th>Diagnosis</th>
+                <th>Clinician</th>
+                <th>Status</th>
+                <th>Actions</th>
+             </tr>
+          </thead>
+          <tbody>
+             {admissions.map((a, i) => (
+                <tr key={i}>
+                   <td>{new Date(a.date_admission).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                   <td>{a.bed_ward || '---'}</td>
+                   <td>{a.diagnosis || '---'}</td>
+                   <td>Dr. {a.doctor_name}</td>
+                   <td><span className={styles.badge} style={{ background: '#ecfdf5', color: '#065f46' }}>ADMITTED</span></td>
+                   <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                         <Link href={`/portal/admission-record/view?id=${a.id}`} className={styles.tableAction}>
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                           View
+                         </Link>
+                      </div>
+                   </td>
+                </tr>
+             ))}
+             {admissions.length === 0 && (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>No admission records found.</td></tr>
+             )}
+          </tbody>
+       </table>
+    </div>
+  );
+
   const renderEncounters = () => (
     <div className={styles.sectionBox}>
        <h3>Clinical Encounters</h3>
@@ -399,6 +442,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
            {activeTab === 'Patient Summary' && renderSummary()}
            {activeTab === 'Clinical History' && renderHistory()}
            {activeTab === 'Medications' && renderMedications()}
+           {activeTab === 'Admissions' && renderAdmissions()}
            {activeTab === 'Discharge Summaries' && renderDischargeSummaries()}
            {activeTab === 'Lab Results' && renderLabs()}
            {activeTab === 'Encounters' && renderEncounters()}

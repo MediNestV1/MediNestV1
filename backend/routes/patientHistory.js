@@ -169,6 +169,29 @@ router.get('/:patientId', async (req, res) => {
       };
     });
 
+    // 1c. Fetch Admission Records
+    const { data: rawAdmissions } = await supabase
+      .from('admission_records')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+
+    const admissions = (rawAdmissions || []).map(a => {
+      const safeParse = (val) => {
+        if (!val) return [];
+        try { return typeof val === 'string' ? JSON.parse(val) : val; }
+        catch (e) { return []; }
+      };
+
+      return {
+        ...a,
+        complaints: safeParse(a.complaints),
+        findings: safeParse(a.findings),
+        investigations: safeParse(a.investigations),
+        treatment_plan: safeParse(a.treatment_plan)
+      };
+    });
+
     // 1. Fetch existing cached snapshot
     const { data: existing } = await supabase
       .from('patient_histories')
@@ -220,7 +243,7 @@ router.get('/:patientId', async (req, res) => {
       });
     }
 
-    res.json({ patient, visits, summaries, summary: finalSummary });
+    res.json({ patient, visits, summaries, admissions, summary: finalSummary });
 
   } catch (err) {
     console.error('❌ [SERVER ERROR] Patient History:', err);
