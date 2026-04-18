@@ -15,7 +15,12 @@ interface SummaryData {
   has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
   doctor_observations: string;
   attachments: { name: string; url: string; type: string; size: number }[];
-  vitals: string;
+  vitals: string; // Keep for legacy / fallback
+  vitals_bp_sys: string;
+  vitals_bp_dia: string;
+  vitals_pulse: string;
+  vitals_temp: string;
+  vitals_spo2: string;
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -163,6 +168,7 @@ export default function AdmissionRecordRedesign() {
     doctor_observations: '',
     attachments: [],
     vitals: '',
+    vitals_bp_sys: '', vitals_bp_dia: '', vitals_pulse: '', vitals_temp: '', vitals_spo2: '',
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -207,7 +213,12 @@ export default function AdmissionRecordRedesign() {
           admission_type: draft.admission_type || 'OPD',
           doctor_observations: draft.doctor_observations || '',
           attachments: draft.attachments || [],
-          vitals: draft.vitals || ''
+          vitals: draft.vitals || '',
+          vitals_bp_sys: draft.vitals_bp_sys || '',
+          vitals_bp_dia: draft.vitals_bp_dia || '',
+          vitals_pulse: draft.vitals_pulse || '',
+          vitals_temp: draft.vitals_temp || '',
+          vitals_spo2: draft.vitals_spo2 || ''
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -445,6 +456,11 @@ export default function AdmissionRecordRedesign() {
         doctor_observations: summary.doctor_observations,
         attachments: summary.attachments,
         vitals: summary.vitals,
+        vitals_bp_sys: summary.vitals_bp_sys ? parseInt(summary.vitals_bp_sys) : null,
+        vitals_bp_dia: summary.vitals_bp_dia ? parseInt(summary.vitals_bp_dia) : null,
+        vitals_pulse: summary.vitals_pulse ? parseInt(summary.vitals_pulse) : null,
+        vitals_temp: summary.vitals_temp ? parseFloat(summary.vitals_temp) : null,
+        vitals_spo2: summary.vitals_spo2 ? parseInt(summary.vitals_spo2) : null,
         has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
         past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
@@ -491,16 +507,13 @@ export default function AdmissionRecordRedesign() {
     return styles.dotGreen;
   };
 
-  const getVitalsAlerts = (vitals: string) => {
-    if (!vitals) return [];
+  const getVitalsAlerts = (data: SummaryData) => {
     const alerts = [];
-    const tempMatch = vitals.match(/Temp:\s*(\d+\.?\d*)/i);
-    if (tempMatch && parseFloat(tempMatch[1]) > 101) {
-      alerts.push({ type: 'warning', label: `⚠️ High Fever detected (${tempMatch[1]}°F)` });
+    if (data.vitals_temp && parseFloat(data.vitals_temp) > 101) {
+      alerts.push({ type: 'warning', label: `⚠️ High Fever detected (${data.vitals_temp}°F)` });
     }
-    const spo2Match = vitals.match(/SPO2:\s*(\d+)/i);
-    if (spo2Match && parseInt(spo2Match[1]) < 94) {
-      alerts.push({ type: 'critical', label: `🚨 Critical Low SpO2 (${spo2Match[1]}%)` });
+    if (data.vitals_spo2 && parseInt(data.vitals_spo2) < 94) {
+      alerts.push({ type: 'critical', label: `🚨 Critical Low SpO2 (${data.vitals_spo2}%)` });
     }
     return alerts;
   };
@@ -604,20 +617,20 @@ export default function AdmissionRecordRedesign() {
                   </div>
                   <div className={`${styles.statusDot} ${getStatus(summary.patientName)}`} />
                 </div>
-                <div className="field"><label>Full Name</label><input type="text" className={styles.metadataInput} value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
+                <div className="field"><label>Full Name</label><input type="text" value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
                 <div className={styles.patientBrief}>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" className={styles.metadataInput} value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
-                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select className={styles.metadataInput} value={summary.sex || 'Male'} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select value={summary.sex || 'Male'} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
                   </div>
-                  <div className="field"><label>Phone Number</label><input type="tel" className={styles.metadataInput} value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} /></div>
-                  <div className="field"><label>Department</label><input type="text" className={styles.metadataInput} value={summary.department || ''} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
+                  <div className="field"><label>Phone Number</label><input type="tel" value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} /></div>
+                  <div className="field"><label>Department</label><input type="text" value={summary.department || ''} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" className={styles.metadataInput} value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
-                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" className={styles.metadataInput} value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
                   </div>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select className={styles.metadataInput} value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
+                    <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
                     <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Triage / Severity</label>
                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                           {['Mild', 'Moderate', 'Severe'].map(lvl => (
@@ -632,8 +645,8 @@ export default function AdmissionRecordRedesign() {
                        </div>
                     </div>
                   </div>
-                  <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" className={styles.metadataInput} value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
-                  <div className="field"><label>Attending Doctor</label><select className={styles.metadataInput} value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
+                  <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
+                  <div className="field"><label>Attending Doctor</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
                 </div>
               </div>
 
@@ -710,7 +723,7 @@ export default function AdmissionRecordRedesign() {
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitle}>🧠 Provisional Diagnosis</div>
                 </div>
-                <input className={`${styles.bulletInput} ${styles.diagnosisInput}`} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
+                <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
               </div>
 
               <div className={styles.summaryCard}>
@@ -727,17 +740,40 @@ export default function AdmissionRecordRedesign() {
                     </div>
                  </div>
                  {!collapsed.hpi && (
-                   <textarea className={styles.hpiTextarea} value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', padding: 12, borderRadius: 8, outline: 'none'}}></textarea>
+                   <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
                  )}
               </div>
 
               <div className={styles.summaryCard} style={{ borderLeft: '4px solid #ef4444' }}>
                  <div className={styles.cardHeader}>
                     <div className={styles.cardTitle}>❤️ Baseline Vitals</div>
-                    <div className={`${styles.statusDot} ${getStatus(summary.vitals)}`} />
+                    <div className={`${styles.statusDot} ${getStatus(summary.vitals_pulse || summary.vitals_bp_sys)}`} />
                  </div>
-                 <input className={styles.bulletInput} value={summary.vitals || ''} onChange={e => updateField('vitals', e.target.value)} placeholder="BP: 120/80, Pulse: 72, SPO2: 98%, Temp: 98.6..." />
-                 {getVitalsAlerts(summary.vitals).map((alert, idx) => (
+                 
+                 <div className={styles.vitalsGrid}>
+                    <div className={styles.vitalInputGroup}>
+                       <label>BP (Systolic/Diastolic)</label>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <input type="number" placeholder="Sys" value={summary.vitals_bp_sys} onChange={e => updateField('vitals_bp_sys', e.target.value)} />
+                          <span>/</span>
+                          <input type="number" placeholder="Dia" value={summary.vitals_bp_dia} onChange={e => updateField('vitals_bp_dia', e.target.value)} />
+                       </div>
+                    </div>
+                    <div className={styles.vitalInputGroup}>
+                       <label>Pulse (BPM)</label>
+                       <input type="number" placeholder="72" value={summary.vitals_pulse} onChange={e => updateField('vitals_pulse', e.target.value)} />
+                    </div>
+                    <div className={styles.vitalInputGroup}>
+                       <label>Temp (°F)</label>
+                       <input type="number" step="0.1" placeholder="98.6" value={summary.vitals_temp} onChange={e => updateField('vitals_temp', e.target.value)} />
+                    </div>
+                    <div className={styles.vitalInputGroup}>
+                       <label>SpO₂ (%)</label>
+                       <input type="number" placeholder="98" value={summary.vitals_spo2} onChange={e => updateField('vitals_spo2', e.target.value)} />
+                    </div>
+                 </div>
+
+                 {getVitalsAlerts(summary).map((alert, idx) => (
                     <div key={idx} className={`${styles.clinicalAlert} ${alert.type === 'critical' ? styles.criticalAlert : ''}`}>
                        {alert.label}
                     </div>

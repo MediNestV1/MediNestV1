@@ -91,36 +91,14 @@
 .briefItem {
   display: flex;
   justify-content: space-between;
-  font-size: 11px; /* Smaller metadata */
+  font-size: 13px;
 }
-.briefItem label { color: var(--sanctuary-ink-l); font-weight: 600; text-transform: uppercase; font-size: 10px; }
+.briefItem label { color: var(--sanctuary-ink-l); font-weight: 600; }
 .briefItem span { font-weight: 700; color: var(--sanctuary-ink); }
 
 .diagnosisHighlight {
-  border-left: 5px solid var(--sanctuary-primary);
-  background: linear-gradient(to right, #f8fafc, #fff);
-  padding: 32px !important;
-}
-
-.diagnosisInput {
-  font-size: 28px !important; /* Big Bold Diagnosis */
-  font-weight: 800 !important;
-  color: var(--sanctuary-primary) !important;
-  letter-spacing: -0.5px;
-}
-
-.hpiTextarea {
-  font-size: 16px !important; /* Medium HPI */
-  line-height: 1.6;
-  font-weight: 500;
-  color: #334155;
-  background: #f8fafc !important;
-}
-
-.metadataInput {
-  font-size: 12px !important; /* Small metadata */
-  padding: 6px 10px !important;
-  border-radius: 8px !important;
+  border-left: 4px solid var(--sanctuary-primary);
+  background: linear-gradient(to right, var(--sanctuary-gray-low), #fff);
 }
 
 .clinicalSplit {
@@ -236,6 +214,47 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.02); }
   100% { transform: scale(1); }
+}
+
+/* --- Vitals Structured Entry --- */
+.vitalsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.vitalInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vitalInputGroup label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.vitalInputGroup input {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+  transition: .2s;
+}
+
+.vitalInputGroup input:focus {
+  border-color: var(--sanctuary-primary);
+  box-shadow: 0 0 0 4px var(--sanctuary-gray-low);
 }
 
 /* --- Triage Buttons --- */

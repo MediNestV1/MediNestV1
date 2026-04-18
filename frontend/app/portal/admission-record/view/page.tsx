@@ -97,22 +97,32 @@ export default function AdmissionRecordView() {
                   </td>
                 </tr>
                 {/* --- Critical Alerts (Print Only) --- */}
-                {(record.allergies || record.vitals?.match(/Temp:\s*(\d+\.?\d*)/i)?.[1] > 101 || record.vitals?.match(/SPO2:\s*(\d+)/i)?.[1] < 94) && (
+                {(record.allergies || record.vitals_temp > 101 || record.vitals_spo2 < 94) && (
                   <tr>
                     <td colSpan={2} style={{ padding: '0 40px' }}>
                        <div style={{ background: '#fef2f2', border: '2px solid #ef4444', borderRadius: 8, padding: '12px 20px', marginBottom: 20 }}>
                           <h4 style={{ margin: '0 0 8px 0', color: '#b91c1c', fontSize: 13, textTransform: 'uppercase', fontWeight: 900 }}>⚠️ Critical Clinical Alerts</h4>
                           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                              {record.allergies && <div style={{ fontSize: 13, color: '#ef4444' }}><b>🔴 ALLERGIES:</b> {record.allergies}</div>}
-                             {record.vitals?.match(/Temp:\s*(\d+\.?\d*)/i)?.[1] > 101 && <div style={{ fontSize: 13, color: '#b45309' }}><b>🔥 HIGH FEVER:</b> {record.vitals.match(/Temp:\s*(\d+\.?\d*)/i)[1]}°F</div>}
-                             {record.vitals?.match(/SPO2:\s*(\d+)/i)?.[1] < 94 && <div style={{ fontSize: 13, color: '#dc2626' }}><b>🚨 LOW SPO2:</b> {record.vitals.match(/SPO2:\s*(\d+)/i)[1]}% (Triage Upgrade Case)</div>}
+                             {record.vitals_temp > 101 && <div style={{ fontSize: 13, color: '#b45309' }}><b>🔥 HIGH FEVER:</b> {record.vitals_temp}°F</div>}
+                             {record.vitals_spo2 < 94 && <div style={{ fontSize: 13, color: '#dc2626' }}><b>🚨 LOW SPO2:</b> {record.vitals_spo2}% (Urgent Review Required)</div>}
                           </div>
                        </div>
                     </td>
                   </tr>
                 )}
               </thead>
-             <tbody>
+              <tbody>
+                <tr>
+                  <td colSpan={2} style={{ padding: '0 40px' }}>
+                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '12px 20px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 24 }}>
+                        <div><div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 }}>BP (mmHg)</div><div style={{ fontSize: 14, fontWeight: 700 }}>{record.vitals_bp_sys}/{record.vitals_bp_dia}</div></div>
+                        <div><div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 }}>Pulse (bpm)</div><div style={{ fontSize: 14, fontWeight: 700 }}>{record.vitals_pulse}</div></div>
+                        <div><div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 }}>Temp (°F)</div><div style={{ fontSize: 14, fontWeight: 700 }}>{record.vitals_temp}</div></div>
+                        <div><div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 2 }}>SpO₂ (%)</div><div style={{ fontSize: 14, fontWeight: 700 }}>{record.vitals_spo2}</div></div>
+                     </div>
+                  </td>
+                </tr>
                <tr>
                  <td>
                    {record.allergies && (
