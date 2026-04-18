@@ -13,6 +13,7 @@ interface SummaryData {
   patientName: string; phone: string; age: string; sex: string; doctor: string; ward: string; bed: string; department: string; date_admission: string; 
   severity: string; admission_type: string;
   has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
+  doctor_observations: string;
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -155,6 +156,7 @@ export default function AdmissionRecordRedesign() {
     patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
     severity: 'Mild', admission_type: 'OPD',
     has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
+    doctor_observations: '',
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -190,7 +192,8 @@ export default function AdmissionRecordRedesign() {
           past_surgeries: draft.past_surgeries || '',
           allergies: draft.allergies || '',
           severity: draft.severity || 'Mild',
-          admission_type: draft.admission_type || 'OPD'
+          admission_type: draft.admission_type || 'OPD',
+          doctor_observations: draft.doctor_observations || ''
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -336,6 +339,7 @@ export default function AdmissionRecordRedesign() {
         patient_name: summary.patientName, age_sex: `${summary.age} / ${summary.sex}`, contact: summary.phone,
         doctor_name: summary.doctor, ward: summary.ward, bed: summary.bed, department: summary.department, date_admission: summary.date_admission,
         severity: summary.severity, admission_type: summary.admission_type,
+        doctor_observations: summary.doctor_observations,
         has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
         past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
@@ -364,6 +368,7 @@ export default function AdmissionRecordRedesign() {
         patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
         severity: 'Mild', admission_type: 'OPD',
         has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
+        doctor_observations: '',
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
       localStorage.removeItem('admission_draft');
@@ -543,6 +548,21 @@ export default function AdmissionRecordRedesign() {
               <div className={styles.summaryCard}>
                  <div className={styles.cardHeader}><div className={styles.cardTitle}>History of Present Illness (HPI)</div><div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} /></div>
                  <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
+              </div>
+              <div className={styles.summaryCard} style={{ borderLeft: '4px solid #8b5cf6' }}>
+                 <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                      Doctor Observations
+                    </div>
+                    <div className={`${styles.statusDot} ${getStatus(summary.doctor_observations)}`} />
+                 </div>
+                 <textarea 
+                    value={summary.doctor_observations || ''} 
+                    onChange={e => updateField('doctor_observations', e.target.value)} 
+                    placeholder="Enter additional clinical observations, behavior notes, or specific monitoring requirements..." 
+                    style={{width: '100%', minHeight: 120, border: 'none', resize: 'vertical', background: '#f5f3ff', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14, color: '#4c1d95'}}
+                  ></textarea>
               </div>
               <div className={styles.clinicalSplit}>
                 {renderClinicalCard('Complaints', 'complaints', null, 'Chief complaints...')}

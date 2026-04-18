@@ -116,6 +116,12 @@ export default function AdmissionRecordView() {
                      <h4>Provisional Diagnosis</h4>
                      <p>{record.diagnosis}</p>
                    </div>
+                   {record.doctor_observations && (
+                     <div className={styles.previewSection} style={{ borderLeft: '3px solid #8b5cf6', paddingLeft: 12 }}>
+                       <h4 style={{ color: '#8b5cf6' }}>Doctor Observations</h4>
+                       <p style={{ fontStyle: 'italic' }}>{record.doctor_observations}</p>
+                     </div>
+                   )}
                    {record.hpi && (
                      <div className={styles.previewSection}>
                        <h4>History of Present Illness (HPI)</h4>
