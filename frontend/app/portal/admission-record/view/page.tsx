@@ -112,8 +112,14 @@ export default function AdmissionRecordView() {
                        <p>{record.past_surgeries}</p>
                      </div>
                    )}
-                   <div className={styles.previewSection}>
-                     <h4>Provisional Diagnosis</h4>
+                   <div className={styles.previewSectio
+                    {record.vitals && (
+                      <div className={styles.previewSection} style={{ borderLeft: '3px solid #ef4444', paddingLeft: 12 }}>
+                        <h4 style={{ color: '#ef4444' }}>❤️ Baseline Vitals</h4>
+                        <p style={{ fontWeight: 800 }}>{record.vitals}</p>
+                      </div>
+                    )}n}>
+                     <h4>🧠 Provisional Diagnosis</h4>
                      <p>{record.diagnosis}</p>
                    </div>
                    {record.doctor_observations && (
@@ -124,7 +130,7 @@ export default function AdmissionRecordView() {
                    )}
                    {record.hpi && (
                      <div className={styles.previewSection}>
-                       <h4>History of Present Illness (HPI)</h4>
+                       <h4>📝 History of Present Illness (HPI)</h4>
                        <p style={{ whiteSpace: 'pre-wrap' }}>{record.hpi}</p>
                      </div>
                    )}
@@ -133,7 +139,7 @@ export default function AdmissionRecordView() {
                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.complaints) && record.complaints.map((c: string, i: number) => <li key={i}>{c}</li>)}</ul>
                    </div>
                    <div className={styles.previewSection}>
-                     <h4>Clinical Findings</h4>
+                     <h4>🩺 Clinical Findings</h4>
                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.findings) && record.findings.map((f: string, i: number) => <li key={i}>{f}</li>)}</ul>
                    </div>
                    <div className={styles.previewSection}>
@@ -141,7 +147,7 @@ export default function AdmissionRecordView() {
                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.investigations) && record.investigations.map((inv: string, i: number) => <li key={i}>{inv}</li>)}</ul>
                    </div>
                    <div className={styles.previewSection}>
-                     <h4>Initial Treatment Plan</h4>
+                     <h4>💊 Initial Treatment Plan</h4>
                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.treatment_plan) && record.treatment_plan.map((t: string, i: number) => <li key={i}>{t}</li>)}</ul>
                    </div>
                     {record.attachments && record.attachments.length > 0 && (

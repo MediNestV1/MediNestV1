@@ -12,34 +12,33 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 320px 1fr 500px;
-  gap: 32px;
+  grid-template-columns: 360px 1fr;
+  gap: 40px;
   align-items: flex-start;
 }
 
 /* --- Left Column: Context --- */
 .leftColumn {
   position: sticky;
-  top: 86px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* --- Center Column: WorkArea --- */
-.centerColumn {
+  top: 100px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: calc(100vh - 140px);
+  overflow-y: auto;
+  padding-right: 8px; /* For scrollbar */
 }
 
-/* --- Right Column: Preview --- */
+/* Custom scrollbar for sidebar */
+.leftColumn::-webkit-scrollbar { width: 4px; }
+.leftColumn::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* --- Right Column: Clinical WorkArea --- */
 .rightColumn {
-  position: sticky;
-  top: 86px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
+  padding-bottom: 100px;
 }
 
 /* --- Card Base --- */

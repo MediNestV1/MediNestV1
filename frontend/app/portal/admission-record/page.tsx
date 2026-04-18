@@ -15,6 +15,7 @@ interface SummaryData {
   has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
   doctor_observations: string;
   attachments: { name: string; url: string; type: string; size: number }[];
+  vitals: string;
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -159,6 +160,7 @@ export default function AdmissionRecordRedesign() {
     has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
     doctor_observations: '',
     attachments: [],
+    vitals: '',
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -197,7 +199,8 @@ export default function AdmissionRecordRedesign() {
           severity: draft.severity || 'Mild',
           admission_type: draft.admission_type || 'OPD',
           doctor_observations: draft.doctor_observations || '',
-          attachments: draft.attachments || []
+          attachments: draft.attachments || [],
+          vitals: draft.vitals || ''
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -416,6 +419,7 @@ export default function AdmissionRecordRedesign() {
         severity: summary.severity, admission_type: summary.admission_type,
         doctor_observations: summary.doctor_observations,
         attachments: summary.attachments,
+        vitals: summary.vitals,
         has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
         past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
@@ -446,6 +450,7 @@ export default function AdmissionRecordRedesign() {
         has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
         doctor_observations: '',
         attachments: [],
+        vitals: '',
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
       localStorage.removeItem('admission_draft');
@@ -538,6 +543,7 @@ export default function AdmissionRecordRedesign() {
         <main className={styles.main}>
           <div className={styles.layout}>
             <section className={styles.leftColumn}>
+              {/* --- 30% Sidebar: Context & Admin --- */}
               <div className={styles.summaryCard}>
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitle}>
@@ -579,30 +585,26 @@ export default function AdmissionRecordRedesign() {
                 </div>
               </div>
 
-              <div className={styles.summaryCard} style={{ marginTop: 24, borderTop: '4px solid #ef4444' }}>
+              <div className={styles.summaryCard} style={{ borderTop: '4px solid #ef4444' }}>
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitle}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    Past Medical History
+                    Alerts & History
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
                    <label className={styles.checkboxLabel}>
                       <input type="checkbox" checked={summary.has_diabetes} onChange={e => updateField('has_diabetes', e.target.checked)} />
-                      Diabetes
+                      Dia.
                    </label>
                    <label className={styles.checkboxLabel}>
                       <input type="checkbox" checked={summary.has_hypertension} onChange={e => updateField('has_hypertension', e.target.checked)} />
-                      Hypertension
+                      HTN
                    </label>
                    <label className={styles.checkboxLabel}>
                       <input type="checkbox" checked={summary.has_thyroid} onChange={e => updateField('has_thyroid', e.target.checked)} />
-                      Thyroid
+                      Thy.
                    </label>
-                </div>
-                <div className="field">
-                  <label>Previous Surgeries</label>
-                  <input type="text" value={summary.past_surgeries || ''} onChange={e => updateField('past_surgeries', e.target.value)} placeholder="e.g. Appendectomy (2018)" />
                 </div>
                 <div className="field">
                   <label style={{ color: '#ef4444', fontWeight: 900 }}>⚠️ Critical Allergies</label>
@@ -613,19 +615,69 @@ export default function AdmissionRecordRedesign() {
                     style={{width: '100%', minHeight: 60, border: '1px solid #fecaca', background: '#fef2f2', padding: 12, borderRadius: 8, outline: 'none', fontSize: 13}}
                   ></textarea>
                 </div>
+                <div className="field">
+                  <label>Past Surgeries</label>
+                  <input type="text" value={summary.past_surgeries || ''} onChange={e => updateField('past_surgeries', e.target.value)} placeholder="e.g. Appendectomy (2018)" />
+                </div>
               </div>
+
+              <div className={styles.actionStack}>
+                  <button className={`${styles.btnAction} btn-primary`} style={{ padding: '18px', background: 'var(--sanctuary-primary)', color: '#fff', width: '100%', borderRadius: 12, fontWeight: 900 }} onClick={handleFinalSubmit}>
+                    ✅ Save Admission Record
+                  </button>
+                  <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.9, color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={handleClear}>🗑️ Clear Records</button>
+              </div>
+
+              <div className={styles.summaryCard} style={{ marginTop: 12 }}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                      Attachments
+                    </div>
+                  </div>
+                  <div className={styles.uploadZone}>
+                    <input type="file" multiple accept="image/*,application/pdf" onChange={handleFileUpload} className={styles.fileInputHidden} id="file-upload" />
+                    <label htmlFor="file-upload" className={styles.uploadLabel}>
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                       <span>Upload Reports</span>
+                    </label>
+                  </div>
+                  <div className={styles.attachmentList}>
+                    {summary.attachments.map((file, i) => (
+                      <div key={i} className={styles.attachmentItem}>
+                        <div style={{ flex: 1, minWidth: 0 }}><div className={styles.fileName}>{file.name}</div><div className={styles.fileMeta}>{(file.size / 1024 / 1024).toFixed(2)} MB</div></div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                           <a href={file.url} target="_blank" rel="noopener noreferrer" className={styles.btnFileAction}>View</a>
+                           <button onClick={() => handleDeleteAttachment(i)} className={styles.btnFileDelete}>🗑️</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               </div>
             </section>
-            <section className={styles.centerColumn}>
+
+            <section className={styles.rightColumn}>
+              {/* --- 70% Main Area: Clinical Data --- */}
               <div className={`${styles.summaryCard} ${styles.diagnosisHighlight}`}>
                 <div className={styles.cardHeader}>
-                  <div className={styles.cardTitle}>Provisional Diagnosis</div>
+                  <div className={styles.cardTitle}>🧠 Provisional Diagnosis</div>
                 </div>
                 <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
               </div>
+
               <div className={styles.summaryCard}>
-                 <div className={styles.cardHeader}><div className={styles.cardTitle}>History of Present Illness (HPI)</div><div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} /></div>
+                 <div className={styles.cardHeader}><div className={styles.cardTitle}>📝 History of Present Illness (HPI)</div><div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} /></div>
                  <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
               </div>
+
+              <div className={styles.summaryCard} style={{ borderLeft: '4px solid #ef4444' }}>
+                 <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>❤️ Baseline Vitals</div>
+                    <div className={`${styles.statusDot} ${getStatus(summary.vitals)}`} />
+                 </div>
+                 <input className={styles.bulletInput} value={summary.vitals || ''} onChange={e => updateField('vitals', e.target.value)} placeholder="BP: 120/80, Pulse: 72, SPO2: 98%, Temp: 98.6..." />
+              </div>
+
               <div className={styles.summaryCard} style={{ borderLeft: '4px solid #8b5cf6' }}>
                  <div className={styles.cardHeader}>
                     <div className={styles.cardTitle}>
@@ -634,79 +686,18 @@ export default function AdmissionRecordRedesign() {
                     </div>
                     <div className={`${styles.statusDot} ${getStatus(summary.doctor_observations)}`} />
                  </div>
-                 <textarea 
-                    value={summary.doctor_observations || ''} 
-                    onChange={e => updateField('doctor_observations', e.target.value)} 
-                    placeholder="Enter additional clinical observations, behavior notes, or specific monitoring requirements..." 
-                    style={{width: '100%', minHeight: 120, border: 'none', resize: 'vertical', background: '#f5f3ff', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14, color: '#4c1d95'}}
-                  ></textarea>
+                 <textarea value={summary.doctor_observations || ''} onChange={e => updateField('doctor_observations', e.target.value)} placeholder="Additional monitoring requirements or behavioral notes..." style={{width: '100%', minHeight: 100, border: 'none', resize: 'vertical', background: '#f5f3ff', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14, color: '#4c1d95'}}></textarea>
               </div>
+
               <div className={styles.clinicalSplit}>
                 {renderClinicalCard('Complaints', 'complaints', null, 'Chief complaints...')}
-                {renderClinicalCard('Findings', 'findings', null, 'Clinical findings...')}
+                {renderClinicalCard('Findings', 'findings', <span>🩺 </span>, 'Clinical findings...')}
               </div>
-              {renderClinicalCard('Investigations Advised', 'investigations', null, 'Lab / Radiology orders...')}
-              {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', null, 'First line management...')}
-            </section>
-            <section className={styles.rightColumn}>
-               <div className={styles.actionStack}>
-                  <button className={`${styles.btnAction} btn-primary`} style={{ padding: '18px', background: 'var(--sanctuary-primary)', color: '#fff' }} onClick={handleFinalSubmit}>
-                    ✅ Save Admission Record
-                  </button>
-                  <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.9, color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={handleClear}>🗑️ Clear Records</button>
-               </div>
-
-               <div className={styles.summaryCard} style={{ marginTop: 24 }}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.cardTitle}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                      Attachments
-                    </div>
-                  </div>
-                  
-                  <div className={styles.uploadZone}>
-                    <input 
-                      type="file" 
-                      multiple 
-                      accept="image/*,application/pdf" 
-                      onChange={handleFileUpload} 
-                      className={styles.fileInputHidden} 
-                      id="file-upload" 
-                    />
-                    <label htmlFor="file-upload" className={styles.uploadLabel}>
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                       <span>Upload Reports / Images</span>
-                       <small>PDF or Images (Max 10MB)</small>
-                    </label>
-                  </div>
-
-                  {Object.keys(uploadProgress).length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                       {Object.keys(uploadProgress).map(name => (
-                         <div key={name} style={{ fontSize: 11, color: 'var(--sanctuary-primary)', fontWeight: 700, marginBottom: 4 }}>
-                            Uploading {name}...
-                         </div>
-                       ))}
-                    </div>
-                  )}
-
-                  <div className={styles.attachmentList}>
-                    {summary.attachments.map((file, i) => (
-                      <div key={i} className={styles.attachmentItem}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className={styles.fileName}>{file.name}</div>
-                          <div className={styles.fileMeta}>{(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                           <a href={file.url} target="_blank" rel="noopener noreferrer" className={styles.btnFileAction}>View</a>
-                           <button onClick={() => handleDeleteAttachment(i)} className={styles.btnFileDelete}>
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
-                           </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-               </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                {renderClinicalCard('Investigations Advised', 'investigations', null, 'Lab / Radiology orders...')}
+                {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', <span>💊 </span>, 'First line management...')}
+              </div>
             </section>
           </div>
         </main>

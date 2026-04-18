@@ -216,6 +216,11 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                      {admissions[0].severity || 'Mild'}
                   </span>
                </div>
+               {admissions[0].vitals && (
+                  <div className={styles.profileItem} style={{ gridColumn: 'span 2', marginTop: 8, padding: '8px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', color: '#991b1b' }}>
+                     <strong>❤️ Baseline Vitals:</strong> {admissions[0].vitals}
+                  </div>
+               )}
             </div>
             {admissions[0].attachments && admissions[0].attachments.length > 0 && (
                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
