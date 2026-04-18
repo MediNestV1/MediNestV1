@@ -805,7 +805,10 @@ export default function AdmissionRecordRedesign() {
                 return (
                   <div className={styles.progressCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <div className={styles.cardTitle} style={{ margin: 0 }}>📊 Clinical Readiness</div>
+                      <div className={styles.cardTitle} style={{ margin: 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+                        Clinical Readiness
+                      </div>
                       <div style={{ fontSize: 18, fontWeight: 900, color }}>{percentage}%</div>
                     </div>
                     <div className={styles.progressBarTrack}>
@@ -942,14 +945,20 @@ export default function AdmissionRecordRedesign() {
               {/* --- 70% Main Area: Clinical Data --- */}
               <div className={`${styles.summaryCard} ${styles.diagnosisHighlight}`}>
                 <div className={styles.cardHeader}>
-                  <div className={styles.cardTitle}>🧠 Provisional Diagnosis</div>
+                  <div className={styles.cardTitle}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6h2a2 2 0 0 0 2-2v-3"></path><circle cx="16" cy="11" r="2"></circle></svg>
+                    Provisional Diagnosis
+                  </div>
                 </div>
                 <input className={styles.bulletInput} value={summary.diagnosis || ''} onChange={e => updateField('diagnosis', e.target.value)} placeholder="Provisional Admission Diagnosis..." />
               </div>
 
               <div className={styles.summaryCard}>
                  <div className={styles.cardHeader}>
-                    <div className={styles.cardTitle}>📝 History of Present Illness (HPI)</div>
+                    <div className={styles.cardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      History of Present Illness (HPI)
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                        <div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} />
                        <button 
@@ -967,7 +976,10 @@ export default function AdmissionRecordRedesign() {
 
               <div className={styles.summaryCard} style={{ borderLeft: '4px solid #ef4444' }}>
                  <div className={styles.cardHeader}>
-                    <div className={styles.cardTitle}>❤️ Baseline Vitals</div>
+                    <div className={styles.cardTitle}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                      Baseline Vitals
+                    </div>
                     <div className={`${styles.statusDot} ${getStatus(summary.vitals_pulse || summary.vitals_bp_sys)}`} />
                  </div>
                  
@@ -1013,13 +1025,13 @@ export default function AdmissionRecordRedesign() {
               </div>
 
               <div className={styles.clinicalSplit}>
-                {renderClinicalCard('Complaints', 'complaints', null, 'Chief complaints...')}
-                {renderClinicalCard('Findings', 'findings', <span>🩺 </span>, 'Clinical findings...')}
+                {renderClinicalCard('Complaints', 'complaints', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>, 'Chief complaints...')}
+                {renderClinicalCard('Findings', 'findings', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>, 'Clinical findings...')}
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                {renderClinicalCard('Investigations Advised', 'investigations', null, 'Lab / Radiology orders...')}
-                {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', <span>💊 </span>, 'First line management...')}
+                {renderClinicalCard('Investigations Advised', 'investigations', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>, 'Lab / Radiology orders...')}
+                {renderClinicalCard('Initial Treatment Plan', 'treatment_plan', <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m4.83 6.74 4.58 9.15a3 3 0 1 1-5.36 2.68L4.83 6.74ZM12 22a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm9-9a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm0-9-4.58 9.15a3 3 0 1 1 5.36-2.68L21 4Z"></path></svg>, 'First line management...')}
               </div>
             </section>
           </div>
