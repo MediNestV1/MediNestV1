@@ -1,13 +1,14 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
+// Using environment variables strictly for security
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceRole) {
-  console.warn("⚠️ Supabase URL or Service Role Key missing in environment variables.");
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("⚠️ Supabase URL or Key missing. Check .env file.");
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceRole);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = { supabase };

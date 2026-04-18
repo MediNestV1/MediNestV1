@@ -1,0 +1,459 @@
+.sidebar {
+  width: 280px;
+  max-width: 85vw;
+  height: 100vh;
+  height: 100dvh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: #f4f4ef;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 28px 16px;
+  border-right: 1px solid rgba(23, 3, 55, 0.05);
+  z-index: 200;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+
+.logoContainer {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.brandLogo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brandInfo h1 {
+  font-family: var(--font-headline);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  line-height: 1;
+}
+
+.brandInfo p {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--sanctuary-ink-l);
+  margin-top: 4px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-radius: 30px;
+  color: var(--sanctuary-ink-l);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.navLink:hover {
+  background-color: #fff;
+  color: var(--sanctuary-primary);
+}
+
+.activeLink {
+  background-color: #fafaf5;
+  color: var(--sanctuary-primary);
+  border-right: 4px solid var(--sanctuary-primary);
+  border-radius: 30px 0 0 30px;
+  margin-right: -16px;
+  padding-right: 24px;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.02);
+}
+
+/* --- Clinical Desk Sidebar Styles --- */
+.clinicalDesk {
+  margin-top: 16px;
+  padding: 16px 8px 24px 8px;
+  border-top: 1px solid rgba(23, 3, 55, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  border-radius: 16px;
+}
+
+.clinicalDesk:hover {
+  background-color: rgba(23, 3, 55, 0.02);
+}
+
+.deskHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  color: var(--sanctuary-primary);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  border-bottom: 2px solid rgba(23, 3, 55, 0.05);
+  margin-bottom: 8px;
+}
+
+.searchContainer {
+  padding: 0 8px;
+  position: relative;
+}
+
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--sanctuary-ink-l);
+  opacity: 0.5;
+}
+
+.searchField {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.searchField:focus {
+  background: #fff;
+  border-color: var(--sanctuary-primary);
+}
+
+.searchResults {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  z-index: 100;
+  margin-top: 4px;
+  border: 1px solid rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.searchItem {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+.searchItem:hover {
+  background: var(--sanctuary-gray-low);
+}
+
+.searchItemName {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--sanctuary-primary);
+}
+
+.searchItemInfo {
+  font-size: 10px;
+  color: var(--sanctuary-ink-l);
+}
+
+.searchMsg {
+  padding: 16px;
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  text-align: center;
+}
+
+.deskActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deskAction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: var(--sanctuary-ink-l);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.deskAction:hover {
+  background-color: var(--sanctuary-primary);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.portalButton {
+  margin-top: 24px;
+  background-color: #1a1a1a;
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.portalButton:hover {
+  background-color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.portalButton svg {
+  color: #fff;
+}
+
+.sidebarFooter {
+  margin-top: auto;
+  border-top: 1px solid rgba(23, 3, 55, 0.05);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actionBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--sanctuary-primary);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 8px 16px rgba(23, 3, 55, 0.15);
+  margin-bottom: 16px;
+}
+
+.actionBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(23, 3, 55, 0.25);
+}
+
+/* --- Analytics Styles --- */
+.analyticsSection {
+  margin-top: 24px;
+  padding: 0 8px;
+}
+
+.analyticsTitle {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--sanctuary-ink-l);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  padding-left: 8px;
+}
+
+.statsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analyticsCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s;
+}
+
+.analyticsCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+  border-color: rgba(23, 3, 55, 0.1);
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValLarge {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.statSub {
+  font-size: 10px;
+  color: var(--sanctuary-ink-l);
+  opacity: 0.8;
+}
+
+.multiStats {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.statVal {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.cardIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blueIcon { background-color: #e0f2fe; color: #0369a1; }
+.orangeIcon { background-color: #fff7ed; color: #c2410c; }
+.purpleIcon { background-color: #f5f3ff; color: #6d28d9; }
+
+.analyticsSkeleton {
+  padding: 20px;
+  font-size: 12px;
+  color: var(--sanctuary-ink-l);
+  text-align: center;
+  font-style: italic;
+}
+
+.footerLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--sanctuary-ink-l);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.footerLink:hover {
+  background-color: #fff;
+  color: var(--sanctuary-primary);
+  border-radius: 12px;
+}
+
+.logoutLink:hover {
+  color: var(--sanctuary-error);
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+  }
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+}
+
+/* Backdrop overlay for mobile */
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 199;
+    animation: fadeIn 0.2s ease;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Close button — mobile only */
+.closeBtn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sanctuary-ink-l);
+  padding: 4px;
+  margin-left: auto;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.closeBtn:hover {
+  background: rgba(23, 3, 55, 0.06);
+  color: var(--sanctuary-primary);
+}
+
+@media (max-width: 1024px) {
+  .closeBtn { display: flex; align-items: center; justify-content: center; }
+}

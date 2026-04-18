@@ -1,0 +1,33 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--sanctuary-bg);
+}
+
+.contentArea {
+  flex-grow: 1;
+  margin-left: 280px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.canvas {
+  padding: 32px 48px 48px;
+  max-width: 1400px;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .contentArea { margin-left: 0; }
+  .canvas { padding: 24px 20px 40px; }
+}
+
+@media (max-width: 640px) {
+  .canvas {
+    padding: 16px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+}

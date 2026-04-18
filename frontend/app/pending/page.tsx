@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function PendingPage() {
@@ -16,10 +16,10 @@ export default function PendingPage() {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth'); return; }
+      if (!user) { router.replace('/auth'); return; }
       const { data: clinic } = await supabase.from('clinics').select('*').eq('owner_user_id', user.id).single();
-      if (!clinic) { router.push('/onboarding'); return; }
-      if (clinic.status === 'active') { router.push('/portal'); return; }
+      if (!clinic) { router.replace('/onboarding'); return; }
+      if (clinic.status === 'active') { router.replace('/portal'); return; }
       setClinicName(clinic.name);
       setClinicEmail(clinic.email);
     })();
@@ -31,7 +31,7 @@ export default function PendingPage() {
     const { data: clinic } = await supabase.from('clinics').select('status').eq('owner_user_id', user!.id).single();
     if (clinic?.status === 'active') {
       setStatusMsg({ type: 'approved', text: '✅ Approved! Redirecting…' });
-      setTimeout(() => router.push('/portal'), 1500);
+      setTimeout(() => router.replace('/portal'), 1500);
     } else {
       setStatusMsg({ type: 'pending', text: '⏳ Still under review. Check back later.' });
     }
@@ -40,7 +40,7 @@ export default function PendingPage() {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    router.push('/auth');
+    router.replace('/auth');
   };
 
   return (

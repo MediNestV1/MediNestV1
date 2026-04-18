@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 interface Doctor {
   id: string;
@@ -9,6 +9,15 @@ interface Doctor {
   qualification?: string;
   specialty?: string;
   contact?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  dob?: string;
+  registration_number?: string;
+  license_expiry_date?: string;
+  profile_photo_url?: string;
+  experience_years?: number;
+  timings?: string;
   is_active: boolean;
   display_order: number;
 }
@@ -32,6 +41,7 @@ interface ClinicContextType {
   loading: boolean;
   user: any;
   refresh: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const ClinicContext = createContext<ClinicContextType>({
@@ -40,6 +50,7 @@ const ClinicContext = createContext<ClinicContextType>({
   loading: true,
   user: null,
   refresh: async () => {},
+  signOut: async () => {},
 });
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
@@ -56,11 +67,13 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       // First check local session (fast)
       const { data: { session } } = await supabase.auth.getSession();
       let currentUser = session?.user || null;
+      console.log('🔍 ClinicContext: getSession user:', currentUser?.email || 'null');
 
       // If no local session, verify with server (thorough)
       if (!currentUser) {
         const { data: { user: verifiedUser } } = await supabase.auth.getUser();
         currentUser = verifiedUser;
+        console.log('🔍 ClinicContext: getUser (verified) user:', currentUser?.email || 'null');
       }
       
       setUser(currentUser);
@@ -88,18 +101,37 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
         const { data: doctorData, error: docError } = await supabase
           .from('clinic_doctors')
-          .select('*')
+          .select('*, doctors(*)')
           .eq('clinic_id', clinicData.id)
           .eq('is_active', true)
           .order('display_order');
         
         if (docError) console.error('❌ ClinicContext: Doctors fetch error:', docError);
-        setDoctors(doctorData || []);
+        
+        // Flatten the joined data for easier frontend consumption
+        const flattenedDoctors = (doctorData || []).map((entry: any) => ({
+          ...entry,
+          ...(entry.doctors || {}),
+          id: entry.id, // Keep the clinic_doctor record ID as the primary reference
+          doctor_id: entry.doctor_id // Explicitly keep the global doctor ID
+        }));
+        
+        setDoctors(flattenedDoctors);
       }
     } catch (e: any) {
       console.error('🔥 ClinicContext: Critical error in refresh:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Redirect to landing page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
     }
   };
 
@@ -120,7 +152,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh }}>
+    <ClinicContext.Provider value={{ clinic, doctors, loading, user, refresh, signOut }}>
       {children}
     </ClinicContext.Provider>
   );
