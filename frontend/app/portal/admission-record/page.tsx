@@ -348,7 +348,19 @@ export default function AdmissionRecordRedesign() {
           investigations: Array.isArray(draft.investigations) 
             ? draft.investigations.map((inv: any) => typeof inv === 'string' ? { name: inv, status: 'Pending' } : inv)
             : [],
-          hpi: draft.hpi || '',
+          hpi: draft.hpi || ''
+        }));
+      } catch (e) {
+        console.error('Failed to parse draft', e);
+      }
+    } else {
+      if (docNameParam) {
+        setSummary(prev => ({ ...prev, doctor: docNameParam }));
+      } else if (doctors && doctors.length > 0) {
+        setSummary(prev => ({ ...prev, doctor: doctors[0].name }));
+      }
+    }
+  }, [docNameParam, doctors]);
 
   const saveDraft = useCallback((data: SummaryData) => {
     localStorage.setItem('admission_draft', JSON.stringify(data));
