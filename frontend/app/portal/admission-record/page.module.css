@@ -47,8 +47,14 @@
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--border);
   padding: 24px;
-  transition: .3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--ambient-glow);
+}
+
+.summaryCard:focus-within {
+  border-color: var(--sanctuary-primary);
+  box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05), 0 12px 40px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
 }
 
 .cardHeader {
@@ -143,8 +149,10 @@
 }
 
 .centerColumn textarea:focus {
+  background: #fff;
   border-color: var(--sanctuary-primary);
   box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05);
+  outline: none;
 }
 
 .checkboxLabel {
@@ -253,8 +261,9 @@
 }
 
 .vitalInputGroup input:focus {
+  background: #fff;
   border-color: var(--sanctuary-primary);
-  box-shadow: 0 0 0 4px var(--sanctuary-gray-low);
+  box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05);
 }
 
 /* --- Clinical Readiness & Progress --- */
@@ -355,12 +364,19 @@
 .investigDropDown {
   flex: 1;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   background: #fff;
   cursor: pointer;
+  outline: none;
+  transition: .2s;
+}
+
+.investigDropDown:focus {
+  border-color: var(--sanctuary-primary);
+  box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05);
 }
 
 /* --- Tags / Chips UI --- */
