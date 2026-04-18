@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import styles from './page.module.css';
 import Link from 'next/link';
 import { API_BASE_URL, authenticatedFetch } from '@/lib/api';
+import { useClinic } from '@/context/ClinicContext';
 
 interface Patient {
   id: string;
@@ -43,13 +44,16 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Patient Summary');
+  const { clinic } = useClinic();
 
   const supabase = createClient();
 
   useEffect(() => {
+    if (!clinic?.id || !patientId) return;
+
     const fetchPatientData = async () => {
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/patient-history/${patientId}`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/patient-history/${patientId}?clinic_id=${clinic.id}`);
         const data = await response.json();
 
         if (data.patient) setPatient(data.patient);
@@ -64,7 +68,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
     };
 
     fetchPatientData();
-  }, [patientId]);
+  }, [patientId, clinic?.id]);
 
   if (loading) return <div className={styles.loading}>Initializing Clinical Hub...</div>;
 
@@ -296,7 +300,7 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                   <td>{s.reg_no || '---'}</td>
                   <td>
                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Link href={`/portal/discharge-summary/view?id=${s.id}`} className={styles.tableAction} target="_blank">
+                        <Link href={`/portal/discharge-summary/view?id=${s.id}`} className={styles.tableAction}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight: 6 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                           View
                         </Link>

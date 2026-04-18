@@ -408,7 +408,7 @@ function FullResultPreview() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className={styles.btnBack} onClick={() => router.back()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            Back to Editor
+            {searchParams.get('id') ? 'Back to Patient Record' : 'Back to Editor'}
           </button>
           <div style={{ color: 'var(--sanctuary-ink-l)', fontSize: 13, fontWeight: 600 }}>Preview Mode</div>
         </div>
