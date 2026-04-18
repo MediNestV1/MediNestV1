@@ -522,8 +522,43 @@ export default function AdmissionRecordRedesign() {
     }
   };
 
+  const calculateProgress = () => {
+    const adminFields = ['patientName', 'age', 'sex', 'doctor', 'ward', 'bed'];
+    const vitalFields = ['vitals_bp_sys', 'vitals_bp_dia', 'vitals_pulse', 'vitals_temp', 'vitals_spo2'];
+    const clinicalFields = ['diagnosis', 'complaints'];
+
+    let score = 0;
+    const missing: string[] = [];
+
+    // Admin (30 points)
+    adminFields.forEach(f => {
+      if (summary[f as keyof SummaryData]) score += 5;
+      else missing.push(f.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
+    });
+
+    // Vitals (40 points)
+    vitalFields.forEach(f => {
+      if (summary[f as keyof SummaryData]) score += 8;
+      else missing.push(f.replace('vitals_', '').replace('_', ' ').toUpperCase());
+    });
+
+    // Clinical (30 points)
+    if (summary.diagnosis) score += 15; else missing.push('Diagnosis');
+    if (summary.complaints && summary.complaints.length > 0) score += 15; else missing.push('Complaints');
+
+    return { percentage: Math.min(score, 100), missing };
+  };
+
   const handleFinalSubmit = async () => {
     if (!summary.patientName) return alert('Patient Name is required');
+    
+    const { percentage } = calculateProgress();
+    if (percentage < 100) {
+      if (!confirm(`This record is only ${percentage}% clinically complete. Are you sure you want to submit?`)) {
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       let patientId: string | null = null;
@@ -656,7 +691,10 @@ export default function AdmissionRecordRedesign() {
     return (
       <div className={styles.summaryCard} style={{ cursor: 'default' }}>
         <div className={styles.cardHeader}>
-          <div className={styles.cardTitle}>{icon}{title}</div>
+          <div className={styles.cardTitle}>
+            {icon}{title}
+            {(!items || items.length === 0 || (Array.isArray(items) && !items.some(it => (typeof it === 'string' ? it.trim() : it.name.trim())))) && <span className={styles.requiredDot} style={{ verticalAlign: 'middle' }} />}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div className={`${styles.statusDot} ${getStatus(items)}`} />
             {isCollapsible && (
@@ -760,6 +798,37 @@ export default function AdmissionRecordRedesign() {
         <main className={styles.main}>
           <div className={styles.layout}>
             <section className={styles.leftColumn}>
+              {/* --- Clinical Readiness Progress --- */}
+              {(() => {
+                const { percentage, missing } = calculateProgress();
+                const color = percentage < 40 ? '#ef4444' : percentage < 80 ? '#f59e0b' : '#10b981';
+                return (
+                  <div className={styles.progressCard}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div className={styles.cardTitle} style={{ margin: 0 }}>📊 Clinical Readiness</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color }}>{percentage}%</div>
+                    </div>
+                    <div className={styles.progressBarTrack}>
+                      <div className={styles.progressBarFill} style={{ width: `${percentage}%`, background: color }} />
+                    </div>
+                    {missing.length > 0 && (
+                       <div style={{ marginTop: 16 }}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8 }}>Missing Information ({missing.length})</div>
+                          <div style={{ maxHeight: 100, overflowY: 'auto' }}>
+                             {missing.slice(0, 3).map((m, i) => (
+                               <div key={i} className={styles.missingItem}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+                                  {m}
+                               </div>
+                             ))}
+                             {missing.length > 3 && <div style={{ fontSize: 10, color: '#64748b', padding: '4px 0', fontStyle: 'italic' }}>+ {missing.length - 3} more fields...</div>}
+                          </div>
+                       </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* --- 30% Sidebar: Context & Admin --- */}
               <div className={styles.summaryCard}>
                 <div className={styles.cardHeader}>
@@ -769,17 +838,17 @@ export default function AdmissionRecordRedesign() {
                   </div>
                   <div className={`${styles.statusDot} ${getStatus(summary.patientName)}`} />
                 </div>
-                <div className="field"><label>Full Name</label><input type="text" value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
+                <div className="field"><label>Full Name {!summary.patientName && <span className={styles.requiredDot}/>}</label><input type="text" value={summary.patientName || ''} onChange={e => updateField('patientName', e.target.value)} /></div>
                 <div className={styles.patientBrief}>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Age</label><input type="text" value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Age {!summary.age && <span className={styles.requiredDot}/>}</label><input type="text" value={summary.age || ''} onChange={e => updateField('age', e.target.value)} /></div>
                     <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Sex</label><select value={summary.sex || 'Male'} onChange={e => updateField('sex', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
                   </div>
                   <div className="field"><label>Phone Number</label><input type="tel" value={summary.phone || ''} onChange={e => updateField('phone', e.target.value)} /></div>
-                  <div className="field"><label>Department</label><input type="text" value={summary.department || ''} onChange={e => updateField('department', e.target.value)} placeholder="e.g. Cardiology, Orthopedics" /></div>
+                  <div className="field"><label>Department</label><input type="text" value={summary.department || ''} onChange={updateField.bind(null, 'department' as any)} placeholder="e.g. Cardiology, Orthopedics" /></div>
                   <div className={styles.briefItem}>
-                    <div className="field" style={{ flex: 1 }}><label>Ward</label><input type="text" value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
-                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No.</label><input type="text" value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
+                    <div className="field" style={{ flex: 1 }}><label>Ward {!summary.ward && <span className={styles.requiredDot}/>}</label><input type="text" value={summary.ward || ''} onChange={e => updateField('ward', e.target.value)} placeholder="Ward A" /></div>
+                    <div className="field" style={{ flex: 1, marginLeft: 10 }}><label>Bed No. {!summary.bed && <span className={styles.requiredDot}/>}</label><input type="text" value={summary.bed || ''} onChange={e => updateField('bed', e.target.value)} placeholder="102" /></div>
                   </div>
                   <div className={styles.briefItem}>
                     <div className="field" style={{ flex: 1 }}><label>Admission Source</label><select value={summary.admission_type} onChange={e => updateField('admission_type', e.target.value)}><option>OPD</option><option>Emergency</option><option>Referral</option></select></div>
@@ -798,7 +867,7 @@ export default function AdmissionRecordRedesign() {
                     </div>
                   </div>
                   <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
-                  <div className="field"><label>Attending Doctor</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
+                  <div className="field"><label>Attending Doctor {!summary.doctor && <span className={styles.requiredDot}/>}</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
                 </div>
               </div>
 
