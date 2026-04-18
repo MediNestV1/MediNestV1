@@ -70,6 +70,13 @@ export default function AdmissionRecordView() {
                      <div><b>Ward / Bed:</b> {record.ward || '---'} / {record.bed || '---'}</div>
                      <div><b>Consultant:</b> Dr. {record.doctor_name || '---'}</div>
                      <div><b>Admission Date:</b> {new Date(record.date_admission).toLocaleString()}</div>
+                     <div style={{ gridColumn: 'span 2', marginTop: 8, padding: '8px 12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <b>Comorbidities:</b> {[
+                          record.has_diabetes && "Diabetes",
+                          record.has_hypertension && "Hypertension",
+                          record.has_thyroid && "Thyroid"
+                        ].filter(Boolean).join(', ') || 'None'}
+                     </div>
                    </div>
                  </td>
                </tr>
@@ -77,6 +84,18 @@ export default function AdmissionRecordView() {
              <tbody>
                <tr>
                  <td>
+                   {record.allergies && (
+                     <div className={styles.previewSection} style={{ border: '2px solid #ef4444', padding: 12, borderRadius: 8, background: '#fef2f2' }}>
+                       <h4 style={{ color: '#ef4444', margin: 0 }}>⚠️ CRITICAL ALLERGIES</h4>
+                       <p style={{ color: '#991b1b', fontWeight: 800, fontSize: 16 }}>{record.allergies}</p>
+                     </div>
+                   )}
+                   {record.past_surgeries && (
+                     <div className={styles.previewSection}>
+                       <h4>Previous Surgeries</h4>
+                       <p>{record.past_surgeries}</p>
+                     </div>
+                   )}
                    <div className={styles.previewSection}>
                      <h4>Provisional Diagnosis</h4>
                      <p>{record.diagnosis}</p>

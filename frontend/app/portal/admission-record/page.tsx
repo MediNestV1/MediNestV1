@@ -11,6 +11,7 @@ import styles from './page.module.css';
 // Types
 interface SummaryData {
   patientName: string; phone: string; age: string; sex: string; doctor: string; ward: string; bed: string; department: string; date_admission: string; 
+  has_diabetes: boolean; has_hypertension: boolean; has_thyroid: boolean; past_surgeries: string; allergies: string;
   complaints: string[]; 
   hpi: string;
   findings: string[]; 
@@ -151,6 +152,7 @@ export default function AdmissionRecordRedesign() {
 
   const [summary, setSummary] = useState<SummaryData>({
     patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
+    has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
     diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
   });
 
@@ -179,7 +181,12 @@ export default function AdmissionRecordRedesign() {
           bed: draft.bed || '',
           department: draft.department || '',
           diagnosis: draft.diagnosis || '',
-          hpi: draft.hpi || ''
+          hpi: draft.hpi || '',
+          has_diabetes: !!draft.has_diabetes,
+          has_hypertension: !!draft.has_hypertension,
+          has_thyroid: !!draft.has_thyroid,
+          past_surgeries: draft.past_surgeries || '',
+          allergies: draft.allergies || ''
         }));
       } catch (e) {
         console.error('Failed to parse draft', e);
@@ -284,14 +291,38 @@ export default function AdmissionRecordRedesign() {
         if (existingPatient?.id) {
           patientId = existingPatient.id;
           const newAge = parseInt(summary.age);
-          if ((newAge && existingPatient.age !== newAge) || (summary.sex && existingPatient.gender !== summary.sex) || (summary.phone && existingPatient.contact !== summary.phone)) {
+          if ((newAge && existingPatient.age !== newAge) || 
+              (summary.sex && existingPatient.gender !== summary.sex) || 
+              (summary.phone && existingPatient.contact !== summary.phone) ||
+              (existingPatient.has_diabetes !== summary.has_diabetes) ||
+              (existingPatient.has_hypertension !== summary.has_hypertension) ||
+              (existingPatient.has_thyroid !== summary.has_thyroid) ||
+              (summary.allergies && existingPatient.allergies !== summary.allergies) ||
+              (summary.past_surgeries && existingPatient.past_surgeries !== summary.past_surgeries)
+          ) {
             await supabase.from('patients').update({
-              age: newAge || existingPatient.age, gender: summary.sex || existingPatient.gender, contact: summary.phone || existingPatient.contact
+              age: newAge || existingPatient.age, 
+              gender: summary.sex || existingPatient.gender, 
+              contact: summary.phone || existingPatient.contact,
+              has_diabetes: summary.has_diabetes,
+              has_hypertension: summary.has_hypertension,
+              has_thyroid: summary.has_thyroid,
+              allergies: summary.allergies || existingPatient.allergies,
+              past_surgeries: summary.past_surgeries || existingPatient.past_surgeries
             }).eq('id', patientId);
           }
         } else {
           const { data: newPatient } = await supabase.from('patients').insert({
-            name: summary.patientName, contact: summary.phone || '0000000000', age: parseInt(summary.age) || null, gender: summary.sex, clinic_id: clinic.id
+            name: summary.patientName, 
+            contact: summary.phone || '0000000000', 
+            age: parseInt(summary.age) || null, 
+            gender: summary.sex, 
+            clinic_id: clinic.id,
+            has_diabetes: summary.has_diabetes,
+            has_hypertension: summary.has_hypertension,
+            has_thyroid: summary.has_thyroid,
+            allergies: summary.allergies,
+            past_surgeries: summary.past_surgeries
           }).select('id').single();
           if (newPatient?.id) patientId = newPatient.id;
         }
@@ -300,6 +331,8 @@ export default function AdmissionRecordRedesign() {
       const { error } = await supabase.from('admission_records').insert([{
         patient_name: summary.patientName, age_sex: `${summary.age} / ${summary.sex}`, contact: summary.phone,
         doctor_name: summary.doctor, ward: summary.ward, bed: summary.bed, department: summary.department, date_admission: summary.date_admission,
+        has_diabetes: summary.has_diabetes, has_hypertension: summary.has_hypertension, has_thyroid: summary.has_thyroid,
+        past_surgeries: summary.past_surgeries, allergies: summary.allergies,
         diagnosis: summary.diagnosis, hpi: summary.hpi,
         complaints: summary.complaints, findings: summary.findings,
         investigations: summary.investigations, treatment_plan: summary.treatment_plan, 
@@ -324,6 +357,7 @@ export default function AdmissionRecordRedesign() {
     if (confirm('Are you sure you want to clear all records? This will delete the current draft.')) {
       setSummary({
         patientName: '', phone: '', age: '', sex: 'Male', doctor: '', ward: '', bed: '', department: '', date_admission: new Date().toISOString().slice(0, 16), 
+        has_diabetes: false, has_hypertension: false, has_thyroid: false, past_surgeries: '', allergies: '',
         diagnosis: '', hpi: '', complaints: [], findings: [], investigations: [], treatment_plan: []
       });
       localStorage.removeItem('admission_draft');
@@ -438,6 +472,42 @@ export default function AdmissionRecordRedesign() {
                   </div>
                   <div className="field"><label>Adm. Date & Time</label><input type="datetime-local" value={summary.date_admission || ''} onChange={e => updateField('date_admission', e.target.value)} /></div>
                   <div className="field"><label>Attending Doctor</label><select value={summary.doctor || ''} onChange={e => updateField('doctor', e.target.value)}><option value="">Select...</option>{doctors?.map((d: any) => <option key={d.id} value={d.name}>Dr. {d.name}</option>)}</select></div>
+                </div>
+              </div>
+
+              <div className={styles.summaryCard} style={{ marginTop: 24, borderTop: '4px solid #ef4444' }}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Past Medical History
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                   <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={summary.has_diabetes} onChange={e => updateField('has_diabetes', e.target.checked)} />
+                      Diabetes
+                   </label>
+                   <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={summary.has_hypertension} onChange={e => updateField('has_hypertension', e.target.checked)} />
+                      Hypertension
+                   </label>
+                   <label className={styles.checkboxLabel}>
+                      <input type="checkbox" checked={summary.has_thyroid} onChange={e => updateField('has_thyroid', e.target.checked)} />
+                      Thyroid
+                   </label>
+                </div>
+                <div className="field">
+                  <label>Previous Surgeries</label>
+                  <input type="text" value={summary.past_surgeries || ''} onChange={e => updateField('past_surgeries', e.target.value)} placeholder="e.g. Appendectomy (2018)" />
+                </div>
+                <div className="field">
+                  <label style={{ color: '#ef4444', fontWeight: 900 }}>⚠️ Critical Allergies</label>
+                  <textarea 
+                    value={summary.allergies || ''} 
+                    onChange={e => updateField('allergies', e.target.value)} 
+                    placeholder="List all drug or environmental allergies..." 
+                    style={{width: '100%', minHeight: 60, border: '1px solid #fecaca', background: '#fef2f2', padding: 12, borderRadius: 8, outline: 'none', fontSize: 13}}
+                  ></textarea>
                 </div>
               </div>
             </section>

@@ -148,6 +148,33 @@
   box-shadow: 0 0 0 4px rgba(23, 3, 55, 0.05);
 }
 
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sanctuary-ink);
+  cursor: pointer;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: .2s;
+}
+
+.checkboxLabel:hover {
+  background: #fff;
+  border-color: var(--sanctuary-primary);
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--sanctuary-primary);
+}
+
 .previewContent {
   font-size: 13px;
   color: var(--sanctuary-ink-l);

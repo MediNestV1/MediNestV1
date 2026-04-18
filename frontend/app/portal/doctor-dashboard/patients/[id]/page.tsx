@@ -15,6 +15,11 @@ interface Patient {
   contact?: string;
   age?: number;
   gender?: string;
+  has_diabetes?: boolean;
+  has_hypertension?: boolean;
+  has_thyroid?: boolean;
+  past_surgeries?: string;
+  allergies?: string;
   created_at: string;
 }
 
@@ -120,6 +125,11 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
              <div className={styles.snapValue}>{patient?.name}</div>
              <div style={{ marginTop: 8, opacity: 0.8 }}>{patient?.age} / {patient?.gender}</div>
              <div style={{ marginTop: 12, fontSize: 18, fontWeight: 700 }}>{patient?.contact}</div>
+             {patient?.allergies && (
+                <div style={{ marginTop: 16, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 8, color: '#b91c1c', fontSize: 12, fontWeight: 800 }}>
+                   ⚠️ ALLERGIC: {patient.allergies}
+                </div>
+              )}
           </div>
 
           <div className={styles.snapGroup}>
@@ -160,6 +170,22 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
              <div className={styles.profileItem}><strong>Joined:</strong> {new Date(patient?.created_at || '').toLocaleDateString()}</div>
           </div>
        </div>
+
+       {(patient?.has_diabetes || patient?.has_hypertension || patient?.has_thyroid || patient?.past_surgeries) && (
+          <div className={styles.sectionBox}>
+             <h3>Medical Background</h3>
+             <div className={styles.profileGrid}>
+                <div className={styles.profileItem}><strong>Comorbidities:</strong> {[
+                  patient.has_diabetes && "Diabetes",
+                  patient.has_hypertension && "Hypertension",
+                  patient.has_thyroid && "Thyroid"
+                ].filter(Boolean).join(', ') || 'None'}</div>
+                <div className={styles.profileItem} style={{ gridColumn: 'span 2' }}>
+                  <strong>Past Surgeries:</strong> {patient.past_surgeries || 'None recorded'}
+                </div>
+             </div>
+          </div>
+        )}
 
        {admissions.length > 0 && (
          <div className={styles.sectionBox} style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}>
