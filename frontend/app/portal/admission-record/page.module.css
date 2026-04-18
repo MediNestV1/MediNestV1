@@ -5,8 +5,8 @@
 }
 
 .main {
-  padding: 32px 40px;
-  max-width: 1700px;
+  padding: 32px 40px 120px 40px; /* Extra bottom padding for sticky bar clearance */
+  max-width: 1711px;
   margin: 0 auto;
 }
 
@@ -172,6 +172,48 @@
   height: 16px;
   cursor: pointer;
   accent-color: var(--sanctuary-primary);
+}
+
+/* --- Critical Badges & Alerts --- */
+.allergyBadge {
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clinicalAlert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #ffedd5;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 12px;
+  animation: pulseAlert 2s infinite;
+}
+
+.criticalAlert {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fee2e2;
+}
+
+@keyframes pulseAlert {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 /* --- Triage Buttons --- */
@@ -360,6 +402,25 @@
   padding: 8px 0 !important;
   border: none !important;
   background: transparent !important;
+}
+
+.btnToggleSection {
+  padding: 4px 10px;
+  background: var(--sanctuary-gray-low);
+  color: var(--sanctuary-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.btnToggleSection:hover {
+  background: #fff;
+  border-color: var(--sanctuary-primary);
+  transform: scale(1.05);
 }
 
 /* --- Fullscreen Focus Editor --- */
@@ -938,16 +999,65 @@
   font-size: 12px;
 }
 
-/* --- Floating Actions --- */
-.actionStack {
+/* --- Sticky Bottom Action Bar --- */
+.stickyBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  z-index: 800;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
 }
 
-.btnAction {
+.stickyBarInner {
   width: 100%;
-  justify-content: center;
+  max-width: 1200px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 0 40px;
+}
+
+.btnSaveSticky {
+  padding: 14px 40px;
+  background: var(--sanctuary-primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(23, 3, 55, 0.15);
+  transition: all 0.3s;
+}
+
+.btnSaveSticky:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(23, 3, 55, 0.2);
+}
+
+.btnClearSticky {
+  padding: 14px 24px;
+  background: #fff;
+  color: #ef4444;
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnClearSticky:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
 }
 
 /* --- Responsiveness --- */

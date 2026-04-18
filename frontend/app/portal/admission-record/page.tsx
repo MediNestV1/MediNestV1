@@ -170,6 +170,11 @@ export default function AdmissionRecordRedesign() {
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<Suggestion | null>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+    hpi: false,
+    investigations: false,
+    treatment_plan: false
+  });
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [toast, setToast] = useState<string | null>(null);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
@@ -466,21 +471,48 @@ export default function AdmissionRecordRedesign() {
     return styles.dotGreen;
   };
 
+  const getVitalsAlerts = (vitals: string) => {
+    if (!vitals) return [];
+    const alerts = [];
+    const tempMatch = vitals.match(/Temp:\s*(\d+\.?\d*)/i);
+    if (tempMatch && parseFloat(tempMatch[1]) > 101) {
+      alerts.push({ type: 'warning', label: `⚠️ High Fever detected (${tempMatch[1]}°F)` });
+    }
+    const spo2Match = vitals.match(/SPO2:\s*(\d+)/i);
+    if (spo2Match && parseInt(spo2Match[1]) < 94) {
+      alerts.push({ type: 'critical', label: `🚨 Critical Low SpO2 (${spo2Match[1]}%)` });
+    }
+    return alerts;
+  };
+
   const renderClinicalCard = (title: string, field: keyof SummaryData, icon: React.ReactNode, placeholder: string) => {
     const items = summary[field] as string[];
     const value = items.filter(s => s.trim()).join(', ');
+    const isCollapsible = ['investigations', 'treatment_plan'].includes(field as string);
+    const isCollapsed = collapsed[field as string];
+
     return (
-      <div className={styles.summaryCard} onClick={() => setActiveSection(field)} style={{ cursor: 'pointer' }}>
+      <div className={styles.summaryCard} style={{ cursor: 'default' }}>
         <div className={styles.cardHeader}>
           <div className={styles.cardTitle}>{icon}{title}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div className={`${styles.statusDot} ${getStatus(items)}`} />
-            <button className={styles.btnEditMini}>Edit</button>
+            {isCollapsible && (
+              <button 
+                className={styles.btnToggleSection} 
+                onClick={() => setCollapsed(prev => ({ ...prev, [field as string]: !isCollapsed }))}
+              >
+                {isCollapsed ? 'Expand' : 'Collapse'}
+              </button>
+            )}
+            <button className={styles.btnEditMini} onClick={() => setActiveSection(field)}>Edit</button>
           </div>
         </div>
-        <div className={styles.previewContent}>
-          {value || <span className={styles.emptyPlaceholder}>{placeholder}</span>}
-        </div>
+        {!isCollapsed && (
+          <div className={styles.previewContent}>
+            {value || <span className={styles.emptyPlaceholder}>{placeholder}</span>}
+          </div>
+        )}
       </div>
     );
   };
@@ -591,6 +623,9 @@ export default function AdmissionRecordRedesign() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     Alerts & History
                   </div>
+                  {summary.allergies?.trim() && (
+                    <div className={styles.allergyBadge}>🔴 Allergies</div>
+                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
                    <label className={styles.checkboxLabel}>
@@ -619,13 +654,6 @@ export default function AdmissionRecordRedesign() {
                   <label>Past Surgeries</label>
                   <input type="text" value={summary.past_surgeries || ''} onChange={e => updateField('past_surgeries', e.target.value)} placeholder="e.g. Appendectomy (2018)" />
                 </div>
-              </div>
-
-              <div className={styles.actionStack}>
-                  <button className={`${styles.btnAction} btn-primary`} style={{ padding: '18px', background: 'var(--sanctuary-primary)', color: '#fff', width: '100%', borderRadius: 12, fontWeight: 900 }} onClick={handleFinalSubmit}>
-                    ✅ Save Admission Record
-                  </button>
-                  <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.9, color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={handleClear}>🗑️ Clear Records</button>
               </div>
 
               <div className={styles.summaryCard} style={{ marginTop: 12 }}>
@@ -666,8 +694,21 @@ export default function AdmissionRecordRedesign() {
               </div>
 
               <div className={styles.summaryCard}>
-                 <div className={styles.cardHeader}><div className={styles.cardTitle}>📝 History of Present Illness (HPI)</div><div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} /></div>
-                 <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
+                 <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>📝 History of Present Illness (HPI)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                       <div className={`${styles.statusDot} ${getStatus(summary.hpi)}`} />
+                       <button 
+                          className={styles.btnToggleSection} 
+                          onClick={() => setCollapsed(prev => ({ ...prev, hpi: !collapsed.hpi }))}
+                        >
+                          {collapsed.hpi ? 'Expand' : 'Collapse'}
+                       </button>
+                    </div>
+                 </div>
+                 {!collapsed.hpi && (
+                   <textarea value={summary.hpi || ''} onChange={e => updateField('hpi', e.target.value)} placeholder="Elaborate on the patient's symptoms..." style={{width: '100%', minHeight: 80, border: 'none', resize: 'vertical', background: '#f8fafc', padding: 12, borderRadius: 8, outline: 'none', fontSize: 14}}></textarea>
+                 )}
               </div>
 
               <div className={styles.summaryCard} style={{ borderLeft: '4px solid #ef4444' }}>
@@ -676,6 +717,11 @@ export default function AdmissionRecordRedesign() {
                     <div className={`${styles.statusDot} ${getStatus(summary.vitals)}`} />
                  </div>
                  <input className={styles.bulletInput} value={summary.vitals || ''} onChange={e => updateField('vitals', e.target.value)} placeholder="BP: 120/80, Pulse: 72, SPO2: 98%, Temp: 98.6..." />
+                 {getVitalsAlerts(summary.vitals).map((alert, idx) => (
+                    <div key={idx} className={`${styles.clinicalAlert} ${alert.type === 'critical' ? styles.criticalAlert : ''}`}>
+                       {alert.label}
+                    </div>
+                 ))}
               </div>
 
               <div className={styles.summaryCard} style={{ borderLeft: '4px solid #8b5cf6' }}>
@@ -701,6 +747,18 @@ export default function AdmissionRecordRedesign() {
             </section>
           </div>
         </main>
+        
+        {/* --- Sticky Bottom Action Bar --- */}
+        <div className={styles.stickyBar}>
+           <div className={styles.stickyBarInner}>
+              <button className={styles.btnClearSticky} onClick={handleClear}>
+                🗑️ Clear Records
+              </button>
+              <button className={styles.btnSaveSticky} onClick={handleFinalSubmit}>
+                ✅ Save Admission Record
+              </button>
+           </div>
+        </div>
       </div>
     </>
   );

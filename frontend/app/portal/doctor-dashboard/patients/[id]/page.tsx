@@ -216,11 +216,18 @@ export default function PatientHub({ params }: { params: Promise<{ id: string }>
                      {admissions[0].severity || 'Mild'}
                   </span>
                </div>
-               {admissions[0].vitals && (
-                  <div className={styles.profileItem} style={{ gridColumn: 'span 2', marginTop: 8, padding: '8px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', color: '#991b1b' }}>
-                     <strong>❤️ Baseline Vitals:</strong> {admissions[0].vitals}
-                  </div>
-               )}
+                {admissions[0].vitals && (
+                   <div className={styles.profileItem} style={{ gridColumn: 'span 2', marginTop: 8, padding: '8px 12px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', color: '#991b1b' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span><strong>❤️ Baseline Vitals:</strong> {admissions[0].vitals}</span>
+                         <div style={{ display: 'flex', gap: 8 }}>
+                            {admissions[0].allergies && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 900 }}>🔴 ALLERGIES</span>}
+                            {admissions[0].vitals.match(/Temp:\s*(\d+\.?\d*)/i)?.[1] > 101 && <span style={{ background: '#f59e0b', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 900 }}>⚠️ FEVER</span>}
+                            {admissions[0].vitals.match(/SPO2:\s*(\d+)/i)?.[1] < 94 && <span style={{ background: '#dc2626', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 900 }}>🚨 LOW SPO2</span>}
+                         </div>
+                      </div>
+                   </div>
+                )}
             </div>
             {admissions[0].attachments && admissions[0].attachments.length > 0 && (
                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
