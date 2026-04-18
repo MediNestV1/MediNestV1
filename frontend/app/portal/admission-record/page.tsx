@@ -9,6 +9,11 @@ import { API_BASE_URL, authenticatedFetch } from '@/lib/api';
 import styles from './page.module.css';
 
 // Types
+interface Investigation {
+  name: string;
+  status: 'Pending' | 'Completed';
+}
+
 interface SummaryData {
   patientName: string; phone: string; age: string; sex: string; doctor: string; ward: string; bed: string; department: string; date_admission: string; 
   severity: string; admission_type: string;
@@ -25,7 +30,8 @@ interface SummaryData {
   hpi: string;
   findings: string[]; 
   diagnosis: string;
-  investigations: string[]; 
+  diagnosis: string;
+  investigations: Investigation[]; 
   treatment_plan: string[]; 
 }
 
@@ -94,6 +100,79 @@ const ChipInputEditor = ({ items, updateField, field, placeholder }: any) => {
       <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Press ENTER to add tag • BACKSPACE to remove
       </div>
+    </div>
+  );
+};
+
+const InvestigationEditor = ({ items, updateField, field }: any) => {
+  const COMMON_TESTS = ["CBC", "LFT", "KFT", "Lipid Profile", "Thyroid Profile", "HbA1c", "Urine Routine", "X-ray Chest", "USG Abdomen", "CT Scan", "ECG", "ECHO"];
+  const [selected, setSelected] = useState('');
+
+  const addTest = (name: string) => {
+    if (!name) return;
+    updateField(field, [...items, { name, status: 'Pending' }]);
+    setSelected('');
+  };
+
+  const toggleStatus = (idx: number) => {
+    const next = [...items];
+    next[idx].status = next[idx].status === 'Pending' ? 'Completed' : 'Pending';
+    updateField(field, next);
+  };
+
+  const removeTest = (idx: number) => {
+    const next = [...items];
+    next.splice(idx, 1);
+    updateField(field, next);
+  };
+
+  return (
+    <div className={styles.bulletListContainer} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: '24px' }}>
+      <div className={styles.testList}>
+        {items.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>No investigations added yet.</div>
+        ) : (
+          items.map((test: Investigation, idx: number) => (
+            <div key={idx} className={styles.testRow}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>{test.name}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button 
+                  className={`${styles.statusBadge} ${test.status === 'Pending' ? styles.statusPending : styles.statusCompleted}`}
+                  onClick={() => toggleStatus(idx)}
+                >
+                  {test.status}
+                </button>
+                <button style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removeTest(idx)}>
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className={styles.testSelector}>
+        <select className={styles.investigDropDown} value={selected} onChange={e => setSelected(e.target.value)}>
+          <option value="">+ Quick Add Test...</option>
+          {COMMON_TESTS.filter(t => !items.find((it: any) => it.name === t)).map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+          <option value="CUSTOM">OTHER (Manual Entry)</option>
+        </select>
+        <button className={styles.btnSaveBack} style={{ width: 'auto', padding: '0 20px' }} onClick={() => addTest(selected)}>
+          Add Test
+        </button>
+      </div>
+      
+      {selected === 'CUSTOM' && (
+        <div style={{ marginTop: 12 }}>
+          <input className={styles.bulletInput} placeholder="Type custom investigation name..." onKeyDown={e => {
+            if (e.key === 'Enter') addTest((e.target as HTMLInputElement).value);
+          }} />
+        </div>
+      )}
     </div>
   );
 };
@@ -265,20 +344,11 @@ export default function AdmissionRecordRedesign() {
           vitals_bp_dia: draft.vitals_bp_dia || '',
           vitals_pulse: draft.vitals_pulse || '',
           vitals_temp: draft.vitals_temp || '',
-          vitals_spo2: draft.vitals_spo2 || ''
-        }));
-      } catch (e) {
-        console.error('Failed to parse draft', e);
-      }
-    } else {
-      // Defaulting logic for new records
-      if (docNameParam) {
-        setSummary(prev => ({ ...prev, doctor: docNameParam }));
-      } else if (doctors && doctors.length > 0) {
-        setSummary(prev => ({ ...prev, doctor: doctors[0].name }));
-      }
-    }
-  }, [docNameParam, doctors]);
+          diagnosis: draft.diagnosis || '',
+          investigations: Array.isArray(draft.investigations) 
+            ? draft.investigations.map((inv: any) => typeof inv === 'string' ? { name: inv, status: 'Pending' } : inv)
+            : [],
+          hpi: draft.hpi || '',
 
   const saveDraft = useCallback((data: SummaryData) => {
     localStorage.setItem('admission_draft', JSON.stringify(data));
@@ -596,6 +666,15 @@ export default function AdmissionRecordRedesign() {
                     <div key={i} className={styles.chip}>{it}</div>
                   ))}
                </div>
+            ) : field === 'investigations' && items.length > 0 ? (
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {items.map((inv: any, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#f8fafc', borderRadius: 8 }}>
+                       <span style={{ fontSize: 13, fontWeight: 700 }}>{inv.name}</span>
+                       <span className={`${styles.statusBadge} ${inv.status === 'Pending' ? styles.statusPending : styles.statusCompleted}`} style={{ fontSize: 9 }}>{inv.status}</span>
+                    </div>
+                  ))}
+               </div>
             ) : (
                value || <span className={styles.emptyPlaceholder}>{placeholder}</span>
             )}
@@ -608,7 +687,7 @@ export default function AdmissionRecordRedesign() {
   const renderFocusEditor = () => {
     if (!activeSection) return null;
     const field = activeSection as keyof SummaryData;
-    const items = summary[field] as string[];
+    const items = summary[field] as any[];
     const label = activeSection.charAt(0).toUpperCase() + activeSection.slice(1).replace('_', ' ');
     const isLastSection = SECTION_SEQUENCE.indexOf(activeSection) === SECTION_SEQUENCE.length - 1;
 
@@ -642,6 +721,8 @@ export default function AdmissionRecordRedesign() {
               <div className={styles.editorCard}>
                  {activeSection === 'complaints' || activeSection === 'findings' ? (
                     <ChipInputEditor field={field} items={items} updateField={updateField} placeholder={`Enter ${label.toLowerCase()}...`} />
+                 ) : activeSection === 'investigations' ? (
+                    <InvestigationEditor field={field} items={items} updateField={updateField} />
                  ) : (
                     <BulletListEditor field={field} items={items.length === 0 ? [""] : items} placeholder={`Enter patient ${label} point...`} updateField={updateField} autoSaveStatus={autoSaveStatus} setAutoSaveStatus={setAutoSaveStatus} suggestTimer={suggestTimer} activeSuggestion={activeSuggestion} setActiveSuggestion={setActiveSuggestion} fetchSmartSuggestion={fetchSmartSuggestion} />
                  )}

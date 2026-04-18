@@ -169,27 +169,36 @@ export default function AdmissionRecordView() {
                         ))}
                       </div>
                     </div>
-                   <div className={styles.previewSection}>
-                     <h4>Investigations Advised</h4>
-                     <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.investigations) && record.investigations.map((inv: string, i: number) => <li key={i}>{inv}</li>)}</ul>
-                   </div>
-                   <div className={styles.previewSection}>
-                     <h4>💊 Initial Treatment Plan</h4>
-                     <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.treatment_plan) && record.treatment_plan.map((t: string, i: number) => <li key={i}>{t}</li>)}</ul>
-                   </div>
-                    {record.attachments && record.attachments.length > 0 && (
-                      <div className={styles.previewSection} style={{ marginTop: 32, borderTop: '2.5px solid #000', paddingTop: 16 }}>
-                         <h4 style={{ color: '#000' }}>📎 ATTACHED DOCUMENTS</h4>
-                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-                            {record.attachments.map((file: any, i: number) => (
-                              <div key={i} style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ddd', paddingBottom: 4 }}>
-                                 <span>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                 <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 800 }}>VIEW DOCUMENT</a>
-                              </div>
-                            ))}
-                         </div>
+                    <div className={styles.previewSection}>
+                      <h4>Investigations Advised</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                        {Array.isArray(record.investigations) && record.investigations.map((inv: any, i: number) => (
+                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700 }}>{typeof inv === 'string' ? inv : inv.name}</span>
+                              <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: (inv.status === 'Completed' ? '#059669' : '#b45309') }}>
+                                 {inv.status === 'Completed' ? '✅ COMPLETED' : '⭕ PENDING'}
+                              </span>
+                           </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                    <div className={styles.previewSection}>
+                      <h4>💊 Initial Treatment Plan</h4>
+                      <ul style={{ paddingLeft: 20 }}>{Array.isArray(record.treatment_plan) && record.treatment_plan.map((t: string, i: number) => <li key={i}>{t}</li>)}</ul>
+                    </div>
+                     {record.attachments && record.attachments.length > 0 && (
+                       <div className={styles.previewSection} style={{ marginTop: 32, borderTop: '2.5px solid #000', paddingTop: 16 }}>
+                          <h4 style={{ color: '#000' }}>📎 ATTACHED DOCUMENTS</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                             {record.attachments.map((file: any, i: number) => (
+                               <div key={i} style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ddd', paddingBottom: 4 }}>
+                                  <span>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                  <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 800 }}>VIEW DOCUMENT</a>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                     )}
                  </td>
                </tr>
              </tbody>
