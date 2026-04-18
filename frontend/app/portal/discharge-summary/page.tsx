@@ -374,6 +374,17 @@ export default function DischargeSummaryRedesign() {
     }
   };
 
+  const handlePreviousSection = () => {
+    if (!activeSection) return;
+    const currentIndex = SECTION_SEQUENCE.indexOf(activeSection);
+    if (currentIndex > 0) {
+      const prevSection = SECTION_SEQUENCE[currentIndex - 1];
+      showToast(`${activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} saved`);
+      setActiveSection(null);
+      setTimeout(() => setActiveSection(prevSection), 10);
+    }
+  };
+
 
   const handleFinalSubmit = async () => {
     if (!summary.patientName) return alert('Patient Name is required');
@@ -474,6 +485,18 @@ export default function DischargeSummaryRedesign() {
     }
   };
 
+  const handleClear = () => {
+    if (confirm('Are you sure you want to clear all records? This will delete the current draft.')) {
+      setSummary({
+        patientName: '', phone: '', age: '', sex: 'Male', regNo: '', doa: '', dod: '', doctor: '', 
+        diagnosis: '', complaints: [], findings: [], treatment: [], advice: [], medicines: []
+      });
+      localStorage.removeItem('discharge_summary_draft');
+      setLastSaved(null);
+      showToast('Records cleared');
+    }
+  };
+
   const getStatus = (val: any) => {
     if (!val) return styles.dotRed;
     if (Array.isArray(val)) {
@@ -552,7 +575,16 @@ export default function DischargeSummaryRedesign() {
                     setActiveSuggestion={setActiveSuggestion}
                     fetchSmartSuggestion={fetchSmartSuggestion}
                  />
-                 <div className={styles.cardFooter}>
+                 <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: SECTION_SEQUENCE.indexOf(activeSection) > 0 ? 'space-between' : 'flex-end', width: '100%' }}>
+                    {SECTION_SEQUENCE.indexOf(activeSection) > 0 && (
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '12px 18px', fontSize: 13, fontWeight: 700, borderRadius: 12 }} 
+                        onClick={handlePreviousSection}
+                      >
+                         ← Previous Section
+                      </button>
+                    )}
                     <button className={styles.btnSaveBack} onClick={handleSaveAndNext}>
                       {isLastSection ? 'Save & Finish Summary' : `Save & Next Section`}
                     </button>
@@ -804,7 +836,7 @@ export default function DischargeSummaryRedesign() {
                   <button className={`${styles.btnAction} btn-primary`} style={{ padding: '18px', background: 'var(--sanctuary-primary)', color: '#fff' }} onClick={() => router.push('/portal/discharge-summary/view')}>
                     👁 View & Print Discharge Summary
                   </button>
-                  <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.7 }} onClick={() => localStorage.removeItem('discharge_summary_draft')}>Clear Clinical Draft</button>
+                  <button className="btn-secondary" style={{ width: '100%', marginTop: 12, opacity: 0.9, color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }} onClick={handleClear}>🗑️ Clear Records</button>
                </div>
             </section>
           </div>
