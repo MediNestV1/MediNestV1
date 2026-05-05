@@ -1,0 +1,354 @@
+.topBar {
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(250, 245, 245, 0.9);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  gap: 16px;
+}
+
+.searchWrapper {
+  position: relative;
+  width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sanctuary-ink-l);
+  font-size: 20px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
+  border-radius: 30px;
+  background-color: var(--sanctuary-gray-low);
+  border: 1px solid transparent;
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.searchInput:focus {
+  background-color: #fff;
+  border-color: var(--sanctuary-primary);
+  box-shadow: 0 4px 12px rgba(23, 3, 55, 0.05);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  color: var(--sanctuary-ink-l);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBtn:hover {
+  background-color: var(--sanctuary-gray-low);
+  color: var(--sanctuary-primary);
+}
+
+.divider {
+  width: 1px;
+  height: 32px;
+  background-color: rgba(23, 3, 55, 0.1);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.profile:hover {
+  background-color: var(--sanctuary-gray-low);
+  transform: translateY(-1px);
+}
+
+.profile:active {
+  transform: translateY(0);
+}
+
+
+.profileInfo {
+  text-align: right;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  line-height: 1;
+}
+
+.userRole {
+  font-size: 10px;
+  color: var(--sanctuary-ink-l);
+  margin-top: 2px;
+}
+
+.avatarPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--sanctuary-lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sanctuary-primary);
+  border: 2px solid #fff;
+  box-shadow: 0 4px 8px rgba(23, 3, 55, 0.05);
+}
+
+/* Hamburger button */
+.menuBtn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sanctuary-primary);
+  padding: 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.menuBtn:hover {
+  background: rgba(23, 3, 55, 0.06);
+}
+
+@media (max-width: 1024px) {
+  .menuBtn { display: flex; align-items: center; justify-content: center; }
+  .searchWrapper { display: none; }
+  .topBar { padding: 14px 16px; gap: 12px; }
+  .iconGroup { gap: 4px; }
+}
+
+@media (max-width: 640px) {
+  .profileInfo { display: none; }
+  .divider { display: none; }
+  .actions { gap: 12px; }
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(23, 3, 55, 0.15);
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  overflow: hidden;
+  z-index: 100;
+  max-height: 400px;
+  overflow-y: auto;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  text-decoration: none;
+  color: inherit;
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover {
+  background-color: var(--sanctuary-gray-low);
+}
+
+.resAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--sanctuary-lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  flex-shrink: 0;
+}
+
+.resInfo {
+  flex: 1;
+}
+
+.resName {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+  margin: 0;
+}
+
+.resDetails {
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  margin-top: 2px;
+}
+
+.noResults {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--sanctuary-ink-l);
+  font-size: 13px;
+}
+
+.iconGroup {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+
+.notifContainer {
+  position: relative;
+}
+
+.notifBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+}
+
+.notifDropdown {
+  position: absolute;
+  top: calc(100% + 16px);
+  right: -80px;
+  width: 320px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 45px rgba(23, 3, 55, 0.16);
+  border: 1px solid rgba(23, 3, 55, 0.05);
+  overflow: hidden;
+  z-index: 100;
+  animation: slideDown 0.3s ease-out;
+}
+
+.notifHeader {
+  padding: 20px;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notifHeader h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--sanctuary-primary);
+}
+
+.notifHeader span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sanctuary-ink-l);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notifList {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notifItem {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(23, 3, 55, 0.03);
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.notifItem:last-child {
+  border-bottom: none;
+}
+
+.notifItem:hover {
+  background-color: var(--sanctuary-gray-low);
+}
+
+.notifIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notifText h5 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sanctuary-primary);
+}
+
+.notifText p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--sanctuary-ink-l);
+  line-height: 1.4;
+}
+
+.notifTime {
+  margin-top: 6px !important;
+  font-size: 10px !important;
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .notifDropdown {
+    position: fixed;
+    top: 70px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
